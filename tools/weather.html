@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>天气查询 - 在线工具</title>
+    <link rel="stylesheet" href="../style.css">
+    <style>
+        .weather-container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .search-box {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .search-box input {
+            flex: 1;
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 2rem;
+            outline: none;
+        }
+        .weather-card {
+            background: var(--card);
+            border-radius: 1.5rem;
+            padding: 1.5rem;
+            margin-top: 1rem;
+            border: 1px solid var(--border);
+        }
+        .city-name {
+            font-size: 1.8rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+        .temp {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: var(--primary);
+        }
+        .details {
+            margin-top: 1rem;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+        }
+        .forecast {
+            margin-top: 1.5rem;
+            border-top: 1px solid var(--border);
+            padding-top: 1rem;
+        }
+        .forecast-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+        }
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-light);
+        }
+        .error {
+            color: #ef4444;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <nav>
+        <a href="../">🏠 首页</a>
+        <a href="../blog/">📝 博客</a>
+        <a href="index.html">🛠️ 工具</a>
+    </nav>
+
+    <div style="margin-bottom: 1rem;">
+        <h1>🌤️ 天气查询</h1>
+        <p>输入城市名（拼音或英文），获取实时天气和未来3天预报</p>
+    </div>
+
+    <div class="weather-container">
+        <div class="search-box">
+            <input type="text" id="cityInput" placeholder="例如：Beijing, Shanghai, New York" autocomplete="off">
+            <button class="btn" id="searchBtn">查询</button>
+        </div>
+        <div id="weatherResult"></div>
+    </div>
+
+    <div style="margin-top: 2rem; text-align: center;">
+        <a href="index.html" class="btn">← 返回工具集</a>
+    </div>
+</div>
+
+<script>
+    const searchBtn = document.getElementById('searchBtn');
+    const cityInput = document.getElementById('cityInput');
+    const resultDiv = document.getElementById('weatherResult');
+
+    // 通过城市名获取坐标 (使用 Open-Meteo Geocoding API)
+    async function getCoordinates(city) {
+        const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=zh&format=json`;
+        const resp = await fetch(url);
+        const data = await resp.json();
+        if (data.results && data.results.length > 0) {
+            const result = data.results[0];
+            return { lat: result.latitude, lon: result.longitude, name: result.name, country: result.country };
+        }
+        return null;
+    }
+
+    // 获取天气
+    async function getWeather(lat, lon) {
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&daily=temperature_2m_max,temperature_2m_min,weathercode&timezone=auto&forecast_days=3`;
+        const resp = await fetch(url);
+        const data = await resp.json();
+        return data;
+    }
+
+    // 天气代码映射 (WMO 标准)
+    function getWeatherDesc(code) {
+        const codes = {
+            0: "☀️ 晴朗",
+            1: "🌤️ 大致晴朗",
+            2: "⛅ 部分多云",
+            3: "☁️ 阴天",
+            45: "🌫️ 雾",
+            51: "🌦️ 毛毛雨",
+            61: "🌧️ 雨",
+            71: "❄️ 雪",
+            80: "🌦️ 阵雨"
+        };
+        return codes[code] || "🌡️ 未知";
+    }
+
+    function displayWeather(cityInfo, weatherData) {
+        const current = weatherData.current_weather;
+        const daily = weatherData.daily;
+        const temp = current.temperature;
+        const wind = current.windspeed;
+        const weatherCode = current.weathercode;
+        const desc = getWeatherDesc(weatherCode);
+
+        let forecastHtml = '';
+        for (let i = 0; i < daily.time.length; i++) {
+            const date = daily.time[i];
+            const max = daily.temperature_2m_max[i];
+            const min = daily.temperature_2m_min[i];
+            const code = daily.weathercode[i];
+            forecastHtml += `
+                <div class="forecast-item">
+                    <span>${date}</span>
+                    <span>${getWeatherDesc(code)}</span>
+                    <span>${min}° / ${max}°</span>
+                </div>
+            `;
+        }
+
+        resultDiv.innerHTML = `
+            <div class="weather-card">
+                <div class="city-name">${cityInfo.name}, ${cityInfo.country}</div>
+                <div class="temp">${temp}°C</div>
+                <div>${desc} · 风速 ${wind} km/h</div>
+                <div class="forecast">
+                    <strong>未来三天预报</strong>
+                    ${forecastHtml}
+                </div>
+            </div>
+        `;
+    }
+
+    async function searchWeather() {
+        const city = cityInput.value.trim();
+        if (!city) {
+            resultDiv.innerHTML = '<div class="error">请输入城市名</div>';
+            return;
+        }
+        resultDiv.innerHTML = '<div class="loading">⏳ 查询中...</div>';
+        try {
+            const coords = await getCoordinates(city);
+            if (!coords) {
+                resultDiv.innerHTML = '<div class="error">未找到该城市，请尝试拼音或英文名</div>';
+                return;
+            }
+            const weather = await getWeather(coords.lat, coords.lon);
+            displayWeather(coords, weather);
+        } catch (err) {
+            resultDiv.innerHTML = '<div class="error">查询失败，请稍后重试</div>';
+            console.error(err);
+        }
+    }
+
+    searchBtn.addEventListener('click', searchWeather);
+    cityInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') searchWeather();
+    });
+</script>
+</body>
+</html>
