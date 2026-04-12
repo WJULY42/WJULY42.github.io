@@ -1,0 +1,12 @@
+{
+  "posts": [
+    {
+      "id": "2026-01-01-hello-world",
+      "title": "Hello World，我的博客开张了",
+      "date": "2026-01-01",
+      "excerpt": "第一篇博客，介绍一下我为什么要写博客，以及这个网站能做什么……",
+      "url": "blog/posts/2026-01-01-hello-world.html"
+    }
+    // 以后新增文章，在这里加一条记录
+  ]
+}
