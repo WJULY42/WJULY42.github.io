@@ -4,25 +4,37 @@
       "emoji": "🧮",
       "name": "计算器",
       "desc": "简单好用的四则运算，支持键盘",
-      "url": "calculator.html"
+      "url": "tools/calculator.html"
     },
     {
       "emoji": "✅",
       "name": "待办清单",
       "desc": "记录每日任务，自动保存到浏览器",
-      "url": "todo.html"
+      "url": "tools/todo.html"
     },
     {
       "emoji": "🐍",
       "name": "贪吃蛇",
       "desc": "经典怀旧小游戏，键盘/触摸控制",
-      "url": "snake.html"
+      "url": "tools/snake.html"
     },
     {
       "emoji": "💣",
       "name": "扫雷",
       "desc": "经典逻辑扫雷游戏",
-      "url": "minesweeper.html"
+      "url": "tools/minesweeper.html"
+    },
+    {
+      "emoji": "🍅",
+      "name": "番茄时钟",
+      "desc": "25分钟专注，提高效率",
+      "url": "tools/tomato.html"
+    },
+    {
+      "emoji": "🌤️",
+      "name": "天气查询",
+      "desc": "全球城市天气，未来三天预报",
+      "url": "tools/weather.html"
     }
   ]
 }
