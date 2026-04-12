@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>贪吃蛇 - 小游戏</title>
+    <title>贪吃蛇 - 在线工具</title>
     <link rel="stylesheet" href="../style.css">
     <style>
         .game-container {
@@ -135,10 +135,9 @@
     document.getElementById('highScore').innerText = highScore;
 
     function draw() {
-        // 背景
         ctx.fillStyle = '#0f172a';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-        // 绘制网格线（浅色）
+        // 网格线
         ctx.strokeStyle = '#334155';
         ctx.lineWidth = 0.5;
         for (let i = 0; i <= 20; i++) {
@@ -150,11 +149,10 @@
             ctx.lineTo(canvas.width, i * box);
             ctx.stroke();
         }
-        // 画食物
+        // 食物
         ctx.fillStyle = '#ef4444';
-        ctx.shadowBlur = 0;
         ctx.fillRect(food.x * box, food.y * box, box-1, box-1);
-        // 画蛇
+        // 蛇
         for (let i = 0; i < snake.length; i++) {
             const gradient = ctx.createLinearGradient(snake[i].x * box, snake[i].y * box, snake[i].x * box + box, snake[i].y * box + box);
             if (i === 0) {
@@ -166,7 +164,7 @@
             }
             ctx.fillStyle = gradient;
             ctx.fillRect(snake[i].x * box, snake[i].y * box, box-1, box-1);
-            // 眼睛
+            // 蛇眼睛
             if (i === 0) {
                 ctx.fillStyle = '#ffffff';
                 let eyeX = (direction === 'RIGHT') ? snake[i].x * box + box - 5 : (direction === 'LEFT') ? snake[i].x * box + 3 : snake[i].x * box + box - 5;
@@ -178,43 +176,9 @@
         }
     }
 
-    function move() {
-        if (isPaused || !gameRunning) return;
-        direction = nextDirection;
-        let head = {...snake[0]};
-        if (direction === 'RIGHT') head.x++;
-        if (direction === 'LEFT') head.x--;
-        if (direction === 'UP') head.y--;
-        if (direction === 'DOWN') head.y++;
-
-        // 检查是否吃到食物
-        let ate = (head.x === food.x && head.y === food.y);
-        if (ate) {
-            score++;
-            document.getElementById('currentScore').innerText = score;
-            if (score > highScore) {
-                highScore = score;
-                localStorage.setItem('snakeHighScore', highScore);
-                document.getElementById('highScore').innerText = highScore;
-            }
-            snake.unshift(head);
-            generateFood();
-        } else {
-            snake.unshift(head);
-            snake.pop();
-        }
-
-        // 碰撞检测
-        if (head.x < 0 || head.x >= 20 || head.y < 0 || head.y >= 20 || collision(head)) {
-            gameOver();
-            return;
-        }
-
-        draw();
-    }
-
+    // ✅ 修复：碰撞检测时跳过蛇头自身（从索引1开始比较）
     function collision(head) {
-        for (let i = 0; i < snake.length; i++) {
+        for (let i = 1; i < snake.length; i++) {
             if (head.x === snake[i].x && head.y === snake[i].y) {
                 return true;
             }
@@ -233,6 +197,39 @@
         food = newFood;
     }
 
+    function move() {
+        if (isPaused || !gameRunning) return;
+        direction = nextDirection;
+        let head = {...snake[0]};
+        if (direction === 'RIGHT') head.x++;
+        if (direction === 'LEFT') head.x--;
+        if (direction === 'UP') head.y--;
+        if (direction === 'DOWN') head.y++;
+
+        const ate = (head.x === food.x && head.y === food.y);
+        if (ate) {
+            score++;
+            document.getElementById('currentScore').innerText = score;
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('snakeHighScore', highScore);
+                document.getElementById('highScore').innerText = highScore;
+            }
+            snake.unshift(head);
+            generateFood();
+        } else {
+            snake.unshift(head);
+            snake.pop();
+        }
+
+        // 碰撞检测（边界 或 撞自身）
+        if (head.x < 0 || head.x >= 20 || head.y < 0 || head.y >= 20 || collision(head)) {
+            gameOver();
+            return;
+        }
+        draw();
+    }
+
     function gameOver() {
         if (!gameRunning) return;
         gameRunning = false;
@@ -245,7 +242,7 @@
     }
 
     function resetGame() {
-        // 重置变量
+        // 重置状态
         snake = [{x: 10, y: 10}];
         direction = 'RIGHT';
         nextDirection = 'RIGHT';
@@ -256,9 +253,9 @@
         document.getElementById('gameStatus').innerHTML = '▶ 游戏中';
         document.getElementById('gameStatus').style.color = '';
         document.getElementById('pauseBtn').innerText = '⏸️ 暂停';
-        // 生成不重叠的食物
+        // 确保食物不生成在蛇身上
         generateFood();
-        // 避免食物生成在蛇头
+        // 极低概率下如果食物正好在蛇头，再生成一次
         while (food.x === snake[0].x && food.y === snake[0].y) {
             generateFood();
         }
@@ -278,7 +275,7 @@
         } else {
             statusText.innerHTML = '▶ 游戏中';
             pauseBtn.innerText = '⏸️ 暂停';
-            move(); // 立即刷新一帧
+            move(); // 恢复时立即刷新一帧
         }
     }
 
@@ -293,7 +290,7 @@
         e.preventDefault();
     });
 
-    // 触摸按钮控制（移动端）
+    // 移动端按钮
     document.querySelectorAll('.dir-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             if (!gameRunning || isPaused) return;
@@ -308,7 +305,7 @@
     document.getElementById('restartBtn').addEventListener('click', resetGame);
     document.getElementById('pauseBtn').addEventListener('click', togglePause);
 
-    // 初始化
+    // 启动游戏
     generateFood();
     draw();
     gameLoop = setInterval(() => move(), 130);
