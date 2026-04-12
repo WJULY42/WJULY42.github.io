@@ -3,11 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>在线工具</title>
+    <title>在线工具 - LAN</title>
     <link rel="stylesheet" href="../style.css">
-    <style>
-        /* 保持与全局风格一致，工具网格已在全局 style.css 中定义，无需额外 */
-    </style>
 </head>
 <body>
 <div class="container">
@@ -30,53 +27,29 @@
 </div>
 
 <script>
-    // 工具数据：以后添加新工具只需要在这里增加一项
-    const toolsData = [
-        {
-            emoji: "🧮",
-            name: "计算器",
-            desc: "简单好用的四则运算",
-            url: "calculator.html"
-        },
-        {
-            emoji: "✅",
-            name: "待办清单",
-            desc: "记录每日任务，自动保存",
-            url: "todo.html"
-        },
-        {
-            emoji: "🐍",
-            name: "贪吃蛇",
-            desc: "经典怀旧小游戏",
-            url: "snake.html"
-        },
-        {
-            emoji: "💣",
-            name: "扫雷",
-            desc: "经典逻辑扫雷游戏",
-            url: "minesweeper.html"
+    async function loadTools() {
+        try {
+            const response = await fetch('../data/tools.json');
+            const data = await response.json();
+            const tools = data.tools;
+            const grid = document.getElementById('toolsGrid');
+            grid.innerHTML = '';
+            tools.forEach(tool => {
+                const card = document.createElement('a');
+                card.className = 'tool-card';
+                card.href = tool.url;
+                card.innerHTML = `
+                    <div class="tool-emoji">${tool.emoji}</div>
+                    <div class="tool-name">${tool.name}</div>
+                    <div class="tool-desc">${tool.desc}</div>
+                `;
+                grid.appendChild(card);
+            });
+        } catch (err) {
+            document.getElementById('toolsGrid').innerHTML = '<p>工具加载失败</p>';
         }
-    ];
-
-    const gridContainer = document.getElementById('toolsGrid');
-
-    function renderTools() {
-        if (!gridContainer) return;
-        gridContainer.innerHTML = '';
-        toolsData.forEach(tool => {
-            const card = document.createElement('a');
-            card.className = 'tool-card';
-            card.href = tool.url;
-            card.innerHTML = `
-                <div class="tool-emoji">${tool.emoji}</div>
-                <div class="tool-name">${tool.name}</div>
-                <div class="tool-desc">${tool.desc}</div>
-            `;
-            gridContainer.appendChild(card);
-        });
     }
-
-    renderTools();
+    loadTools();
 </script>
 </body>
 </html>
