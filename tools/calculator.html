@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>计算器 - 在线工具</title>
+    <style>
+        body { font-family: monospace; max-width: 300px; margin: 2rem auto; text-align: center; }
+        input, button { font-size: 1.2rem; margin: 0.2rem; }
+        #result { font-size: 1.5rem; margin-top: 1rem; }
+    </style>
+</head>
+<body>
+    <h2>简易计算器</h2>
+    <input type="number" id="a" placeholder="数字1">
+    <input type="number" id="b" placeholder="数字2">
+    <br>
+    <button onclick="calc('+')">+</button>
+    <button onclick="calc('-')">-</button>
+    <button onclick="calc('*')">×</button>
+    <button onclick="calc('/')">÷</button>
+    <div id="result">= ?</div>
+    <p><a href="index.html">← 返回工具集</a></p>
+
+    <script>
+        function calc(op) {
+            let a = parseFloat(document.getElementById('a').value);
+            let b = parseFloat(document.getElementById('b').value);
+            let r;
+            if (isNaN(a) || isNaN(b)) {
+                r = "请输入数字";
+            } else {
+                if (op === '+') r = a + b;
+                else if (op === '-') r = a - b;
+                else if (op === '*') r = a * b;
+                else if (op === '/') r = a / b;
+            }
+            document.getElementById('result').innerHTML = "= " + r;
+        }
+    </script>
+</body>
+</html>
