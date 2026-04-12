@@ -1,27 +1,42 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 <head>
-    <meta charset="utf-8">
-    <title>在线工具集 - 我的网站</title>
-    <style>
-        body { font-family: sans-serif; max-width: 800px; margin: 0 auto; padding: 2rem; }
-        .tool { margin: 1rem 0; }
-        a { font-size: 1.2rem; }
-    </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>在线工具</title>
+    <link rel="stylesheet" href="../style.css">
 </head>
 <body>
-    <h1>🛠️ 在线工具 / 小游戏</h1>
-    <p><a href="../">← 返回首页</a></p>
+    <div class="container">
+        <nav>
+            <a href="../">🏠 首页</a>
+            <a href="../blog/">📝 博客</a>
+            <a href="index.html">🛠️ 工具</a>
+        </nav>
 
-    <div class="tool">
-        <a href="calculator.html">🧮 计算器</a>
+        <div class="card">
+            <h1>🛠️ 在线工具 & 小游戏</h1>
+            <p>免费使用，无需安装，全部运行在浏览器中。</p>
+        </div>
+
+        <div class="tools-grid">
+            <a href="calculator.html" class="tool-card">
+                <div class="tool-emoji">🧮</div>
+                <div class="tool-name">计算器</div>
+                <div class="tool-desc">简单好用的四则运算</div>
+            </a>
+            <a href="todo.html" class="tool-card">
+                <div class="tool-emoji">✅</div>
+                <div class="tool-name">待办清单</div>
+                <div class="tool-desc">记录每日任务</div>
+            </a>
+            <a href="snake.html" class="tool-card">
+                <div class="tool-emoji">🐍</div>
+                <div class="tool-name">贪吃蛇</div>
+                <div class="tool-desc">经典怀旧小游戏</div>
+            </a>
+            <!-- 以后新增工具，在这里加一个 <a> 卡片 -->
+        </div>
     </div>
-    <div class="tool">
-        <a href="todo.html">✅ 待办清单</a>
-    </div>
-    <div class="tool">
-        <a href="snake.html">🐍 贪吃蛇小游戏</a>
-    </div>
-    <!-- 以后新增工具，在这里加一行 -->
 </body>
 </html>
