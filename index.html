@@ -3,32 +3,58 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>七月42 | 博客与工具</title>
+    <title>LAN | 博客与工具</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container">
-        <nav>
-            <a href="/">🏠 首页</a>
-            <a href="blog/">📝 博客</a>
-            <a href="tools/">🛠️ 工具</a>
-        </nav>
+<div class="container">
+    <nav>
+        <a href="/">🏠 首页</a>
+        <a href="blog/">📝 博客</a>
+        <a href="tools/">🛠️ 工具</a>
+    </nav>
 
-        <div class="card">
-            <h1>👋 Hi,world!</h1>
-            <p style="margin: 1rem 0;">这里是我写技术笔记、折腾各种小工具的地方。所有内容完全免费，欢迎随意使用。</p>
-            <a href="blog/" class="btn">📖 阅读博客</a>
-            <a href="tools/" class="btn" style="background: #475569; margin-left: 0.5rem;">🎮 试试工具</a>
-        </div>
-
-        <div class="card">
-            <h2>✨ 最近更新</h2>
-            <div class="post-item" style="border-bottom: none; padding-bottom: 0;">
-                <div class="post-title"><a href="blog/posts/2026-01-01-hello-world.html">Hello World，我的博客开张了</a></div>
-                <div class="post-meta">📅 2026年1月1日</div>
-                <div class="post-excerpt">第一篇博客，聊聊为什么要写博客，以及这个网站能做什么……</div>
-            </div>
-        </div>
+    <div class="card">
+        <h1>👋 你好，我是七月42</h1>
+        <p>这里是我写技术笔记、折腾各种小工具的地方。所有内容完全免费，欢迎随意使用。</p>
+        <a href="blog/" class="btn">📖 阅读博客</a>
+        <a href="tools/" class="btn" style="background: #475569; margin-left: 0.5rem;">🎮 试试工具</a>
     </div>
+
+    <div class="card">
+        <h2>✨ 最新文章</h2>
+        <div id="latestPosts"></div>
+    </div>
+</div>
+
+<script>
+    async function loadLatestPosts() {
+        try {
+            const response = await fetch('data/posts.json');
+            const data = await response.json();
+            const posts = data.posts;
+            // 按日期倒序排列，取最新3篇
+            const sorted = posts.sort((a,b) => new Date(b.date) - new Date(a.date));
+            const latest = sorted.slice(0, 3);
+            const container = document.getElementById('latestPosts');
+            container.innerHTML = '';
+            latest.forEach(post => {
+                const postDiv = document.createElement('div');
+                postDiv.className = 'post-item';
+                postDiv.style.borderBottom = 'none';
+                postDiv.style.paddingBottom = '0';
+                postDiv.innerHTML = `
+                    <div class="post-title"><a href="${post.url}">${post.title}</a></div>
+                    <div class="post-meta">📅 ${post.date}</div>
+                    <div class="post-excerpt">${post.excerpt}</div>
+                `;
+                container.appendChild(postDiv);
+            });
+        } catch (err) {
+            document.getElementById('latestPosts').innerHTML = '<p>暂无文章</p>';
+        }
+    }
+    loadLatestPosts();
+</script>
 </body>
 </html>
