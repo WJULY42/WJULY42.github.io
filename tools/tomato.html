@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>番茄时钟 - 在线工具</title>
+    <link rel="stylesheet" href="../style.css">
+    <style>
+        .tomato-container {
+            max-width: 500px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        .timer-display {
+            font-size: 4rem;
+            font-family: monospace;
+            background: var(--card);
+            padding: 1rem;
+            border-radius: 2rem;
+            margin: 1rem 0;
+            border: 1px solid var(--border);
+        }
+        .mode-buttons {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+        }
+        .mode-btn {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 2rem;
+            padding: 0.4rem 1rem;
+            cursor: pointer;
+        }
+        .mode-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+        .control-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+        }
+        .state-text {
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            color: var(--text-light);
+        }
+        @media (max-width: 480px) {
+            .timer-display { font-size: 2.5rem; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <nav>
+        <a href="../">🏠 首页</a>
+        <a href="../blog/">📝 博客</a>
+        <a href="index.html">🛠️ 工具</a>
+    </nav>
+
+    <div style="margin-bottom: 1rem;">
+        <h1>🍅 番茄时钟</h1>
+        <p>25分钟专注，5分钟休息。提高效率神器。</p>
+    </div>
+
+    <div class="tomato-container card">
+        <div class="mode-buttons">
+            <button class="mode-btn active" data-mode="work">🍅 工作</button>
+            <button class="mode-btn" data-mode="break">☕ 休息</button>
+        </div>
+        <div class="timer-display" id="timerDisplay">25:00</div>
+        <div class="control-buttons">
+            <button class="btn" id="startBtn">▶ 开始</button>
+            <button class="btn" id="pauseBtn" style="background:#475569;">⏸ 暂停</button>
+            <button class="btn" id="resetBtn" style="background:#6b7280;">🔄 重置</button>
+        </div>
+        <div class="state-text" id="stateText">工作模式 · 未开始</div>
+    </div>
+
+    <div style="margin-top: 2rem; text-align: center;">
+        <a href="index.html" class="btn">← 返回工具集</a>
+    </div>
+</div>
+
+<script>
+    // 时间配置（秒）
+    const WORK_TIME = 25 * 60;
+    const BREAK_TIME = 5 * 60;
+    
+    let currentMode = 'work';   // 'work' or 'break'
+    let timeLeft = WORK_TIME;
+    let timerId = null;
+    let isRunning = false;
+
+    const timerDisplay = document.getElementById('timerDisplay');
+    const stateText = document.getElementById('stateText');
+    const startBtn = document.getElementById('startBtn');
+    const pauseBtn = document.getElementById('pauseBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const modeBtns = document.querySelectorAll('.mode-btn');
+
+    function updateDisplay() {
+        const minutes = Math.floor(timeLeft / 60);
+        const seconds = timeLeft % 60;
+        timerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    }
+
+    function updateStateText() {
+        if (currentMode === 'work') {
+            stateText.textContent = isRunning ? '🍅 专注工作中...' : '工作模式 · 未开始';
+        } else {
+            stateText.textContent = isRunning ? '☕ 休息中...' : '休息模式 · 未开始';
+        }
+    }
+
+    function switchMode(mode) {
+        if (timerId) {
+            clearInterval(timerId);
+            timerId = null;
+        }
+        currentMode = mode;
+        isRunning = false;
+        if (mode === 'work') {
+            timeLeft = WORK_TIME;
+            stateText.textContent = '工作模式 · 未开始';
+        } else {
+            timeLeft = BREAK_TIME;
+            stateText.textContent = '休息模式 · 未开始';
+        }
+        updateDisplay();
+        updateStateText();
+        
+        // 更新按钮样式
+        modeBtns.forEach(btn => {
+            if (btn.dataset.mode === mode) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+    }
+
+    function tick() {
+        if (timeLeft <= 0) {
+            // 时间到，自动切换模式
+            clearInterval(timerId);
+            timerId = null;
+            isRunning = false;
+            // 播放提示音（简单蜂鸣或使用Web Audio，这里用alert代替避免权限，但推荐用无声震动）
+            if ('vibrate' in navigator) navigator.vibrate(200);
+            // 切换到另一种模式
+            const nextMode = currentMode === 'work' ? 'break' : 'work';
+            switchMode(nextMode);
+            // 自动开始新计时
+            startTimer();
+        } else {
+            timeLeft--;
+            updateDisplay();
+        }
+    }
+
+    function startTimer() {
+        if (timerId) clearInterval(timerId);
+        isRunning = true;
+        timerId = setInterval(tick, 1000);
+        updateStateText();
+    }
+
+    function pauseTimer() {
+        if (timerId) {
+            clearInterval(timerId);
+            timerId = null;
+        }
+        isRunning = false;
+        updateStateText();
+    }
+
+    function resetTimer() {
+        if (timerId) {
+            clearInterval(timerId);
+            timerId = null;
+        }
+        isRunning = false;
+        if (currentMode === 'work') timeLeft = WORK_TIME;
+        else timeLeft = BREAK_TIME;
+        updateDisplay();
+        updateStateText();
+    }
+
+    startBtn.addEventListener('click', startTimer);
+    pauseBtn.addEventListener('click', pauseTimer);
+    resetBtn.addEventListener('click', resetTimer);
+    modeBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            if (isRunning) pauseTimer();
+            switchMode(btn.dataset.mode);
+        });
+    });
+
+    // 初始化
+    updateDisplay();
+</script>
+</body>
+</html>
