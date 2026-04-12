@@ -5,38 +5,78 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>在线工具</title>
     <link rel="stylesheet" href="../style.css">
+    <style>
+        /* 保持与全局风格一致，工具网格已在全局 style.css 中定义，无需额外 */
+    </style>
 </head>
 <body>
-    <div class="container">
-        <nav>
-            <a href="../">🏠 首页</a>
-            <a href="../blog/">📝 博客</a>
-            <a href="index.html">🛠️ 工具</a>
-        </nav>
+<div class="container">
+    <nav>
+        <a href="../">🏠 首页</a>
+        <a href="../blog/">📝 博客</a>
+        <a href="index.html">🛠️ 工具</a>
+    </nav>
 
-        <div class="card">
-            <h1>🛠️ 在线工具 & 小游戏</h1>
-            <p>免费使用，无需安装，全部运行在浏览器中。</p>
-        </div>
-
-        <div class="tools-grid">
-            <a href="calculator.html" class="tool-card">
-                <div class="tool-emoji">🧮</div>
-                <div class="tool-name">计算器</div>
-                <div class="tool-desc">简单好用的四则运算</div>
-            </a>
-            <a href="todo.html" class="tool-card">
-                <div class="tool-emoji">✅</div>
-                <div class="tool-name">待办清单</div>
-                <div class="tool-desc">记录每日任务</div>
-            </a>
-            <a href="snake.html" class="tool-card">
-                <div class="tool-emoji">🐍</div>
-                <div class="tool-name">贪吃蛇</div>
-                <div class="tool-desc">经典怀旧小游戏</div>
-            </a>
-            <!-- 以后新增工具，在这里加一个 <a> 卡片 -->
-        </div>
+    <div class="card">
+        <h1>🛠️ 在线工具 & 小游戏</h1>
+        <p>免费使用，无需安装，全部运行在浏览器中。</p>
     </div>
+
+    <div class="tools-grid" id="toolsGrid"></div>
+
+    <div style="margin-top: 2rem; text-align: center;">
+        <a href="../" class="btn">← 返回首页</a>
+    </div>
+</div>
+
+<script>
+    // 工具数据：以后添加新工具只需要在这里增加一项
+    const toolsData = [
+        {
+            emoji: "🧮",
+            name: "计算器",
+            desc: "简单好用的四则运算",
+            url: "calculator.html"
+        },
+        {
+            emoji: "✅",
+            name: "待办清单",
+            desc: "记录每日任务，自动保存",
+            url: "todo.html"
+        },
+        {
+            emoji: "🐍",
+            name: "贪吃蛇",
+            desc: "经典怀旧小游戏",
+            url: "snake.html"
+        },
+        {
+            emoji: "💣",
+            name: "扫雷",
+            desc: "经典逻辑扫雷游戏",
+            url: "minesweeper.html"
+        }
+    ];
+
+    const gridContainer = document.getElementById('toolsGrid');
+
+    function renderTools() {
+        if (!gridContainer) return;
+        gridContainer.innerHTML = '';
+        toolsData.forEach(tool => {
+            const card = document.createElement('a');
+            card.className = 'tool-card';
+            card.href = tool.url;
+            card.innerHTML = `
+                <div class="tool-emoji">${tool.emoji}</div>
+                <div class="tool-name">${tool.name}</div>
+                <div class="tool-desc">${tool.desc}</div>
+            `;
+            gridContainer.appendChild(card);
+        });
+    }
+
+    renderTools();
+</script>
 </body>
 </html>
