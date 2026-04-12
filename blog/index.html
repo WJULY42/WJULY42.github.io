@@ -3,31 +3,54 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>博客</title>
+    <title>博客 - LAN</title>
     <link rel="stylesheet" href="../style.css">
 </head>
 <body>
-    <div class="container">
-        <nav>
-            <a href="../">🏠 首页</a>
-            <a href="index.html">📝 博客</a>
-            <a href="../tools/">🛠️ 工具</a>
-        </nav>
+<div class="container">
+    <nav>
+        <a href="../">🏠 首页</a>
+        <a href="index.html">📝 博客</a>
+        <a href="../tools/">🛠️ 工具</a>
+    </nav>
 
-        <div class="card">
-            <h1>📝 技术笔记</h1>
-            <p>记录学习过程中的思考、踩坑和解决方案。</p>
-        </div>
-
-        <div class="card">
-            <!-- 文章列表 - 每新增一篇文章就在这里复制一个 .post-item -->
-            <div class="post-item">
-                <div class="post-title"><a href="posts/2026-01-01-hello-world.html">Hello World，我的博客开张了</a></div>
-                <div class="post-meta">📅 2026年1月1日 · ☕ 3分钟阅读</div>
-                <div class="post-excerpt">第一篇博客，介绍一下我为什么要写博客，以及这个网站能做什么……</div>
-            </div>
-            <!-- 新文章加在这里 -->
-        </div>
+    <div class="card">
+        <h1>📝 技术笔记</h1>
+        <p>记录学习过程中的思考、踩坑和解决方案。</p>
     </div>
+
+    <div class="card" id="postsList"></div>
+</div>
+
+<script>
+    async function loadAllPosts() {
+        try {
+            const response = await fetch('../data/posts.json');
+            const data = await response.json();
+            const posts = data.posts;
+            // 按日期倒序
+            const sorted = posts.sort((a,b) => new Date(b.date) - new Date(a.date));
+            const container = document.getElementById('postsList');
+            container.innerHTML = '';
+            if (sorted.length === 0) {
+                container.innerHTML = '<p>还没有文章，敬请期待。</p>';
+                return;
+            }
+            sorted.forEach(post => {
+                const postDiv = document.createElement('div');
+                postDiv.className = 'post-item';
+                postDiv.innerHTML = `
+                    <div class="post-title"><a href="../${post.url}">${post.title}</a></div>
+                    <div class="post-meta">📅 ${post.date}</div>
+                    <div class="post-excerpt">${post.excerpt}</div>
+                `;
+                container.appendChild(postDiv);
+            });
+        } catch (err) {
+            document.getElementById('postsList').innerHTML = '<p>加载失败，请刷新重试。</p>';
+        }
+    }
+    loadAllPosts();
+</script>
 </body>
 </html>
