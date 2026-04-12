@@ -1,41 +1,267 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 <head>
-    <meta charset="utf-8">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>计算器 - 在线工具</title>
+    <link rel="stylesheet" href="../style.css">
     <style>
-        body { font-family: monospace; max-width: 300px; margin: 2rem auto; text-align: center; }
-        input, button { font-size: 1.2rem; margin: 0.2rem; }
-        #result { font-size: 1.5rem; margin-top: 1rem; }
+        /* 计算器专用样式 */
+        .calculator {
+            background: var(--card);
+            border-radius: 1.5rem;
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+            max-width: 400px;
+            margin: 0 auto;
+        }
+        .calc-display {
+            background: var(--bg);
+            border-radius: 1rem;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            text-align: right;
+            font-family: 'Courier New', monospace;
+            word-break: break-all;
+        }
+        .calc-expression {
+            font-size: 1rem;
+            color: var(--text-light);
+            min-height: 1.8rem;
+        }
+        .calc-result {
+            font-size: 2.2rem;
+            font-weight: 600;
+            color: var(--primary);
+            line-height: 1.2;
+            overflow-x: auto;
+            white-space: nowrap;
+        }
+        .calc-buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.75rem;
+        }
+        .calc-btn {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+            padding: 1rem 0;
+            font-size: 1.25rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.1s ease;
+            color: var(--text);
+        }
+        .calc-btn:active {
+            transform: scale(0.96);
+            background: var(--border);
+        }
+        .calc-btn.op {
+            background: var(--primary);
+            color: white;
+            border: none;
+        }
+        .calc-btn.op:active {
+            background: var(--primary-dark);
+        }
+        .calc-btn.clear {
+            background: #ef4444;
+            color: white;
+            border: none;
+        }
+        .calc-btn.equal {
+            background: #10b981;
+            color: white;
+            border: none;
+            grid-column: span 2;
+        }
+        @media (max-width: 480px) {
+            .calc-btn {
+                padding: 0.8rem 0;
+                font-size: 1.1rem;
+            }
+            .calc-result {
+                font-size: 1.8rem;
+            }
+        }
     </style>
 </head>
 <body>
-    <h2>简易计算器</h2>
-    <input type="number" id="a" placeholder="数字1">
-    <input type="number" id="b" placeholder="数字2">
-    <br>
-    <button onclick="calc('+')">+</button>
-    <button onclick="calc('-')">-</button>
-    <button onclick="calc('*')">×</button>
-    <button onclick="calc('/')">÷</button>
-    <div id="result">= ?</div>
-    <p><a href="index.html">← 返回工具集</a></p>
+<div class="container">
+    <nav>
+        <a href="../">🏠 首页</a>
+        <a href="../blog/">📝 博客</a>
+        <a href="index.html">🛠️ 工具</a>
+    </nav>
 
-    <script>
-        function calc(op) {
-            let a = parseFloat(document.getElementById('a').value);
-            let b = parseFloat(document.getElementById('b').value);
-            let r;
-            if (isNaN(a) || isNaN(b)) {
-                r = "请输入数字";
-            } else {
-                if (op === '+') r = a + b;
-                else if (op === '-') r = a - b;
-                else if (op === '*') r = a * b;
-                else if (op === '/') r = a / b;
-            }
-            document.getElementById('result').innerHTML = "= " + r;
+    <div style="margin-bottom: 1rem;">
+        <h1>🧮 智能计算器</h1>
+        <p>支持键盘输入（数字、运算符、Enter、Backspace、Esc清空）</p>
+    </div>
+
+    <div class="calculator">
+        <div class="calc-display">
+            <div class="calc-expression" id="expression"></div>
+            <div class="calc-result" id="result">0</div>
+        </div>
+        <div class="calc-buttons">
+            <button class="calc-btn clear" data-action="clear">C</button>
+            <button class="calc-btn" data-op="(">(</button>
+            <button class="calc-btn" data-op=")">)</button>
+            <button class="calc-btn op" data-op="/">÷</button>
+            
+            <button class="calc-btn" data-num="7">7</button>
+            <button class="calc-btn" data-num="8">8</button>
+            <button class="calc-btn" data-num="9">9</button>
+            <button class="calc-btn op" data-op="*">×</button>
+            
+            <button class="calc-btn" data-num="4">4</button>
+            <button class="calc-btn" data-num="5">5</button>
+            <button class="calc-btn" data-num="6">6</button>
+            <button class="calc-btn op" data-op="-">−</button>
+            
+            <button class="calc-btn" data-num="1">1</button>
+            <button class="calc-btn" data-num="2">2</button>
+            <button class="calc-btn" data-num="3">3</button>
+            <button class="calc-btn op" data-op="+">+</button>
+            
+            <button class="calc-btn" data-num="0">0</button>
+            <button class="calc-btn" data-num=".">.</button>
+            <button class="calc-btn" data-action="backspace">⌫</button>
+            <button class="calc-btn equal" data-action="equal">=</button>
+        </div>
+    </div>
+    <div style="margin-top: 2rem; text-align: center;">
+        <a href="index.html" class="btn">← 返回工具集</a>
+    </div>
+</div>
+
+<script>
+    // 计算器逻辑
+    let expression = "";   // 存储算式字符串
+    let lastResult = null;  // 上一次计算结果，用于连续运算
+
+    const expressionDiv = document.getElementById('expression');
+    const resultDiv = document.getElementById('result');
+
+    function updateDisplay() {
+        expressionDiv.innerText = expression || " ";
+        // 实时计算并显示结果（若表达式有效）
+        if (expression.trim() === "") {
+            resultDiv.innerText = "0";
+            return;
         }
-    </script>
+        try {
+            // 替换显示符号为计算符号
+            let calcExpr = expression.replace(/×/g, '*').replace(/÷/g, '/');
+            // 注意：eval 不安全，但这里完全可控，无外部输入风险
+            let evalResult = eval(calcExpr);
+            // 处理浮点数精度
+            if (typeof evalResult === 'number' && !isNaN(evalResult) && isFinite(evalResult)) {
+                let rounded = Math.round(evalResult * 1e8) / 1e8;
+                resultDiv.innerText = String(rounded);
+            } else {
+                resultDiv.innerText = "错误";
+            }
+        } catch(e) {
+            resultDiv.innerText = "表达式错误";
+        }
+    }
+
+    function setExpression(newExpr) {
+        expression = newExpr;
+        updateDisplay();
+    }
+
+    function appendToExpression(value) {
+        // 防止过长
+        if (expression.length > 50) return;
+        // 自动处理连续运算符替换
+        const lastChar = expression.slice(-1);
+        const ops = ['+', '-', '*', '/', '×', '÷'];
+        if (ops.includes(lastChar) && ops.includes(value)) {
+            // 替换最后一个运算符
+            expression = expression.slice(0, -1) + value;
+        } else {
+            expression += value;
+        }
+        updateDisplay();
+    }
+
+    function clearAll() {
+        expression = "";
+        updateDisplay();
+    }
+
+    function backspace() {
+        expression = expression.slice(0, -1);
+        updateDisplay();
+    }
+
+    function calculate() {
+        if (expression.trim() === "") return;
+        try {
+            let calcExpr = expression.replace(/×/g, '*').replace(/÷/g, '/');
+            let evalResult = eval(calcExpr);
+            if (typeof evalResult === 'number' && !isNaN(evalResult) && isFinite(evalResult)) {
+                let rounded = Math.round(evalResult * 1e8) / 1e8;
+                expression = String(rounded);
+                updateDisplay();
+            } else {
+                resultDiv.innerText = "错误";
+            }
+        } catch(e) {
+            resultDiv.innerText = "语法错误";
+        }
+    }
+
+    // 绑定按钮事件
+    document.querySelectorAll('.calc-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            if (btn.dataset.num) {
+                appendToExpression(btn.dataset.num);
+            } else if (btn.dataset.op) {
+                let op = btn.dataset.op;
+                if (op === '×') op = '×';
+                if (op === '÷') op = '÷';
+                appendToExpression(op);
+            } else if (btn.dataset.action === 'clear') {
+                clearAll();
+            } else if (btn.dataset.action === 'backspace') {
+                backspace();
+            } else if (btn.dataset.action === 'equal') {
+                calculate();
+            }
+        });
+    });
+
+    // 键盘支持
+    document.addEventListener('keydown', (e) => {
+        const key = e.key;
+        if (/[0-9\.]/.test(key)) {
+            appendToExpression(key);
+            e.preventDefault();
+        } else if (key === '+' || key === '-' || key === '*' || key === '/') {
+            let op = key;
+            if (op === '*') op = '×';
+            if (op === '/') op = '÷';
+            appendToExpression(op);
+            e.preventDefault();
+        } else if (key === 'Enter') {
+            calculate();
+            e.preventDefault();
+        } else if (key === 'Backspace') {
+            backspace();
+            e.preventDefault();
+        } else if (key === 'Escape') {
+            clearAll();
+            e.preventDefault();
+        } else if (key === '(' || key === ')') {
+            appendToExpression(key);
+            e.preventDefault();
+        }
+    });
+</script>
 </body>
 </html>
