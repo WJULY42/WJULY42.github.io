@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>贪吃蛇 - 小游戏</title>
+    <style>
+        canvas { border: 1px solid #333; background: #eee; }
+        body { text-align: center; font-family: sans-serif; }
+    </style>
+</head>
+<body>
+    <h2>🐍 贪吃蛇</h2>
+    <canvas id="gameCanvas" width="400" height="400"></canvas>
+    <p>得分: <span id="score">0</span>   <button onclick="resetGame()">重来</button></p>
+    <p><a href="index.html">← 返回工具集</a></p>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const box = 20;
+        let snake = [{x: 10, y: 10}];
+        let direction = 'RIGHT';
+        let food = {x: 15, y: 10};
+        let score = 0;
+        let game;
+
+        function draw() {
+            ctx.fillStyle = '#eee';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            for(let i=0; i<snake.length; i++) {
+                ctx.fillStyle = (i===0) ? 'green' : 'lime';
+                ctx.fillRect(snake[i].x*box, snake[i].y*box, box-2, box-2);
+            }
+            ctx.fillStyle = 'red';
+            ctx.fillRect(food.x*box, food.y*box, box-2, box-2);
+        }
+
+        function move() {
+            let head = {...snake[0]};
+            if(direction === 'RIGHT') head.x++;
+            if(direction === 'LEFT') head.x--;
+            if(direction === 'UP') head.y--;
+            if(direction === 'DOWN') head.y++;
+
+            if(head.x === food.x && head.y === food.y) {
+                score++;
+                document.getElementById('score').innerText = score;
+                snake.unshift(head);
+                food = {x: Math.floor(Math.random()*20), y: Math.floor(Math.random()*20)};
+                // 避免食物生成在蛇身上
+                for(let s of snake) {
+                    if(s.x === food.x && s.y === food.y) {
+                        food = {x: Math.floor(Math.random()*20), y: Math.floor(Math.random()*20)};
+                        break;
+                    }
+                }
+            } else {
+                snake.unshift(head);
+                snake.pop();
+            }
+
+            // 撞墙或撞自身
+            if(head.x < 0 || head.x >= 20 || head.y < 0 || head.y >= 20 || collision(head, snake)) {
+                clearInterval(game);
+                alert('游戏结束！得分：'+score);
+                resetGame();
+            }
+            draw();
+        }
+
+        function collision(head, snake) {
+            for(let i=1; i<snake.length; i++) {
+                if(head.x === snake[i].x && head.y === snake[i].y) return true;
+            }
+            return false;
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if(e.key === 'ArrowRight' && direction !== 'LEFT') direction = 'RIGHT';
+            if(e.key === 'ArrowLeft' && direction !== 'RIGHT') direction = 'LEFT';
+            if(e.key === 'ArrowUp' && direction !== 'DOWN') direction = 'UP';
+            if(e.key === 'ArrowDown' && direction !== 'UP') direction = 'DOWN';
+        });
+
+        function resetGame() {
+            clearInterval(game);
+            snake = [{x: 10, y: 10}];
+            direction = 'RIGHT';
+            score = 0;
+            document.getElementById('score').innerText = score;
+            food = {x: 15, y: 10};
+            draw();
+            game = setInterval(move, 150);
+        }
+        resetGame();
+    </script>
+</body>
+</html>
