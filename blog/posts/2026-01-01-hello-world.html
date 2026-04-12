@@ -1,22 +1,33 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 <head>
-    <meta charset="utf-8">
-    <title>Hello World - 我的博客</title>
-    <style>
-        body { font-family: sans-serif; max-width: 800px; margin: 0 auto; padding: 2rem; }
-        pre { background: #f4f4f4; padding: 1rem; overflow-x: auto; }
-    </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hello ?</title>
+    <link rel="stylesheet" href="../../style.css">
 </head>
 <body>
-    <h1>Hello World，我的博客开张了</h1>
-    <p class="date">2026年1月1日</p>
-    <a href="../">← 返回博客列表</a>
+    <div class="container">
+        <nav>
+            <a href="../../">🏠 首页</a>
+            <a href="../../blog/">📝 博客</a>
+            <a href="../../tools/">🛠️ 工具</a>
+        </nav>
 
-    <h2>为什么我要写博客？</h2>
-    <p>因为我想记录自己的学习过程，并且分享给可能需要的朋友。</p>
-    <h2>第一段代码</h2>
-    <pre><code>console.log("Hello, GitHub Pages!");</code></pre>
-    <p>以后我会在这里写更多技术笔记。</p>
+        <div class="card">
+            <h1>Hello World，我的博客开张了</h1>
+            <div class="post-meta" style="margin-bottom: 1.5rem;">📅 2026年1月1日 · ☕ 2分钟阅读</div>
+            <p>欢迎来到我的技术博客。这是第一篇文章。</p>
+            <h2>为什么我要写博客？</h2>
+            <p>因为记录是最好的学习方式。把知识写下来，不仅能帮自己理清思路，也可能帮到其他遇到同样问题的人。</p>
+            <h2>第一段代码</h2>
+            <pre style="background: #f1f5f9; padding: 1rem; border-radius: 0.5rem; overflow-x: auto;"><code>console.log("Hello, GitHub Pages!");</code></pre>
+            <p>以后我会分享更多前端、后端、工具链相关的内容。</p>
+        </div>
+
+        <div style="margin-top: 2rem; text-align: center;">
+            <a href="../" class="btn">← 返回博客列表</a>
+        </div>
+    </div>
 </body>
 </html>
