@@ -3,9 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <meta name="description" content="🧮 专注计算器 - 桌面级体验，无缝对齐番茄钟主题">
-  <title>🧮 专注计算器 | LAN的工具箱</title>
+  <meta name="description" content="🌤️ 天气查询 - 实时天气 + 7天预报 + 小时曲线">
+  <title>🌤️ 天气查询 | LAN的工具箱</title>
   <style>
+    /* ===== 完全复用番茄钟桌面主题变量 ===== */
     :root {
       --primary: #6366f1; --primary-hover: #4f46e5; --primary-soft: #818cf8;
       --secondary: #64748b; --success: #22c55e; --warning: #f59e0b; --danger: #ef4444;
@@ -15,33 +16,47 @@
       --radius: 20px; --radius-sm: 14px;
       --font-mono: 'SF Mono', 'Fira Code', 'Consolas', monospace;
       --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      
+      /* 天气背景渐变 */
+      --bg-sunny: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+      --bg-cloudy: linear-gradient(135deg, #94a3b8 0%, #64748b 100%);
+      --bg-rainy: linear-gradient(135deg, #64748b 0%, #475569 100%);
+      --bg-snowy: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%);
+      --bg-storm: linear-gradient(135deg, #475569 0%, #1e293b 100%);
+      --bg-night: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
     }
     @media (prefers-color-scheme: dark) {
       :root {
         --bg: #0f172a; --card-bg: #1e293b; --text: #f1f5f9;
         --text-light: #94a3b8; --border: #334155; --ring-bg: #334155;
-        --shadow: 0 8px 30px rgb(0 0 0 / 0.4);
-        --primary-soft: #a5b4fc;
+        --shadow: 0 8px 30px rgb(0 0 0 / 0.4); --primary-soft: #a5b4fc;
       }
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html { scroll-behavior: smooth; }
     body {
       font-family: var(--font-sans); background: var(--bg); color: var(--text);
-      line-height: 1.6; padding: 3rem; min-height: 100vh;
+      line-height: 1.6; padding: 2rem; min-height: 100vh;
       display: flex; align-items: center; justify-content: center;
       transition: var(--transition);
     }
+    body.weather-sunny { background: var(--bg-sunny); }
+    body.weather-cloudy { background: var(--bg-cloudy); }
+    body.weather-rainy { background: var(--bg-rainy); }
+    body.weather-snowy { background: var(--bg-snowy); }
+    body.weather-storm { background: var(--bg-storm); }
+    body.weather-night { background: var(--bg-night); }
 
-    .calc-desktop {
+    /* ===== 桌面端主容器 ===== */
+    .weather-desktop {
       background: var(--card-bg); border-radius: var(--radius);
-      max-width: 920px; width: 100%; box-shadow: var(--shadow);
+      max-width: 1100px; width: 100%; box-shadow: var(--shadow);
       border: 1px solid var(--border); overflow: hidden;
+      backdrop-filter: blur(10px);
     }
-    /* ===== 新增：顶部导航区 ===== */
-    .calc-header {
-      padding: 1.2rem 2rem; font-size: 1.5rem; font-weight: 700;
-      letter-spacing: -0.02em; border-bottom: 1px solid var(--border);
+    /* ===== 顶部导航 ===== */
+    .weather-header {
+      padding: 1.2rem 2rem; border-bottom: 1px solid var(--border);
       display: flex; align-items: center; justify-content: space-between;
       background: var(--ring-bg);
     }
@@ -49,166 +64,232 @@
       text-decoration: none; color: var(--primary); font-size: 0.95rem;
       font-weight: 600; display: flex; align-items: center; gap: 0.4rem;
       padding: 0.5rem 1rem; border-radius: 10px; transition: var(--transition);
-      cursor: pointer;
     }
-    .back-btn:hover {
-      background: rgba(99,102,241,0.1); transform: translateX(-3px);
-    }
-    .back-btn svg { width: 18px; height: 18px; transition: transform 0.2s; }
-    .back-btn:hover svg { transform: translateX(-2px); }
-    .header-title { flex: 1; text-align: center; }
-
-    .calc-body {
-      display: grid; grid-template-columns: 340px 1fr; min-height: 520px;
-    }
-
-    .history-panel {
-      background: var(--ring-bg); padding: 1.5rem;
-      border-right: 1px solid var(--border); display: flex; flex-direction: column;
-    }
-    .history-list {
-      flex: 1; overflow-y: auto; padding-right: 0.5rem; margin-bottom: 1rem;
-      font-family: var(--font-mono); font-size: 0.95rem; color: var(--text-light);
-    }
-    .history-item {
-      padding: 0.5rem 0; border-bottom: 1px dashed var(--border);
-      display: flex; justify-content: space-between; cursor: pointer;
-      transition: var(--transition); border-radius: 4px;
-    }
-    .history-item:hover { color: var(--text); background: rgba(99,102,241,0.05); padding-inline: 0.5rem; }
-    .history-item:last-child { border-bottom: none; }
-    .history-expr { opacity: 0.7; }
-    .history-res { font-weight: 600; color: var(--primary); }
-
-    .current-display {
-      background: var(--card-bg); border-radius: var(--radius-sm);
-      padding: 1.2rem; border: 1px solid var(--border); text-align: right;
-      min-height: 140px; display: flex; flex-direction: column; justify-content: flex-end;
-    }
-    .expression {
-      font-size: 1.1rem; color: var(--text-light); min-height: 1.8rem;
-      font-family: var(--font-mono); word-break: break-all;
-    }
-    .result {
-      font-size: 3rem; font-weight: 700; font-family: var(--font-mono);
-      color: var(--text); margin-top: 0.3rem; line-height: 1.1;
-    }
-
-    .keypad-panel { padding: 1.5rem; }
-    .btn-grid {
-      display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.8rem; height: 100%;
-    }
-    .btn {
-      border: none; border-radius: var(--radius-sm); font-size: 1.35rem;
-      font-weight: 600; cursor: pointer; transition: var(--transition);
-      background: var(--ring-bg); color: var(--text);
-      box-shadow: 0 2px 6px rgb(0 0 0 / 0.05);
+    .back-btn:hover { background: rgba(99,102,241,0.1); transform: translateX(-3px); }
+    .back-btn svg { width: 18px; height: 18px; }
+    .header-title { flex: 1; text-align: center; font-size: 1.4rem; font-weight: 700; }
+    .header-actions { display: flex; gap: 0.5rem; }
+    .icon-btn {
+      width: 36px; height: 36px; border: none; border-radius: 10px;
+      background: var(--card-bg); color: var(--text); cursor: pointer;
       display: flex; align-items: center; justify-content: center;
-      user-select: none; -webkit-tap-highlight-color: transparent;
-      min-height: 64px; position: relative; overflow: hidden;
+      transition: var(--transition); font-size: 1.1rem;
     }
-    .btn:hover { background: var(--border); transform: translateY(-2px); }
-    .btn:active { transform: translateY(0); box-shadow: inset 0 2px 4px rgb(0 0 0 / 0.1); }
-    .btn:focus-visible { outline: 2px solid var(--primary-soft); outline-offset: 2px; }
-    .btn::after {
-      content: attr(data-key); position: absolute; bottom: 6px; right: 8px;
-      font-size: 0.7rem; color: var(--text-light); opacity: 0.4; pointer-events: none;
-    }
+    .icon-btn:hover { background: var(--border); transform: translateY(-1px); }
+    .icon-btn.active { background: var(--primary); color: white; }
 
-    .btn.op { background: #e0e7ff; color: #4338ca; }
-    .btn.op:hover { background: #c7d2fe; }
-    .btn.action { background: #fee2e2; color: #b91c1c; }
-    .btn.action:hover { background: #fecaca; }
-    .btn.del { background: #fef3c7; color: #b45309; }
-    .btn.del:hover { background: #fde68a; }
-    .btn.equals {
-      background: var(--primary); color: white;
-      box-shadow: 0 4px 14px rgb(99 102 241 / 0.4);
+    /* ===== 主体双栏布局 ===== */
+    .weather-body { display: grid; grid-template-columns: 420px 1fr; min-height: 600px; }
+    
+    /* 左侧：当前天气 */
+    .current-panel {
+      padding: 2rem; border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; gap: 1.5rem;
+      background: var(--card-bg);
     }
-    .btn.equals:hover { background: var(--primary-hover); box-shadow: 0 6px 20px rgb(99 102 241 / 0.6); }
-    .btn.zero { grid-column: span 2; }
+    .search-box { display: flex; gap: 0.5rem; }
+    .search-box input {
+      flex: 1; padding: 0.8rem 1.2rem; border: 1px solid var(--border);
+      border-radius: 12px; background: var(--ring-bg); color: var(--text);
+      font-size: 1rem; outline: none; transition: var(--transition);
+    }
+    .search-box input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(99,102,241,0.1); }
+    .search-box button {
+      padding: 0.8rem 1.4rem; border: none; border-radius: 12px;
+      background: var(--primary); color: white; font-weight: 600;
+      cursor: pointer; transition: var(--transition);
+    }
+    .search-box button:hover { background: var(--primary-hover); }
 
+    .current-weather {
+      text-align: center; padding: 1.5rem; border-radius: var(--radius-sm);
+      background: var(--ring-bg); border: 1px solid var(--border);
+    }
+    .city-name { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.5rem; }
+    .weather-icon { font-size: 4rem; margin: 0.5rem 0; }
+    .current-temp { font-size: 3.5rem; font-weight: 700; font-family: var(--font-mono); }
+    .current-desc { font-size: 1.1rem; color: var(--text-light); margin: 0.5rem 0; }
+    .current-meta { display: flex; justify-content: center; gap: 1rem; margin-top: 1rem; font-size: 0.9rem; color: var(--text-light); }
+
+    .details-grid {
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.8rem;
+    }
+    .detail-item {
+      padding: 0.9rem; border-radius: 10px; background: var(--ring-bg);
+      border: 1px solid var(--border); text-align: center;
+    }
+    .detail-label { font-size: 0.85rem; color: var(--text-light); margin-bottom: 0.3rem; }
+    .detail-value { font-size: 1.2rem; font-weight: 600; font-family: var(--font-mono); }
+
+    .saved-cities { margin-top: auto; }
+    .saved-cities h4 { font-size: 0.95rem; font-weight: 600; margin-bottom: 0.8rem; }
+    .city-list { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+    .city-chip {
+      padding: 0.4rem 0.8rem; border-radius: 20px; font-size: 0.85rem;
+      background: var(--ring-bg); border: 1px solid var(--border);
+      cursor: pointer; transition: var(--transition);
+      display: flex; align-items: center; gap: 0.3rem;
+    }
+    .city-chip:hover { background: var(--border); }
+    .city-chip.active { background: var(--primary); color: white; border-color: var(--primary); }
+    .city-chip .remove { opacity: 0.6; cursor: pointer; margin-left: 0.2rem; }
+    .city-chip .remove:hover { opacity: 1; }
+
+    /* 右侧：预报 + 曲线 */
+    .forecast-panel { padding: 2rem; display: flex; flex-direction: column; gap: 1.5rem; }
+    
+    .hourly-chart {
+      background: var(--ring-bg); border-radius: var(--radius-sm);
+      padding: 1rem; border: 1px solid var(--border);
+    }
+    .chart-title { font-size: 0.95rem; font-weight: 600; margin-bottom: 0.8rem; }
+    .chart-canvas { width: 100%; height: 120px; }
+    
+    .daily-forecast { flex: 1; }
+    .daily-forecast h4 { font-size: 0.95rem; font-weight: 600; margin-bottom: 0.8rem; }
+    .forecast-list { display: flex; flex-direction: column; gap: 0.6rem; }
+    .forecast-item {
+      display: grid; grid-template-columns: 80px 1fr 100px; gap: 1rem;
+      padding: 0.8rem; border-radius: 10px; background: var(--ring-bg);
+      border: 1px solid var(--border); align-items: center;
+    }
+    .forecast-date { font-weight: 600; font-size: 0.95rem; }
+    .forecast-weather { display: flex; align-items: center; gap: 0.5rem; }
+    .forecast-icon { font-size: 1.3rem; }
+    .forecast-temp { text-align: right; font-family: var(--font-mono); font-weight: 600; }
+    .forecast-temp .min { color: var(--text-light); font-size: 0.9rem; }
+    .forecast-temp .max { color: var(--primary); }
+
+    /* 底部提示 */
     .footer-hint {
-      grid-column: 1 / -1; padding: 1rem 2rem; font-size: 0.85rem;
-      color: var(--text-light); background: var(--ring-bg);
-      border-top: 1px solid var(--border); text-align: center;
-      display: flex; flex-direction: column; gap: 0.5rem; align-items: center;
+      padding: 1rem 2rem; font-size: 0.85rem; color: var(--text-light);
+      background: var(--ring-bg); border-top: 1px solid var(--border);
+      text-align: center; display: flex; flex-direction: column; gap: 0.5rem;
     }
     .footer-hint kbd {
       background: var(--card-bg); border: 1px solid var(--border);
       border-radius: 4px; padding: 0.15rem 0.45rem; font-family: var(--font-mono);
       font-size: 0.75rem; box-shadow: 0 1px 2px rgb(0 0 0 / 0.05); margin: 0 0.2rem;
     }
-    .footer-nav a {
-      color: var(--primary); text-decoration: none; font-weight: 500;
-      display: inline-flex; align-items: center; gap: 0.3rem; transition: var(--transition);
-    }
-    .footer-nav a:hover { opacity: 0.8; text-decoration: underline; }
+    .footer-nav a { color: var(--primary); text-decoration: none; font-weight: 500; }
+    .footer-nav a:hover { text-decoration: underline; }
 
-    @media (max-width: 900px) {
-      body { padding: 1.5rem; }
-      .calc-body { grid-template-columns: 1fr; }
-      .history-panel { max-height: 180px; border-right: none; border-bottom: 1px solid var(--border); }
-      .btn { min-height: 56px; font-size: 1.2rem; }
-      .result { font-size: 2.5rem; }
+    /* 加载/错误状态 */
+    .loading, .error {
+      text-align: center; padding: 2rem; color: var(--text-light);
+    }
+    .error { color: var(--danger); }
+    .skeleton {
+      background: linear-gradient(90deg, var(--ring-bg) 25%, var(--border) 50%, var(--ring-bg) 75%);
+      background-size: 200% 100%; animation: shimmer 1.5s infinite;
+      border-radius: 8px; height: 1.2rem; margin: 0.3rem 0;
+    }
+    @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+
+    /* 响应式兜底 */
+    @media (max-width: 1024px) {
+      .weather-body { grid-template-columns: 1fr; }
+      .current-panel { border-right: none; border-bottom: 1px solid var(--border); }
+      .details-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+    @media (max-width: 640px) {
+      body { padding: 1rem; }
+      .weather-desktop { border-radius: 16px; }
+      .current-temp { font-size: 2.8rem; }
+      .details-grid { grid-template-columns: repeat(2, 1fr); }
+      .forecast-item { grid-template-columns: 70px 1fr 80px; font-size: 0.9rem; }
     }
   </style>
 </head>
 <body>
 
-  <main class="calc-desktop">
-    <!-- 顶部导航：醒目返回入口 -->
-    <header class="calc-header">
+  <main class="weather-desktop">
+    <!-- 顶部导航 -->
+    <header class="weather-header">
       <a href="../" class="back-btn" title="返回工具集">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><polyline points="12 19 5 12 12 5"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5"/><polyline points="12 19 5 12 12 5"/></svg>
         返回工具集
       </a>
-      <span class="header-title">🧮 专注计算器</span>
-      <div style="width: 100px;"></div> <!-- 占位保持标题居中 -->
+      <h1 class="header-title">🌤️ 天气查询</h1>
+      <div class="header-actions">
+        <button class="icon-btn" id="locateBtn" title="自动定位">📍</button>
+        <button class="icon-btn" id="refreshBtn" title="刷新">🔄</button>
+        <button class="icon-btn" id="unitBtn" title="切换温度单位">°C</button>
+      </div>
     </header>
-    
-    <div class="calc-body">
-      <section class="history-panel">
-        <div class="history-list" id="historyList">
-          <div style="text-align:center; color:var(--text-light); padding:2rem 0; opacity:0.6;">暂无计算记录</div>
+
+    <div class="weather-body">
+      <!-- 左侧：当前天气 + 搜索 -->
+      <section class="current-panel">
+        <div class="search-box">
+          <input type="text" id="cityInput" placeholder="搜索城市（拼音/英文）" autocomplete="off" aria-label="城市搜索">
+          <button id="searchBtn">查询</button>
         </div>
-        <div class="current-display" aria-live="polite">
-          <div class="expression" id="expression"></div>
-          <div class="result" id="result">0</div>
+
+        <div class="current-weather" id="currentWeather">
+          <div class="city-name" id="cityName">--</div>
+          <div class="weather-icon" id="weatherIcon">🌤️</div>
+          <div class="current-temp" id="currentTemp">--°</div>
+          <div class="current-desc" id="currentDesc">--</div>
+          <div class="current-meta">
+            <span id="updateTime">--</span>
+            <span id="windSpeed">-- km/h</span>
+          </div>
+        </div>
+
+        <div class="details-grid">
+          <div class="detail-item">
+            <div class="detail-label">💧 湿度</div>
+            <div class="detail-value" id="humidity">--%</div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">🌡️ 体感</div>
+            <div class="detail-value" id="feelsLike">--°</div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">🔽 气压</div>
+            <div class="detail-value" id="pressure">-- hPa</div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">☀️ 紫外线</div>
+            <div class="detail-value" id="uvIndex">--</div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">👁️ 能见度</div>
+            <div class="detail-value" id="visibility">-- km</div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">🌅 日出</div>
+            <div class="detail-value" id="sunrise">--:--</div>
+          </div>
+        </div>
+
+        <div class="saved-cities">
+          <h4>📌 常用城市</h4>
+          <div class="city-list" id="cityList">
+            <span style="color:var(--text-light);font-size:0.9rem;">暂无收藏</span>
+          </div>
         </div>
       </section>
 
-      <section class="keypad-panel">
-        <div class="btn-grid">
-          <button class="btn action" data-action="clear" data-key="Esc">C</button>
-          <button class="btn del" data-action="delete" data-key="⌫">⌫</button>
-          <button class="btn op" data-action="op" data-value="%" data-key="%">%</button>
-          <button class="btn op" data-action="op" data-value="÷" data-key="/">÷</button>
+      <!-- 右侧：预报 + 曲线 -->
+      <section class="forecast-panel">
+        <div class="hourly-chart">
+          <div class="chart-title">📈 24小时温度趋势</div>
+          <canvas class="chart-canvas" id="tempChart"></canvas>
+        </div>
 
-          <button data-action="num" data-value="7" data-key="7">7</button>
-          <button data-action="num" data-value="8" data-key="8">8</button>
-          <button data-action="num" data-value="9" data-key="9">9</button>
-          <button class="btn op" data-action="op" data-value="×" data-key="*">×</button>
-
-          <button data-action="num" data-value="4" data-key="4">4</button>
-          <button data-action="num" data-value="5" data-key="5">5</button>
-          <button data-action="num" data-value="6" data-key="6">6</button>
-          <button class="btn op" data-action="op" data-value="−" data-key="-">−</button>
-
-          <button data-action="num" data-value="1" data-key="1">1</button>
-          <button data-action="num" data-value="2" data-key="2">2</button>
-          <button data-action="num" data-value="3" data-key="3">3</button>
-          <button class="btn op" data-action="op" data-value="+" data-key="+">+</button>
-
-          <button class="btn zero" data-action="num" data-value="0" data-key="0">0</button>
-          <button data-action="num" data-value="." data-key=".">.</button>
-          <button class="btn equals" data-action="compute" data-key="Enter">=</button>
+        <div class="daily-forecast">
+          <h4>📅 7天预报</h4>
+          <div class="forecast-list" id="forecastList">
+            <div class="loading">⏳ 加载预报中...</div>
+          </div>
         </div>
       </section>
     </div>
 
     <div class="footer-hint">
-      <div>⌨️ 桌面快捷键：<kbd>0-9</kbd> 输入 · <kbd>Esc</kbd> 清空 · <kbd>⌫</kbd> 退格 · <kbd>Enter</kbd> 计算 · <kbd>↑/↓</kbd> 浏览历史</div>
+      <div>⌨️ 快捷键：<kbd>/</kbd> 聚焦搜索 · <kbd>Esc</kbd> 清空 · <kbd>↑/↓</kbd> 切换历史 · <kbd>R</kbd> 刷新</div>
       <div class="footer-nav">
         <a href="../">← 返回工具集</a> · <a href="https://github.com/WJULY42" target="_blank" rel="noopener">GitHub</a>
       </div>
@@ -216,105 +297,387 @@
   </main>
 
   <script>
-    class Calculator {
-      constructor(prevEl, currEl, historyEl) {
-        this.prevEl = prevEl; this.currEl = currEl; this.historyEl = historyEl;
-        this.history = []; this.historyIndex = -1;
-        this.clear();
+    // ===== 全局状态 =====
+    const state = {
+      currentCity: null,
+      unit: 'C', // 'C' or 'F'
+      savedCities: [],
+      hourlyData: [],
+      dailyData: []
+    };
+
+    // ===== DOM 元素 =====
+    const $ = id => document.getElementById(id);
+    const cityInput = $('cityInput');
+    const searchBtn = $('searchBtn');
+    const locateBtn = $('locateBtn');
+    const refreshBtn = $('refreshBtn');
+    const unitBtn = $('unitBtn');
+    const cityName = $('cityName');
+    const weatherIcon = $('weatherIcon');
+    const currentTemp = $('currentTemp');
+    const currentDesc = $('currentDesc');
+    const updateTime = $('updateTime');
+    const windSpeed = $('windSpeed');
+    const humidity = $('humidity');
+    const feelsLike = $('feelsLike');
+    const pressure = $('pressure');
+    const uvIndex = $('uvIndex');
+    const visibility = $('visibility');
+    const sunrise = $('sunrise');
+    const forecastList = $('forecastList');
+    const cityList = $('cityList');
+    const tempChart = $('tempChart');
+
+    // ===== 初始化 =====
+    document.addEventListener('DOMContentLoaded', () => {
+      loadSettings();
+      setupEventListeners();
+      // 首次加载：尝试自动定位或默认城市
+      if (state.savedCities.length > 0) {
+        searchWeather(state.savedCities[0]);
+      } else {
+        autoLocate();
       }
-      clear() { this.curr = '0'; this.prev = ''; this.operation = undefined; this.updateDisplay(); }
-      delete() {
-        if (this.curr === '0' || this.curr === '') return;
-        this.curr = this.curr.slice(0, -1);
-        if (this.curr === '' || this.curr === '-') this.curr = '0';
-        this.updateDisplay();
-      }
-      append(num) {
-        if (num === '.' && this.curr.includes('.')) return;
-        if (this.curr === '0' && num !== '.') this.curr = num;
-        else this.curr += num;
-        this.updateDisplay();
-      }
-      chooseOp(op) {
-        if (this.curr === '') return;
-        if (this.prev !== '') this.compute();
-        this.operation = op; this.prev = this.curr; this.curr = '';
-        this.updateDisplay();
-      }
-      compute() {
-        let comp; const p = parseFloat(this.prev); const c = parseFloat(this.curr);
-        if (isNaN(p) || isNaN(c)) return;
-        switch (this.operation) {
-          case '+': comp = p + c; break; case '−': comp = p - c; break;
-          case '×': comp = p * c; break; case '÷': comp = c === 0 ? '错误' : p / c; break;
-          case '%': comp = p % c; break; default: return;
+    });
+
+    function loadSettings() {
+      try {
+        const s = localStorage.getItem('weather-settings');
+        if (s) {
+          const parsed = JSON.parse(s);
+          state.unit = parsed.unit || 'C';
+          state.savedCities = parsed.savedCities || [];
+          state.currentCity = parsed.currentCity;
+          unitBtn.textContent = `°${state.unit}`;
+          renderSavedCities();
         }
-        if (comp === '错误') { this.curr = '错误'; this.prev = ''; this.operation = undefined; this.updateDisplay(); return; }
-        this.curr = Math.round(comp * 1e10) / 1e10;
-        this.addToHistory(`${this.prev} ${this.operation} ${p}`, this.curr);
-        this.operation = undefined; this.prev = ''; this.updateDisplay();
-      }
-      addToHistory(expr, res) {
-        this.history.unshift({ expr, res }); if (this.history.length > 20) this.history.pop();
-        this.historyIndex = -1; this.renderHistory();
-      }
-      renderHistory() {
-        if (this.history.length === 0) {
-          this.historyEl.innerHTML = '<div style="text-align:center;color:var(--text-light);padding:2rem 0;opacity:0.6;">暂无计算记录</div>';
-          return;
+      } catch(e) { console.warn('加载设置失败:', e); }
+    }
+
+    function saveSettings() {
+      localStorage.setItem('weather-settings', JSON.stringify({
+        unit: state.unit,
+        savedCities: state.savedCities,
+        currentCity: state.currentCity
+      }));
+    }
+
+    function setupEventListeners() {
+      // 搜索
+      searchBtn.addEventListener('click', () => searchWeather(cityInput.value.trim()));
+      cityInput.addEventListener('keypress', e => { if(e.key==='Enter') searchWeather(cityInput.value.trim()); });
+      
+      // 快捷键
+      document.addEventListener('keydown', e => {
+        if (e.target.tagName === 'INPUT') return;
+        if (e.key === '/') { e.preventDefault(); cityInput.focus(); }
+        if (e.key === 'Escape') { cityInput.blur(); cityInput.value = ''; }
+        if (e.key.toLowerCase() === 'r') refreshCurrent();
+        if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+          e.preventDefault();
+          const idx = state.savedCities.indexOf(state.currentCity);
+          const next = e.key === 'ArrowUp' ? Math.max(0, idx-1) : Math.min(state.savedCities.length-1, idx+1);
+          if (state.savedCities[next]) searchWeather(state.savedCities[next]);
         }
-        this.historyEl.innerHTML = this.history.map((h, i) => 
-          `<div class="history-item" data-index="${i}"><span class="history-expr">${h.expr} =</span><span class="history-res">${this.formatNum(h.res)}</span></div>`
-        ).join('');
-        this.historyEl.scrollTop = 0;
-      }
-      loadHistory(index) {
-        if (index >= 0 && index < this.history.length) { this.curr = String(this.history[index].res); this.updateDisplay(); }
-      }
-      formatNum(num) {
-        if (num === '错误') return num;
-        return parseFloat(num).toLocaleString('zh-CN', { maximumFractionDigits: 8 });
-      }
-      updateDisplay() {
-        this.currEl.innerText = this.formatNum(this.curr);
-        this.prevEl.innerText = this.operation ? `${this.formatNum(this.prev)} ${this.operation}` : '';
+      });
+
+      // 功能按钮
+      locateBtn.addEventListener('click', autoLocate);
+      refreshBtn.addEventListener('click', refreshCurrent);
+      unitBtn.addEventListener('click', toggleUnit);
+
+      // 收藏城市点击
+      cityList.addEventListener('click', e => {
+        const chip = e.target.closest('.city-chip');
+        if (chip && !e.target.classList.contains('remove')) {
+          searchWeather(chip.dataset.city);
+        }
+        if (e.target.classList.contains('remove')) {
+          e.stopPropagation();
+          removeSavedCity(e.target.dataset.city);
+        }
+      });
+    }
+
+    // ===== 核心：天气查询 =====
+    async function searchWeather(city) {
+      if (!city) { showStatus('请输入城市名', 'error'); return; }
+      showLoading();
+      
+      try {
+        // 1. 地理编码
+        const coords = await geocode(city);
+        if (!coords) { showStatus('未找到该城市，请尝试拼音或英文名', 'error'); return; }
+        
+        // 2. 获取天气数据
+        const weather = await fetchWeather(coords.lat, coords.lon);
+        
+        // 3. 更新 UI
+        state.currentCity = city;
+        updateCurrentWeather(coords, weather);
+        updateHourlyChart(weather);
+        updateDailyForecast(weather);
+        updateWeatherBackground(weather.current.weathercode);
+        
+        // 4. 保存设置
+        if (!state.savedCities.includes(city)) {
+          state.savedCities.unshift(city);
+          if (state.savedCities.length > 8) state.savedCities.pop();
+          renderSavedCities();
+        }
+        saveSettings();
+        
+      } catch(err) {
+        console.error('查询失败:', err);
+        showStatus('查询失败，请稍后重试', 'error');
       }
     }
 
-    const prevEl = document.getElementById('expression');
-    const currEl = document.getElementById('result');
-    const historyEl = document.getElementById('historyList');
-    const calc = new Calculator(prevEl, currEl, historyEl);
+    // 地理编码 (Open-Meteo)
+    async function geocode(city) {
+      const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=zh&format=json`;
+      const resp = await fetch(url);
+      const data = await resp.json();
+      if (data.results?.[0]) {
+        const r = data.results[0];
+        return { lat: r.latitude, lon: r.longitude, name: r.name, country: r.country };
+      }
+      return null;
+    }
 
-    document.querySelectorAll('[data-action]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const action = btn.dataset.action, value = btn.dataset.value;
-        switch(action) {
-          case 'num': calc.append(value); break; case 'op': calc.chooseOp(value); break;
-          case 'compute': calc.compute(); break; case 'clear': calc.clear(); break; case 'delete': calc.delete(); break;
+    // 获取天气 (Open-Meteo Forecast API)
+    async function fetchWeather(lat, lon) {
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,pressure_msl,visibility,uv_index&hourly=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,uv_index_max&timezone=auto&forecast_days=7`;
+      const resp = await fetch(url);
+      return await resp.json();
+    }
+
+    // 自动定位
+    async function autoLocate() {
+      if (!navigator.geolocation) {
+        showStatus('浏览器不支持定位', 'error');
+        return;
+      }
+      showLoading();
+      navigator.geolocation.getCurrentPosition(
+        async pos => {
+          const { latitude, longitude } = pos.coords;
+          // 反向地理编码获取城市名
+          const url = `https://geocoding-api.open-meteo.com/v1/reverse?latitude=${latitude}&longitude=${longitude}&language=zh`;
+          const resp = await fetch(url);
+          const data = await resp.json();
+          const city = data.results?.[0]?.name || '当前位置';
+          searchWeather(city);
+        },
+        err => {
+          console.warn('定位失败:', err);
+          showStatus('定位失败，请手动输入城市', 'error');
+          // 降级：搜索默认城市
+          searchWeather('Beijing');
+        },
+        { enableHighAccuracy: true, timeout: 8000 }
+      );
+    }
+
+    // 刷新当前
+    function refreshCurrent() {
+      if (state.currentCity) searchWeather(state.currentCity);
+    }
+
+    // 切换温度单位
+    function toggleUnit() {
+      state.unit = state.unit === 'C' ? 'F' : 'C';
+      unitBtn.textContent = `°${state.unit}`;
+      if (state.currentCity) searchWeather(state.currentCity); // 重新渲染
+      saveSettings();
+    }
+
+    function cToF(c) { return Math.round(c * 9/5 + 32); }
+    function formatTemp(c) { return state.unit === 'C' ? `${c}°` : `${cToF(c)}°`; }
+
+    // ===== UI 更新 =====
+    function showLoading() {
+      $('currentWeather').innerHTML = '<div class="loading">⏳ 加载天气数据...</div>';
+      forecastList.innerHTML = '<div class="loading">⏳ 加载预报...</div>';
+    }
+    function showStatus(msg, type='info') {
+      const html = `<div class="${type}">${msg}</div>`;
+      $('currentWeather').innerHTML = html;
+    }
+
+    function updateCurrentWeather(city, data) {
+      const c = data.current;
+      const code = c.weather_code;
+      
+      cityName.textContent = `${city.name}, ${city.country}`;
+      weatherIcon.textContent = getWeatherIcon(code);
+      currentTemp.textContent = formatTemp(c.temperature_2m);
+      currentDesc.textContent = getWeatherDesc(code);
+      updateTime.textContent = `更新: ${new Date().toLocaleTimeString('zh-CN', {hour:'2-digit',minute:'2-digit'})}`;
+      windSpeed.textContent = `${Math.round(c.wind_speed_10m)} km/h`;
+      humidity.textContent = `${c.relative_humidity_2m}%`;
+      feelsLike.textContent = formatTemp(c.apparent_temperature);
+      pressure.textContent = `${Math.round(c.pressure_msl)} hPa`;
+      uvIndex.textContent = c.uv_index != null ? (c.uv_index < 3 ? '低' : c.uv_index < 6 ? '中' : c.uv_index < 8 ? '高' : '极高') : '--';
+      visibility.textContent = c.visibility != null ? `${Math.round(c.visibility/1000)} km` : '--';
+      if (data.daily?.sunrise?.[0]) {
+        const sr = new Date(data.daily.sunrise[0]);
+        sunrise.textContent = `${sr.getHours().toString().padStart(2,'0')}:${sr.getMinutes().toString().padStart(2,'0')}`;
+      }
+    }
+
+    function updateHourlyChart(data) {
+      // 简化：取前 24 小时
+      const hours = data.hourly.time.slice(0, 24);
+      const temps = data.hourly.temperature_2m.slice(0, 24);
+      state.hourlyData = temps.map((t, i) => ({ time: hours[i], temp: t }));
+      drawChart(temps);
+    }
+
+    function drawChart(temps) {
+      const ctx = tempChart.getContext('2d');
+      const w = tempChart.width = tempChart.offsetWidth * 2;
+      const h = tempChart.height = 240;
+      ctx.clearRect(0, 0, w, h);
+      
+      const min = Math.min(...temps) - 2;
+      const max = Math.max(...temps) + 2;
+      const range = max - min;
+      const stepX = w / 23;
+      const stepY = (h - 40) / range;
+      
+      // 网格
+      ctx.strokeStyle = 'rgba(100,116,139,0.2)';
+      ctx.lineWidth = 1;
+      for (let i = 0; i <= 4; i++) {
+        const y = 20 + i * (h-40)/4;
+        ctx.beginPath(); ctx.moveTo(40, y); ctx.lineTo(w-20, y); ctx.stroke();
+      }
+      
+      // 温度曲线
+      ctx.strokeStyle = 'var(--primary)';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      temps.forEach((t, i) => {
+        const x = 40 + i * stepX;
+        const y = h - 20 - (t - min) * stepY;
+        i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+      
+      // 点
+      ctx.fillStyle = 'var(--primary)';
+      temps.forEach((t, i) => {
+        if (i % 4 === 0) {
+          const x = 40 + i * stepX;
+          const y = h - 20 - (t - min) * stepY;
+          ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI*2); ctx.fill();
         }
       });
-    });
-    historyEl.addEventListener('click', (e) => {
-      const item = e.target.closest('.history-item');
-      if (item) calc.loadHistory(parseInt(item.dataset.index));
-    });
+      
+      // 标签
+      ctx.fillStyle = 'var(--text-light)';
+      ctx.font = '10px monospace';
+      ctx.textAlign = 'center';
+      temps.forEach((t, i) => {
+        if (i % 6 === 0) {
+          const x = 40 + i * stepX;
+          ctx.fillText(`${Math.round(t)}°`, x, h - 5);
+        }
+      });
+    }
 
-    document.addEventListener('keydown', (e) => {
-      if (e.target.tagName === 'INPUT') return;
-      let handled = true; const key = e.key;
-      if (key >= '0' && key <= '9' || key === '.') calc.append(key);
-      else if (['+', '-', '*', '/'].includes(key)) {
-        const map = { '+': '+', '-': '−', '*': '×', '/': '÷' }; calc.chooseOp(map[key]);
+    function updateDailyForecast(data) {
+      const daily = data.daily;
+      state.dailyData = daily.time.map((date, i) => ({
+        date, code: daily.weather_code[i],
+        min: daily.temperature_2m_min[i], max: daily.temperature_2m_max[i]
+      }));
+      
+      forecastList.innerHTML = state.dailyData.map((d, i) => {
+        const dateObj = new Date(d.date);
+        const label = i === 0 ? '今天' : i === 1 ? '明天' : dateObj.toLocaleDateString('zh-CN', {weekday:'short',month:'numeric',day:'numeric'});
+        return `
+          <div class="forecast-item">
+            <span class="forecast-date">${label}</span>
+            <span class="forecast-weather">
+              <span class="forecast-icon">${getWeatherIcon(d.code)}</span>
+              <span>${getWeatherDesc(d.code)}</span>
+            </span>
+            <span class="forecast-temp">
+              <span class="min">${formatTemp(d.min)}</span> / 
+              <span class="max">${formatTemp(d.max)}</span>
+            </span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function updateWeatherBackground(code) {
+      document.body.className = ''; // 清除旧类
+      const hour = new Date().getHours();
+      const isNight = hour < 6 || hour > 19;
+      
+      if (isNight) {
+        document.body.classList.add('weather-night');
+      } else if ([45,48,51,53,55,56,57,61,63,65,66,67,80,81,82].includes(code)) {
+        document.body.classList.add('weather-rainy');
+      } else if ([71,73,75,77,85,86].includes(code)) {
+        document.body.classList.add('weather-snowy');
+      } else if ([95,96,99].includes(code)) {
+        document.body.classList.add('weather-storm');
+      } else if ([2,3].includes(code)) {
+        document.body.classList.add('weather-cloudy');
+      } else {
+        document.body.classList.add('weather-sunny');
       }
-      else if (key === 'Enter' || key === '=') calc.compute();
-      else if (key === 'Backspace') calc.delete();
-      else if (key === 'Escape') calc.clear();
-      else if (key === 'ArrowUp') { if(calc.history.length>0) { calc.historyIndex = Math.max(0, calc.historyIndex-1); calc.loadHistory(calc.historyIndex); } }
-      else if (key === 'ArrowDown') { if(calc.history.length>0) { calc.historyIndex = Math.min(calc.history.length-1, calc.historyIndex+1); calc.loadHistory(calc.historyIndex); } }
-      else handled = false;
-      if (handled) e.preventDefault();
-    });
+    }
+
+    function renderSavedCities() {
+      if (state.savedCities.length === 0) {
+        cityList.innerHTML = '<span style="color:var(--text-light);font-size:0.9rem;">暂无收藏</span>';
+        return;
+      }
+      cityList.innerHTML = state.savedCities.map(city => `
+        <span class="city-chip ${city===state.currentCity?'active':''}" data-city="${city}">
+          ${city}
+          <span class="remove" data-city="${city}" title="移除">✕</span>
+        </span>
+      `).join('');
+    }
+
+    function removeSavedCity(city) {
+      state.savedCities = state.savedCities.filter(c => c !== city);
+      if (state.currentCity === city) state.currentCity = null;
+      renderSavedCities();
+      saveSettings();
+    }
+
+    // ===== 工具函数 =====
+    function getWeatherIcon(code) {
+      if ([0].includes(code)) return '☀️';
+      if ([1].includes(code)) return '🌤️';
+      if ([2].includes(code)) return '⛅';
+      if ([3].includes(code)) return '☁️';
+      if ([45,48].includes(code)) return '🌫️';
+      if ([51,53,55,56,57].includes(code)) return '🌦️';
+      if ([61,63,65,66,67,80,81,82].includes(code)) return '🌧️';
+      if ([71,73,75,77,85,86].includes(code)) return '❄️';
+      if ([95,96,99].includes(code)) return '⛈️';
+      return '🌡️';
+    }
+    function getWeatherDesc(code) {
+      const map = {
+        0:"晴朗",1:"大致晴朗",2:"多云",3:"阴天",45:"雾",48:"雾凇",
+        51:"毛毛雨",53:"小雨",55:"大雨",61:"小雨",63:"中雨",65:"大雨",
+        71:"小雪",73:"中雪",75:"大雪",80:"阵雨",95:"雷阵雨"
+      };
+      return map[code] || '未知';
+    }
+
+    // ===== 页面卸载清理 =====
+    window.addEventListener('beforeunload', saveSettings);
   </script>
 </body>
 </html>
