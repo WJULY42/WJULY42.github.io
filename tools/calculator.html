@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <meta name="description" content="🧮 专注计算器 - 简洁高效，无干扰">
+  <meta name="description" content="🧮 专注计算器 - 桌面级体验，无缝对齐番茄钟主题">
   <title>🧮 专注计算器 | LAN的工具箱</title>
   <style>
-    /* ===== 复用番茄钟主题变量 ===== */
+    /* ===== 完全复用番茄钟桌面端主题变量 ===== */
     :root {
       --primary: #6366f1; --primary-hover: #4f46e5; --primary-soft: #818cf8;
-      --secondary: #64748b; --success: #22c55e; --warning: #f59e0b;
+      --secondary: #64748b; --success: #22c55e; --warning: #f59e0b; --danger: #ef4444;
       --bg: #f8fafc; --card-bg: #ffffff; --text: #1e293b; --text-light: #64748b;
       --border: #e2e8f0; --shadow: 0 8px 30px rgb(0 0 0 / 0.12);
       --ring-bg: #f1f5f9; --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
@@ -22,167 +22,198 @@
         --bg: #0f172a; --card-bg: #1e293b; --text: #f1f5f9;
         --text-light: #94a3b8; --border: #334155; --ring-bg: #334155;
         --shadow: 0 8px 30px rgb(0 0 0 / 0.4);
+        --primary-soft: #a5b4fc;
       }
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html { scroll-behavior: smooth; }
     body {
       font-family: var(--font-sans); background: var(--bg); color: var(--text);
-      line-height: 1.6; padding: 2rem; min-height: 100vh;
+      line-height: 1.6; padding: 3rem; min-height: 100vh;
       display: flex; align-items: center; justify-content: center;
       transition: var(--transition);
     }
 
-    /* ===== 计算器容器 ===== */
-    .calc-container {
+    /* ===== 桌面端主容器 ===== */
+    .calc-desktop {
       background: var(--card-bg); border-radius: var(--radius);
-      padding: 2rem; max-width: 420px; width: 100%;
-      box-shadow: var(--shadow); border: 1px solid var(--border);
+      max-width: 920px; width: 100%; box-shadow: var(--shadow);
+      border: 1px solid var(--border); overflow: hidden;
     }
     .calc-header {
-      text-align: center; margin-bottom: 1.5rem;
-      font-size: 1.4rem; font-weight: 700; letter-spacing: -0.01em;
+      padding: 1.2rem 2rem; font-size: 1.5rem; font-weight: 700;
+      letter-spacing: -0.02em; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 0.5rem;
+      background: var(--ring-bg);
     }
-    .calc-header span { opacity: 0.8; }
-
-    /* ===== 显示屏 ===== */
-    .display {
-      background: var(--ring-bg); border-radius: var(--radius-sm);
-      padding: 1.2rem; margin-bottom: 1.5rem; min-height: 110px;
-      display: flex; flex-direction: column; justify-content: flex-end;
-      align-items: flex-end; border: 1px solid var(--border);
-      word-break: break-all;
-    }
-    .prev-operand {
-      font-size: 1rem; color: var(--text-light); min-height: 1.5rem;
-      font-family: var(--font-mono); opacity: 0.8;
-    }
-    .curr-operand {
-      font-size: 2.8rem; font-weight: 700; font-family: var(--font-mono);
-      color: var(--text); margin-top: 0.3rem; line-height: 1.2;
+    .calc-body {
+      display: grid; grid-template-columns: 340px 1fr; min-height: 520px;
     }
 
-    /* ===== 按钮网格 ===== */
+    /* ===== 左侧：历史 & 显示区 ===== */
+    .history-panel {
+      background: var(--ring-bg); padding: 1.5rem;
+      border-right: 1px solid var(--border); display: flex; flex-direction: column;
+    }
+    .history-list {
+      flex: 1; overflow-y: auto; padding-right: 0.5rem; margin-bottom: 1rem;
+      font-family: var(--font-mono); font-size: 0.95rem; color: var(--text-light);
+    }
+    .history-item {
+      padding: 0.5rem 0; border-bottom: 1px dashed var(--border);
+      display: flex; justify-content: space-between; cursor: pointer;
+      transition: var(--transition);
+    }
+    .history-item:hover { color: var(--text); background: rgba(99,102,241,0.05); border-radius: 6px; padding-inline: 0.5rem; }
+    .history-item:last-child { border-bottom: none; }
+    .history-expr { opacity: 0.7; }
+    .history-res { font-weight: 600; color: var(--primary); }
+
+    .current-display {
+      background: var(--card-bg); border-radius: var(--radius-sm);
+      padding: 1.2rem; border: 1px solid var(--border); text-align: right;
+      min-height: 140px; display: flex; flex-direction: column; justify-content: flex-end;
+    }
+    .expression {
+      font-size: 1.1rem; color: var(--text-light); min-height: 1.8rem;
+      font-family: var(--font-mono); word-break: break-all;
+    }
+    .result {
+      font-size: 3rem; font-weight: 700; font-family: var(--font-mono);
+      color: var(--text); margin-top: 0.3rem; line-height: 1.1;
+    }
+
+    /* ===== 右侧：按键区 ===== */
+    .keypad-panel { padding: 1.5rem; }
     .btn-grid {
-      display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.8rem;
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.8rem; height: 100%;
     }
     .btn {
-      aspect-ratio: 1.3; border: none; border-radius: var(--radius-sm);
-      font-size: 1.25rem; font-weight: 600; cursor: pointer;
-      transition: var(--transition); background: var(--ring-bg);
-      color: var(--text); box-shadow: 0 2px 6px rgb(0 0 0 / 0.05);
+      border: none; border-radius: var(--radius-sm); font-size: 1.35rem;
+      font-weight: 600; cursor: pointer; transition: var(--transition);
+      background: var(--ring-bg); color: var(--text);
+      box-shadow: 0 2px 6px rgb(0 0 0 / 0.05);
       display: flex; align-items: center; justify-content: center;
       user-select: none; -webkit-tap-highlight-color: transparent;
+      min-height: 64px; position: relative; overflow: hidden;
     }
     .btn:hover { background: var(--border); transform: translateY(-2px); }
-    .btn:active { transform: translateY(0); box-shadow: none; }
+    .btn:active { transform: translateY(0); box-shadow: inset 0 2px 4px rgb(0 0 0 / 0.1); }
     .btn:focus-visible { outline: 2px solid var(--primary-soft); outline-offset: 2px; }
+    .btn::after {
+      content: attr(data-key); position: absolute; bottom: 6px; right: 8px;
+      font-size: 0.7rem; color: var(--text-light); opacity: 0.4; pointer-events: none;
+    }
 
-    .btn.operator { background: #e0e7ff; color: #4338ca; }
-    .btn.operator:hover { background: #c7d2fe; }
+    .btn.op { background: #e0e7ff; color: #4338ca; }
+    .btn.op:hover { background: #c7d2fe; }
+    .btn.action { background: #fee2e2; color: #b91c1c; }
+    .btn.action:hover { background: #fecaca; }
+    .btn.del { background: #fef3c7; color: #b45309; }
+    .btn.del:hover { background: #fde68a; }
     .btn.equals {
-      grid-column: span 2; aspect-ratio: auto; padding: 0.9rem;
-      background: var(--primary); color: white; box-shadow: 0 4px 14px rgb(99 102 241 / 0.4);
+      background: var(--primary); color: white;
+      box-shadow: 0 4px 14px rgb(99 102 241 / 0.4);
     }
     .btn.equals:hover { background: var(--primary-hover); box-shadow: 0 6px 20px rgb(99 102 241 / 0.6); }
-    .btn.clear { background: #fee2e2; color: #b91c1c; }
-    .btn.clear:hover { background: #fecaca; }
-    .btn.delete { background: #fef3c7; color: #b45309; }
-    .btn.delete:hover { background: #fde68a; }
+    .btn.zero { grid-column: span 2; }
 
-    /* ===== 快捷键提示 ===== */
-    .shortcut-hint {
-      margin-top: 1.5rem; text-align: center; font-size: 0.85rem;
-      color: var(--text-light); padding-top: 1rem;
-      border-top: 1px dashed var(--border);
-    }
-    .shortcut-hint kbd {
-      background: var(--ring-bg); border: 1px solid var(--border);
-      border-radius: 4px; padding: 0.1rem 0.4rem; font-family: var(--font-mono);
-      font-size: 0.8rem; box-shadow: 0 1px 2px rgb(0 0 0 / 0.05);
-    }
-
-    /* ===== 底部 & 响应式 ===== */
-    .footer {
-      grid-column: 1 / -1; margin-top: 1.5rem; padding-top: 1rem;
+    /* ===== 底部提示 ===== */
+    .footer-hint {
+      grid-column: 1 / -1; padding: 1rem 2rem; font-size: 0.85rem;
+      color: var(--text-light); background: var(--ring-bg);
       border-top: 1px solid var(--border); text-align: center;
-      font-size: 0.9rem; color: var(--text-light);
     }
-    .footer a { color: var(--primary); text-decoration: none; font-weight: 500; }
-    .footer a:hover { text-decoration: underline; }
+    .footer-hint kbd {
+      background: var(--card-bg); border: 1px solid var(--border);
+      border-radius: 4px; padding: 0.15rem 0.45rem; font-family: var(--font-mono);
+      font-size: 0.75rem; box-shadow: 0 1px 2px rgb(0 0 0 / 0.05); margin: 0 0.2rem;
+    }
 
-    @media (max-width: 480px) {
-      body { padding: 1rem; }
-      .calc-container { padding: 1.5rem; border-radius: 16px; }
-      .curr-operand { font-size: 2.2rem; }
-      .btn { font-size: 1.1rem; }
+    /* ===== 响应式兜底（平板/小窗） ===== */
+    @media (max-width: 900px) {
+      body { padding: 1.5rem; }
+      .calc-body { grid-template-columns: 1fr; }
+      .history-panel { max-height: 180px; border-right: none; border-bottom: 1px solid var(--border); }
+      .btn { min-height: 56px; font-size: 1.2rem; }
+      .result { font-size: 2.5rem; }
     }
   </style>
 </head>
 <body>
 
-  <main class="calc-container">
-    <header class="calc-header">🧮 专注计算器 <span>v1.0</span></header>
+  <main class="calc-desktop">
+    <header class="calc-header">🧮 专注计算器</header>
+    
+    <div class="calc-body">
+      <!-- 左侧：历史 & 当前显示 -->
+      <section class="history-panel">
+        <div class="history-list" id="historyList">
+          <div style="text-align:center; color:var(--text-light); padding:2rem 0; opacity:0.6;">暂无计算记录</div>
+        </div>
+        <div class="current-display" aria-live="polite">
+          <div class="expression" id="expression"></div>
+          <div class="result" id="result">0</div>
+        </div>
+      </section>
 
-    <div class="display" aria-live="polite">
-      <div class="prev-operand" id="prevOperand"></div>
-      <div class="curr-operand" id="currOperand">0</div>
+      <!-- 右侧：按键区 -->
+      <section class="keypad-panel">
+        <div class="btn-grid">
+          <button class="btn action" data-action="clear" data-key="Esc">C</button>
+          <button class="btn del" data-action="delete" data-key="⌫">⌫</button>
+          <button class="btn op" data-action="op" data-value="%" data-key="%">%</button>
+          <button class="btn op" data-action="op" data-value="÷" data-key="/">÷</button>
+
+          <button data-action="num" data-value="7" data-key="7">7</button>
+          <button data-action="num" data-value="8" data-key="8">8</button>
+          <button data-action="num" data-value="9" data-key="9">9</button>
+          <button class="btn op" data-action="op" data-value="×" data-key="*">×</button>
+
+          <button data-action="num" data-value="4" data-key="4">4</button>
+          <button data-action="num" data-value="5" data-key="5">5</button>
+          <button data-action="num" data-value="6" data-key="6">6</button>
+          <button class="btn op" data-action="op" data-value="−" data-key="-">−</button>
+
+          <button data-action="num" data-value="1" data-key="1">1</button>
+          <button data-action="num" data-value="2" data-key="2">2</button>
+          <button data-action="num" data-value="3" data-key="3">3</button>
+          <button class="btn op" data-action="op" data-value="+" data-key="+">+</button>
+
+          <button class="btn zero" data-action="num" data-value="0" data-key="0">0</button>
+          <button data-action="num" data-value="." data-key=".">.</button>
+          <button class="btn equals" data-action="compute" data-key="Enter">=</button>
+        </div>
+      </section>
     </div>
 
-    <div class="btn-grid">
-      <button class="btn clear" data-action="clear">C</button>
-      <button class="btn delete" data-action="delete">⌫</button>
-      <button class="btn operator" data-action="operation" data-value="%">%</button>
-      <button class="btn operator" data-action="operation" data-value="÷">÷</button>
-      
-      <button data-number>7</button>
-      <button data-number>8</button>
-      <button data-number>9</button>
-      <button class="btn operator" data-action="operation" data-value="×">×</button>
-      
-      <button data-number>4</button>
-      <button data-number>5</button>
-      <button data-number>6</button>
-      <button class="btn operator" data-action="operation" data-value="−">−</button>
-      
-      <button data-number>1</button>
-      <button data-number>2</button>
-      <button data-number>3</button>
-      <button class="btn operator" data-action="operation" data-value="+">+</button>
-      
-      <button data-number class="span-2">0</button>
-      <button data-number>.</button>
-      <button class="btn equals" data-action="compute">=</button>
+    <div class="footer-hint">
+      ⌨️ 桌面快捷键：<kbd>0-9</kbd> 输入 · <kbd>Esc</kbd> 清空 · <kbd>⌫</kbd> 退格 · <kbd>Enter</kbd> 计算 · <kbd>↑/↓</kbd> 浏览历史
     </div>
-
-    <div class="shortcut-hint">
-      ⌨️ 快捷键：<kbd>Esc</kbd> 清空 · <kbd>⌫</kbd> 删除 · <kbd>Enter</kbd> 计算
-    </div>
-
-    <footer class="footer">
-      <a href="../">← 返回工具集</a> · <a href="https://github.com/WJULY42" target="_blank">GitHub</a>
-    </footer>
   </main>
 
   <script>
     class Calculator {
-      constructor(prevEl, currEl) {
-        this.prevEl = prevEl;
-        this.currEl = currEl;
+      constructor(prevEl, currEl, historyEl) {
+        this.prevEl = prevEl; this.currEl = currEl; this.historyEl = historyEl;
+        this.history = []; this.historyIndex = -1;
         this.clear();
       }
       clear() {
         this.curr = '0'; this.prev = ''; this.operation = undefined;
+        this.updateDisplay();
       }
       delete() {
         if (this.curr === '0' || this.curr === '') return;
-        this.curr = this.curr.toString().slice(0, -1);
+        this.curr = this.curr.slice(0, -1);
         if (this.curr === '' || this.curr === '-') this.curr = '0';
+        this.updateDisplay();
       }
       append(num) {
         if (num === '.' && this.curr.includes('.')) return;
-        if (this.curr === '0' && num !== '.') this.curr = num.toString();
-        else this.curr += num.toString();
+        if (this.curr === '0' && num !== '.') this.curr = num;
+        else this.curr += num;
+        this.updateDisplay();
       }
       chooseOp(op) {
         if (this.curr === '') return;
@@ -190,6 +221,7 @@
         this.operation = op;
         this.prev = this.curr;
         this.curr = '';
+        this.updateDisplay();
       }
       compute() {
         let comp;
@@ -200,65 +232,111 @@
           case '+': comp = p + c; break;
           case '−': comp = p - c; break;
           case '×': comp = p * c; break;
-          case '÷': comp = c === 0 ? NaN : p / c; break;
-          case '%': comp = (p % c); break;
+          case '÷': comp = c === 0 ? '错误' : p / c; break;
+          case '%': comp = p % c; break;
           default: return;
         }
-        // 处理浮点精度
+        if (comp === '错误') {
+          this.curr = '错误'; this.prev = ''; this.operation = undefined;
+          this.updateDisplay(); return;
+        }
         this.curr = Math.round(comp * 1e10) / 1e10;
-        this.operation = undefined;
-        this.prev = '';
+        this.addToHistory(`${this.prev} ${this.operation} ${p}`, this.curr);
+        this.operation = undefined; this.prev = '';
+        this.updateDisplay();
       }
-      getDisplayNum(num) {
-        if (num === '') return '';
-        const str = num.toString();
-        const [int, dec] = str.split('.');
-        const formatted = parseInt(int).toLocaleString('zh-CN', { maximumFractionDigits: 0 });
-        return dec != null ? `${formatted}.${dec}` : formatted;
+      addToHistory(expr, res) {
+        this.history.unshift({ expr, res });
+        if (this.history.length > 20) this.history.pop();
+        this.historyIndex = -1;
+        this.renderHistory();
+      }
+      renderHistory() {
+        if (this.history.length === 0) {
+          this.historyEl.innerHTML = '<div style="text-align:center;color:var(--text-light);padding:2rem 0;opacity:0.6;">暂无计算记录</div>';
+          return;
+        }
+        this.historyEl.innerHTML = this.history.map((h, i) => 
+          `<div class="history-item" data-index="${i}">
+            <span class="history-expr">${h.expr} =</span>
+            <span class="history-res">${this.formatNum(h.res)}</span>
+          </div>`
+        ).join('');
+        this.historyEl.scrollTop = 0;
+      }
+      loadHistory(index) {
+        if (index >= 0 && index < this.history.length) {
+          this.curr = String(this.history[index].res);
+          this.updateDisplay();
+        }
+      }
+      formatNum(num) {
+        if (num === '错误') return num;
+        return parseFloat(num).toLocaleString('zh-CN', { maximumFractionDigits: 8 });
       }
       updateDisplay() {
-        this.currEl.innerText = this.getDisplayNum(this.curr);
-        if (this.operation != null) {
-          this.prevEl.innerText = `${this.getDisplayNum(this.prev)} ${this.operation}`;
-        } else {
-          this.prevEl.innerText = '';
-        }
+        this.currEl.innerText = this.formatNum(this.curr);
+        this.prevEl.innerText = this.operation 
+          ? `${this.formatNum(this.prev)} ${this.operation}` 
+          : '';
       }
     }
 
     // ===== 初始化 =====
-    const prevEl = document.getElementById('prevOperand');
-    const currEl = document.getElementById('currOperand');
-    const calc = new Calculator(prevEl, currEl);
-    calc.updateDisplay();
+    const prevEl = document.getElementById('expression');
+    const currEl = document.getElementById('result');
+    const historyEl = document.getElementById('historyList');
+    const calc = new Calculator(prevEl, currEl, historyEl);
 
     // 按钮事件
-    document.querySelectorAll('[data-number]').forEach(btn => {
-      btn.addEventListener('click', () => { calc.append(btn.innerText); calc.updateDisplay(); });
+    document.querySelectorAll('[data-action]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const action = btn.dataset.action;
+        const value = btn.dataset.value;
+        switch(action) {
+          case 'num': calc.append(value); break;
+          case 'op': calc.chooseOp(value); break;
+          case 'compute': calc.compute(); break;
+          case 'clear': calc.clear(); break;
+          case 'delete': calc.delete(); break;
+        }
+      });
     });
-    document.querySelectorAll('[data-action="operation"]').forEach(btn => {
-      btn.addEventListener('click', () => { calc.chooseOp(btn.dataset.value); calc.updateDisplay(); });
-    });
-    document.querySelector('[data-action="compute"]').addEventListener('click', () => { calc.compute(); calc.updateDisplay(); });
-    document.querySelector('[data-action="clear"]').addEventListener('click', () => { calc.clear(); calc.updateDisplay(); });
-    document.querySelector('[data-action="delete"]').addEventListener('click', () => { calc.delete(); calc.updateDisplay(); });
 
-    // 键盘支持（桌面端对齐番茄钟体验）
+    // 历史点击回显
+    historyEl.addEventListener('click', (e) => {
+      const item = e.target.closest('.history-item');
+      if (item) calc.loadHistory(parseInt(item.dataset.index));
+    });
+
+    // 桌面级键盘映射（支持小键盘）
     document.addEventListener('keydown', (e) => {
       if (e.target.tagName === 'INPUT') return;
       let handled = true;
-      if (e.key >= '0' && e.key <= '9') calc.append(e.key);
-      else if (e.key === '.') calc.append('.');
-      else if (['+', '-', '*', '/'].includes(e.key)) {
+      const key = e.key;
+      if (key >= '0' && key <= '9' || key === '.') calc.append(key);
+      else if (['+', '-', '*', '/'].includes(key)) {
         const map = { '+': '+', '-': '−', '*': '×', '/': '÷' };
-        calc.chooseOp(map[e.key]);
+        calc.chooseOp(map[key]);
       }
-      else if (e.key === 'Enter' || e.key === '=') calc.compute();
-      else if (e.key === 'Backspace') calc.delete();
-      else if (e.key === 'Escape') calc.clear();
+      else if (key === 'Enter' || key === '=') calc.compute();
+      else if (key === 'Backspace') calc.delete();
+      else if (key === 'Escape') calc.clear();
+      else if (key === 'ArrowUp') {
+        if (calc.history.length > 0) {
+          calc.historyIndex = Math.max(0, calc.historyIndex - 1);
+          calc.loadHistory(calc.historyIndex);
+        }
+      }
+      else if (key === 'ArrowDown') {
+        if (calc.history.length > 0) {
+          calc.historyIndex = Math.min(calc.history.length - 1, calc.historyIndex + 1);
+          calc.loadHistory(calc.historyIndex);
+        }
+      }
       else handled = false;
 
-      if (handled) { e.preventDefault(); calc.updateDisplay(); }
+      if (handled) { e.preventDefault(); }
     });
   </script>
 </body>
