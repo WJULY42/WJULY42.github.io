@@ -6,7 +6,7 @@
   <meta name="description" content="🌤️ 天气查询 - 实时天气 + 7天预报 + 小时趋势">
   <title>🌤️ 天气查询 | WJULY42的工具箱</title>
   
-  <!-- ✅ 引入项目全局样式，确保视觉统一 -->
+  <!-- ✅ 引入项目全局样式 -->
   <link rel="stylesheet" href="../style.css">
   
   <!-- 天气工具专属样式微调 -->
@@ -25,18 +25,10 @@
       border-bottom: 1px solid var(--border);
     }
     
-    .back-btn {
-      display: flex;
-      align-items: center;
-      gap: 0.4rem;
-      color: var(--primary);
-      text-decoration: none;
-      font-weight: 500;
-      transition: var(--transition, all 0.2s);
-    }
-    
-    .back-btn:hover {
-      transform: translateX(-3px);
+    .header-title {
+      font-size: 1.3rem;
+      font-weight: 700;
+      margin: 0 auto 0 0;
     }
     
     .header-actions {
@@ -161,15 +153,15 @@
       color: var(--text-light);
     }
     
-    /* 详情网格 - 修复响应式布局 */
+    /* 详情网格 - 修复响应式布局，避免重叠 */
     .details-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 0.7rem;
+      gap: 0.8rem;
     }
     
     .detail-item {
-      padding: 0.7rem;
+      padding: 0.8rem;
       border-radius: 10px;
       background: var(--card);
       border: 1px solid var(--border);
@@ -343,7 +335,7 @@
       color: #ef4444;
     }
     
-    /* 响应式 - 修复网格布局 */
+    /* 响应式 - 修复网格布局，杜绝重叠 */
     @media (max-width: 1024px) {
       .weather-body {
         grid-template-columns: 1fr;
@@ -353,7 +345,7 @@
         border-bottom: 1px solid var(--border);
       }
       .details-grid {
-        grid-template-columns: repeat(2, 1fr);  /* 6项完美适配2列 */
+        grid-template-columns: repeat(2, 1fr);  /* 6项完美适配2列，无重叠 */
       }
     }
     
@@ -365,7 +357,7 @@
         font-size: 2.5rem;
       }
       .details-grid {
-        grid-template-columns: 1fr;  /* 手机端单列 */
+        grid-template-columns: 1fr;  /* 手机端单列，更清晰 */
       }
       .forecast-item {
         grid-template-columns: 60px 1fr 80px;
@@ -376,12 +368,9 @@
 </head>
 <body>
   <main class="weather-desktop card">
+    <!-- 顶部导航：移除返回按钮，仅保留标题与操作 -->
     <header class="weather-header">
-      <a href="../" class="back-btn" title="返回工具集">
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5"/><polyline points="12 19 5 12 12 5"/></svg>
-        返回工具集
-      </a>
-      <h1 style="font-size: 1.3rem; font-weight: 700;">🌤️ 天气查询</h1>
+      <h1 class="header-title">🌤️ 天气查询</h1>
       <div class="header-actions">
         <button class="icon-btn" id="locateBtn" title="自动定位">📍</button>
         <button class="icon-btn" id="refreshBtn" title="刷新">🔄</button>
@@ -438,9 +427,13 @@
       </section>
     </div>
 
+    <!-- 底部导航：修正返回链接为 tools 目录 -->
     <div class="footer-hint">
       <div>⌨️ 快捷键：<kbd>/</kbd> 聚焦搜索 · <kbd>Esc</kbd> 清空 · <kbd>↑/↓</kbd> 切换历史 · <kbd>R</kbd> 刷新</div>
-      <div><a href="../" style="color:var(--primary);">← 返回工具集</a> · <a href="https://github.com/WJULY42" target="_blank" style="color:var(--primary);">GitHub</a></div>
+      <div>
+        <a href="../tools/" style="color:var(--primary);">← 返回工具集</a> · 
+        <a href="https://github.com/WJULY42" target="_blank" style="color:var(--primary);">GitHub</a>
+      </div>
     </div>
   </main>
 
@@ -620,10 +613,8 @@
         } catch(err) {
           console.warn('天气查询失败:', err);
           if (retry) {
-            // 重试一次
             setTimeout(() => searchWeather(city, false), 1000);
           } else {
-            // 最终失败，使用演示数据
             showFallbackData(city);
           }
         }
