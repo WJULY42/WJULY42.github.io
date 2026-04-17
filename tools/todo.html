@@ -3,12 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>待办清单 - 在线工具</title>
+    <title>✅ 待办清单 · WJULY42 工具箱</title>
+    <!-- 统一全局样式 -->
     <link rel="stylesheet" href="../style.css">
     <style>
+        /* 工具专属微调 —— 完全基于全局变量 */
         .todo-stats {
             display: flex;
             justify-content: space-between;
+            align-items: center;
             margin-bottom: 1.5rem;
             font-size: 0.9rem;
             color: var(--text-light);
@@ -22,13 +25,16 @@
             flex: 1;
             padding: 0.75rem 1rem;
             border: 1px solid var(--border);
-            border-radius: 2rem;
+            border-radius: 2.5rem;
+            background: var(--card);
+            color: var(--text);
             font-size: 1rem;
             outline: none;
-            transition: border 0.2s;
+            transition: border 0.2s, box-shadow 0.2s;
         }
         .todo-input-group input:focus {
             border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
         }
         .todo-list {
             list-style: none;
@@ -39,47 +45,76 @@
             display: flex;
             align-items: center;
             gap: 0.75rem;
-            padding: 0.75rem 0;
+            padding: 0.9rem 0;
             border-bottom: 1px solid var(--border);
-            animation: fadeIn 0.2s ease;
+            animation: slideIn 0.2s ease;
         }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-4px);}
-            to { opacity: 1; transform: translateY(0);}
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-4px); }
+            to { opacity: 1; transform: translateX(0); }
         }
         .todo-check {
-            width: 1.2rem;
-            height: 1.2rem;
+            width: 1.3rem;
+            height: 1.3rem;
             cursor: pointer;
             accent-color: var(--primary);
+            flex-shrink: 0;
+        }
+        .todo-content {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            min-width: 0; /* 防止溢出 */
         }
         .todo-text {
-            flex: 1;
             font-size: 1rem;
             word-break: break-word;
+            transition: color 0.2s;
+            padding: 0.2rem 0;
         }
         .todo-text.completed {
             text-decoration: line-through;
             color: var(--text-light);
         }
-        .todo-edit, .todo-delete {
+        /* 内联编辑输入框 */
+        .todo-edit-input {
+            flex: 1;
+            padding: 0.4rem 0.6rem;
+            border: 1px solid var(--primary);
+            border-radius: 8px;
+            background: var(--card);
+            color: var(--text);
+            font-size: 1rem;
+            outline: none;
+        }
+        .todo-actions {
+            display: flex;
+            gap: 0.3rem;
+            flex-shrink: 0;
+        }
+        .todo-edit, .todo-delete, .todo-save, .todo-cancel {
             background: none;
             border: none;
             cursor: pointer;
             font-size: 1.2rem;
-            padding: 0.2rem 0.4rem;
-            border-radius: 0.5rem;
-            transition: background 0.2s;
+            padding: 0.3rem 0.5rem;
+            border-radius: 8px;
+            transition: background 0.2s, transform 0.1s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-light);
         }
-        .todo-edit:hover { background: var(--border); }
-        .todo-delete:hover { background: #fee2e2; color: #ef4444; }
+        .todo-edit:hover, .todo-save:hover { background: var(--border); color: var(--primary); }
+        .todo-delete:hover, .todo-cancel:hover { background: #fee2e2; color: #ef4444; }
         .clear-completed {
             background: none;
             border: 1px solid var(--border);
             border-radius: 2rem;
-            padding: 0.3rem 1rem;
+            padding: 0.4rem 1.2rem;
             cursor: pointer;
-            font-size: 0.8rem;
+            font-size: 0.85rem;
+            font-weight: 500;
             color: var(--text-light);
             transition: all 0.2s;
         }
@@ -88,172 +123,374 @@
             color: white;
             border-color: #ef4444;
         }
+        .empty-state {
+            text-align: center;
+            padding: 2.5rem 1rem;
+            color: var(--text-light);
+        }
+        .empty-state p { margin: 0.5rem 0; }
+        .sample-tasks {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 1rem;
+        }
+        .sample-chip {
+            background: var(--ring-bg);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 0.3rem 1rem;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .sample-chip:hover {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+        .footer-actions {
+            margin-top: 2rem;
+            text-align: center;
+        }
+        /* 响应式 */
+        @media (max-width: 480px) {
+            .todo-stats { flex-wrap: wrap; gap: 0.5rem; }
+            .clear-completed { margin-left: auto; }
+        }
     </style>
 </head>
 <body>
 <div class="container">
+    <!-- 导航栏（复用项目全局结构） -->
     <nav>
         <a href="../">🏠 首页</a>
         <a href="../blog/">📝 博客</a>
         <a href="index.html">🛠️ 工具</a>
     </nav>
 
-    <div style="margin-bottom: 1rem;">
+    <div style="margin-bottom: 1.5rem;">
         <h1>✅ 待办清单</h1>
-        <p>任务保存在浏览器中，关闭页面也不会丢失。</p>
+        <p style="color: var(--text-light);">任务自动保存，关闭页面不丢失。</p>
     </div>
 
     <div class="card">
+        <!-- 统计与清除 -->
         <div class="todo-stats">
-            <span>📋 总计 <span id="totalCount">0</span></span>
-            <span>✔️ 已完成 <span id="completedCount">0</span></span>
-            <button class="clear-completed" id="clearCompletedBtn">清除已完成</button>
+            <span>📋 总计 <strong id="totalCount">0</strong></span>
+            <span>✔️ 已完成 <strong id="completedCount">0</strong></span>
+            <button class="clear-completed" id="clearCompletedBtn" title="清除所有已完成任务">清除已完成</button>
         </div>
+
+        <!-- 输入区域 -->
         <div class="todo-input-group">
-            <input type="text" id="todoInput" placeholder="写一个新任务..." autocomplete="off">
+            <input type="text" id="todoInput" placeholder="写一个新任务，按 Enter 添加…" autocomplete="off" aria-label="新任务">
             <button class="btn" id="addBtn">添加</button>
         </div>
+
+        <!-- 任务列表容器 -->
         <ul class="todo-list" id="todoList"></ul>
     </div>
 
-    <div style="margin-top: 2rem; text-align: center;">
+    <!-- 返回按钮 -->
+    <div class="footer-actions">
         <a href="index.html" class="btn">← 返回工具集</a>
     </div>
 </div>
 
 <script>
-    // 从 localStorage 加载任务
-    let todos = [];
+    (function(){
+        "use strict";
 
-    function loadTodos() {
-        const stored = localStorage.getItem('wjuly_todos');
-        if (stored) {
-            todos = JSON.parse(stored);
-        } else {
-            // 示例任务
-            todos = [
-                { id: Date.now() + 1, text: '欢迎使用待办清单！', completed: false },
-                { id: Date.now() + 2, text: '点击复选框标记完成', completed: false },
-                { id: Date.now() + 3, text: '你可以编辑或删除任务', completed: true }
-            ];
-        }
-        renderTodos();
-    }
+        // ---------- 状态 ----------
+        let todos = [];
+        let currentEditId = null; // 正在编辑的任务 ID
 
-    function saveTodos() {
-        localStorage.setItem('wjuly_todos', JSON.stringify(todos));
-    }
-
-    function renderTodos() {
-        const list = document.getElementById('todoList');
+        // DOM 元素
+        const todoInput = document.getElementById('todoInput');
+        const addBtn = document.getElementById('addBtn');
+        const todoList = document.getElementById('todoList');
         const totalSpan = document.getElementById('totalCount');
         const completedSpan = document.getElementById('completedCount');
-        if (!list) return;
+        const clearBtn = document.getElementById('clearCompletedBtn');
 
-        const incomplete = todos.filter(t => !t.completed);
-        const completed = todos.filter(t => t.completed);
-        totalSpan.innerText = todos.length;
-        completedSpan.innerText = completed.length;
-
-        if (todos.length === 0) {
-            list.innerHTML = '<li style="text-align:center; padding:2rem; color:var(--text-light);">✨ 暂无任务，添加一条吧</li>';
-            return;
+        // ---------- 初始化 ----------
+        function loadTodos() {
+            const stored = localStorage.getItem('wjuly_todos_v2');
+            if (stored) {
+                try {
+                    todos = JSON.parse(stored);
+                } catch(e) { todos = []; }
+            }
+            // 若无任务，提供友好示例（仅首次）
+            if (!todos || todos.length === 0) {
+                todos = [
+                    { id: Date.now() + 1, text: '✨ 点击左侧复选框完成任务', completed: false },
+                    { id: Date.now() + 2, text: '✏️ 点击编辑按钮修改任务', completed: false },
+                    { id: Date.now() + 3, text: '🗑️ 不需要的任务可以删除', completed: true }
+                ];
+            }
+            render();
         }
 
-        list.innerHTML = '';
-        todos.forEach(todo => {
-            const li = document.createElement('li');
-            li.className = 'todo-item';
-            li.dataset.id = todo.id;
+        function saveTodos() {
+            localStorage.setItem('wjuly_todos_v2', JSON.stringify(todos));
+        }
 
-            const check = document.createElement('input');
-            check.type = 'checkbox';
-            check.className = 'todo-check';
-            check.checked = todo.completed;
-            check.addEventListener('change', () => toggleComplete(todo.id));
+        // ---------- 渲染 ----------
+        function render() {
+            updateStats();
+            if (todos.length === 0) {
+                renderEmptyState();
+                return;
+            }
+            renderList();
+        }
 
-            const textSpan = document.createElement('span');
-            textSpan.className = 'todo-text' + (todo.completed ? ' completed' : '');
-            textSpan.innerText = todo.text;
+        function updateStats() {
+            const total = todos.length;
+            const completed = todos.filter(t => t.completed).length;
+            totalSpan.textContent = total;
+            completedSpan.textContent = completed;
+        }
 
-            const editBtn = document.createElement('button');
-            editBtn.innerText = '✏️';
-            editBtn.className = 'todo-edit';
-            editBtn.title = '编辑';
-            editBtn.addEventListener('click', () => editTodo(todo.id));
+        function renderEmptyState() {
+            todoList.innerHTML = `
+                <li class="empty-state">
+                    <div>✨ 暂无任务</div>
+                    <p>试试添加一条吧～</p>
+                    <div class="sample-tasks">
+                        <span class="sample-chip" data-sample="阅读30分钟">📖 阅读30分钟</span>
+                        <span class="sample-chip" data-sample="完成工作报告">📊 完成工作报告</span>
+                        <span class="sample-chip" data-sample="锻炼身体">🏃 锻炼身体</span>
+                    </div>
+                </li>
+            `;
+            // 绑定示例点击事件
+            document.querySelectorAll('.sample-chip').forEach(chip => {
+                chip.addEventListener('click', () => {
+                    const text = chip.dataset.sample;
+                    addTodo(text);
+                });
+            });
+        }
 
-            const delBtn = document.createElement('button');
-            delBtn.innerText = '🗑️';
-            delBtn.className = 'todo-delete';
-            delBtn.title = '删除';
-            delBtn.addEventListener('click', () => deleteTodo(todo.id));
+        function renderList() {
+            const html = todos.map(todo => {
+                const isEditing = (currentEditId === todo.id);
+                const checkedAttr = todo.completed ? 'checked' : '';
+                const textClass = todo.completed ? 'todo-text completed' : 'todo-text';
+                
+                // 编辑模式
+                if (isEditing) {
+                    return `
+                        <li class="todo-item" data-id="${todo.id}">
+                            <input type="checkbox" class="todo-check" ${checkedAttr} disabled>
+                            <div class="todo-content">
+                                <input type="text" class="todo-edit-input" value="${escapeHtml(todo.text)}" autofocus>
+                            </div>
+                            <div class="todo-actions">
+                                <button class="todo-save" data-action="save" title="保存 (Enter)">💾</button>
+                                <button class="todo-cancel" data-action="cancel" title="取消 (Esc)">✕</button>
+                            </div>
+                        </li>
+                    `;
+                }
+                
+                // 普通模式
+                return `
+                    <li class="todo-item" data-id="${todo.id}">
+                        <input type="checkbox" class="todo-check" ${checkedAttr} data-action="toggle">
+                        <div class="todo-content">
+                            <span class="${textClass}">${escapeHtml(todo.text)}</span>
+                        </div>
+                        <div class="todo-actions">
+                            <button class="todo-edit" data-action="edit" title="编辑">✏️</button>
+                            <button class="todo-delete" data-action="delete" title="删除">🗑️</button>
+                        </div>
+                    </li>
+                `;
+            }).join('');
+            
+            todoList.innerHTML = html;
+            
+            // 如果正在编辑，自动聚焦输入框
+            if (currentEditId) {
+                const editInput = todoList.querySelector('.todo-edit-input');
+                if (editInput) {
+                    editInput.focus();
+                    editInput.select();
+                }
+            }
+        }
 
-            li.appendChild(check);
-            li.appendChild(textSpan);
-            li.appendChild(editBtn);
-            li.appendChild(delBtn);
-            list.appendChild(li);
+        // 简单的转义，防止 XSS
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // ---------- 核心操作 ----------
+        function addTodo(text) {
+            const trimmed = text.trim();
+            if (!trimmed) return;
+            
+            const newTodo = {
+                id: Date.now() + Math.floor(Math.random() * 1000),
+                text: trimmed,
+                completed: false
+            };
+            todos.push(newTodo);
+            saveTodos();
+            currentEditId = null; // 退出编辑状态
+            render();
+        }
+
+        function toggleComplete(id) {
+            const todo = todos.find(t => t.id === id);
+            if (todo) {
+                todo.completed = !todo.completed;
+                saveTodos();
+                render();
+            }
+        }
+
+        function deleteTodo(id) {
+            if (!confirm('确定要删除这个任务吗？')) return;
+            todos = todos.filter(t => t.id !== id);
+            if (currentEditId === id) currentEditId = null;
+            saveTodos();
+            render();
+        }
+
+        function startEdit(id) {
+            // 如果已经有其他任务在编辑，先取消
+            currentEditId = id;
+            render();
+        }
+
+        function saveEdit(id, newText) {
+            const trimmed = newText.trim();
+            if (!trimmed) {
+                // 如果文本为空，询问是否删除
+                if (confirm('任务内容为空，要删除它吗？')) {
+                    deleteTodo(id);
+                } else {
+                    currentEditId = null;
+                    render();
+                }
+                return;
+            }
+            
+            const todo = todos.find(t => t.id === id);
+            if (todo) {
+                todo.text = trimmed;
+                saveTodos();
+            }
+            currentEditId = null;
+            render();
+        }
+
+        function cancelEdit() {
+            currentEditId = null;
+            render();
+        }
+
+        function clearCompleted() {
+            const hasCompleted = todos.some(t => t.completed);
+            if (!hasCompleted) return;
+            if (!confirm('清除所有已完成的任务？')) return;
+            todos = todos.filter(t => !t.completed);
+            saveTodos();
+            render();
+        }
+
+        // ---------- 事件处理（委托） ----------
+        todoList.addEventListener('click', (e) => {
+            const target = e.target.closest('button') || e.target;
+            const action = target.dataset.action;
+            const li = target.closest('.todo-item');
+            if (!li) return;
+            const id = Number(li.dataset.id);
+            
+            if (target.classList.contains('todo-check') || action === 'toggle') {
+                toggleComplete(id);
+            } else if (action === 'edit') {
+                startEdit(id);
+            } else if (action === 'delete') {
+                deleteTodo(id);
+            } else if (action === 'save') {
+                const input = li.querySelector('.todo-edit-input');
+                if (input) saveEdit(id, input.value);
+            } else if (action === 'cancel') {
+                cancelEdit();
+            }
         });
-    }
 
-    function addTodo(text) {
-        if (!text.trim()) return;
-        const newTodo = {
-            id: Date.now(),
-            text: text.trim(),
-            completed: false
-        };
-        todos.push(newTodo);
-        saveTodos();
-        renderTodos();
-    }
+        // 键盘事件处理
+        todoList.addEventListener('keydown', (e) => {
+            if (!currentEditId) return;
+            const li = document.querySelector(`.todo-item[data-id="${currentEditId}"]`);
+            if (!li) return;
+            const input = li.querySelector('.todo-edit-input');
+            if (!input) return;
+            
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                saveEdit(currentEditId, input.value);
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                cancelEdit();
+            }
+        });
 
-    function toggleComplete(id) {
-        const todo = todos.find(t => t.id === id);
-        if (todo) {
-            todo.completed = !todo.completed;
-            saveTodos();
-            renderTodos();
+        // 输入框添加任务
+        function handleAdd() {
+            addTodo(todoInput.value);
+            todoInput.value = '';
+            todoInput.focus();
         }
-    }
+        
+        addBtn.addEventListener('click', handleAdd);
+        todoInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                handleAdd();
+            }
+        });
+        // 按 Escape 清空输入框
+        todoInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                todoInput.value = '';
+            }
+        });
 
-    function deleteTodo(id) {
-        todos = todos.filter(t => t.id !== id);
-        saveTodos();
-        renderTodos();
-    }
+        clearBtn.addEventListener('click', clearCompleted);
 
-    function editTodo(id) {
-        const todo = todos.find(t => t.id === id);
-        if (!todo) return;
-        const newText = prompt('编辑任务', todo.text);
-        if (newText !== null && newText.trim() !== '') {
-            todo.text = newText.trim();
-            saveTodos();
-            renderTodos();
-        }
-    }
+        // 避免在编辑时点击外部意外丢失焦点？不需要，失焦时自动保存？
+        // 增加失焦保存功能（可选）
+        todoList.addEventListener('focusout', (e) => {
+            if (!currentEditId) return;
+            const input = e.target.closest('.todo-edit-input');
+            if (input) {
+                // 延迟执行，防止与按钮点击冲突
+                setTimeout(() => {
+                    if (currentEditId) {
+                        const li = document.querySelector(`.todo-item[data-id="${currentEditId}"]`);
+                        if (li) {
+                            const inp = li.querySelector('.todo-edit-input');
+                            if (inp) saveEdit(currentEditId, inp.value);
+                        }
+                    }
+                }, 150);
+            }
+        });
 
-    function clearCompleted() {
-        todos = todos.filter(t => !t.completed);
-        saveTodos();
-        renderTodos();
-    }
-
-    document.getElementById('addBtn').addEventListener('click', () => {
-        const input = document.getElementById('todoInput');
-        addTodo(input.value);
-        input.value = '';
-        input.focus();
-    });
-    document.getElementById('todoInput').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            document.getElementById('addBtn').click();
-        }
-    });
-    document.getElementById('clearCompletedBtn').addEventListener('click', clearCompleted);
-
-    loadTodos();
+        // 启动
+        loadTodos();
+    })();
 </script>
 </body>
 </html>
