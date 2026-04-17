@@ -76,13 +76,16 @@
       gap: 1.2rem;
     }
     
+    /* 修复搜索框布局：防止按钮被遮挡 */
     .search-box {
       display: flex;
       gap: 0.5rem;
+      flex-wrap: wrap;
     }
     
     .search-box input {
       flex: 1;
+      min-width: 0;  /* 防止flex溢出 */
       padding: 0.7rem 1rem;
       border: 1px solid var(--border);
       border-radius: 10px;
@@ -107,6 +110,7 @@
       font-weight: 600;
       cursor: pointer;
       transition: var(--transition, all 0.2s);
+      white-space: nowrap;  /* 按钮文字不换行 */
     }
     
     .search-box button:hover {
@@ -362,6 +366,13 @@
       .forecast-item {
         grid-template-columns: 60px 1fr 80px;
         font-size: 0.85rem;
+      }
+      /* 移动端搜索框调整：输入框和按钮可各占一行，但不会重叠 */
+      .search-box {
+        flex-direction: column;
+      }
+      .search-box button {
+        width: 100%;
       }
     }
   </style>
