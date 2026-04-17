@@ -1,199 +1,320 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>天气查询 - 在线工具</title>
-    <link rel="stylesheet" href="../style.css">
-    <style>
-        .weather-container {
-            max-width: 600px;
-            margin: 0 auto;
-        }
-        .search-box {
-            display: flex;
-            gap: 0.5rem;
-            margin-bottom: 1.5rem;
-        }
-        .search-box input {
-            flex: 1;
-            padding: 0.75rem;
-            border: 1px solid var(--border);
-            border-radius: 2rem;
-            outline: none;
-        }
-        .weather-card {
-            background: var(--card);
-            border-radius: 1.5rem;
-            padding: 1.5rem;
-            margin-top: 1rem;
-            border: 1px solid var(--border);
-        }
-        .city-name {
-            font-size: 1.8rem;
-            font-weight: bold;
-            margin-bottom: 0.5rem;
-        }
-        .temp {
-            font-size: 2.5rem;
-            font-weight: bold;
-            color: var(--primary);
-        }
-        .details {
-            margin-top: 1rem;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 0.5rem;
-        }
-        .forecast {
-            margin-top: 1.5rem;
-            border-top: 1px solid var(--border);
-            padding-top: 1rem;
-        }
-        .forecast-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 0.5rem 0;
-        }
-        .loading {
-            text-align: center;
-            padding: 2rem;
-            color: var(--text-light);
-        }
-        .error {
-            color: #ef4444;
-            text-align: center;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="description" content="🧮 专注计算器 - 桌面级体验，无缝对齐番茄钟主题">
+  <title>🧮 专注计算器 | LAN的工具箱</title>
+  <style>
+    :root {
+      --primary: #6366f1; --primary-hover: #4f46e5; --primary-soft: #818cf8;
+      --secondary: #64748b; --success: #22c55e; --warning: #f59e0b; --danger: #ef4444;
+      --bg: #f8fafc; --card-bg: #ffffff; --text: #1e293b; --text-light: #64748b;
+      --border: #e2e8f0; --shadow: 0 8px 30px rgb(0 0 0 / 0.12);
+      --ring-bg: #f1f5f9; --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      --radius: 20px; --radius-sm: 14px;
+      --font-mono: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f172a; --card-bg: #1e293b; --text: #f1f5f9;
+        --text-light: #94a3b8; --border: #334155; --ring-bg: #334155;
+        --shadow: 0 8px 30px rgb(0 0 0 / 0.4);
+        --primary-soft: #a5b4fc;
+      }
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: var(--font-sans); background: var(--bg); color: var(--text);
+      line-height: 1.6; padding: 3rem; min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      transition: var(--transition);
+    }
+
+    .calc-desktop {
+      background: var(--card-bg); border-radius: var(--radius);
+      max-width: 920px; width: 100%; box-shadow: var(--shadow);
+      border: 1px solid var(--border); overflow: hidden;
+    }
+    /* ===== 新增：顶部导航区 ===== */
+    .calc-header {
+      padding: 1.2rem 2rem; font-size: 1.5rem; font-weight: 700;
+      letter-spacing: -0.02em; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      background: var(--ring-bg);
+    }
+    .back-btn {
+      text-decoration: none; color: var(--primary); font-size: 0.95rem;
+      font-weight: 600; display: flex; align-items: center; gap: 0.4rem;
+      padding: 0.5rem 1rem; border-radius: 10px; transition: var(--transition);
+      cursor: pointer;
+    }
+    .back-btn:hover {
+      background: rgba(99,102,241,0.1); transform: translateX(-3px);
+    }
+    .back-btn svg { width: 18px; height: 18px; transition: transform 0.2s; }
+    .back-btn:hover svg { transform: translateX(-2px); }
+    .header-title { flex: 1; text-align: center; }
+
+    .calc-body {
+      display: grid; grid-template-columns: 340px 1fr; min-height: 520px;
+    }
+
+    .history-panel {
+      background: var(--ring-bg); padding: 1.5rem;
+      border-right: 1px solid var(--border); display: flex; flex-direction: column;
+    }
+    .history-list {
+      flex: 1; overflow-y: auto; padding-right: 0.5rem; margin-bottom: 1rem;
+      font-family: var(--font-mono); font-size: 0.95rem; color: var(--text-light);
+    }
+    .history-item {
+      padding: 0.5rem 0; border-bottom: 1px dashed var(--border);
+      display: flex; justify-content: space-between; cursor: pointer;
+      transition: var(--transition); border-radius: 4px;
+    }
+    .history-item:hover { color: var(--text); background: rgba(99,102,241,0.05); padding-inline: 0.5rem; }
+    .history-item:last-child { border-bottom: none; }
+    .history-expr { opacity: 0.7; }
+    .history-res { font-weight: 600; color: var(--primary); }
+
+    .current-display {
+      background: var(--card-bg); border-radius: var(--radius-sm);
+      padding: 1.2rem; border: 1px solid var(--border); text-align: right;
+      min-height: 140px; display: flex; flex-direction: column; justify-content: flex-end;
+    }
+    .expression {
+      font-size: 1.1rem; color: var(--text-light); min-height: 1.8rem;
+      font-family: var(--font-mono); word-break: break-all;
+    }
+    .result {
+      font-size: 3rem; font-weight: 700; font-family: var(--font-mono);
+      color: var(--text); margin-top: 0.3rem; line-height: 1.1;
+    }
+
+    .keypad-panel { padding: 1.5rem; }
+    .btn-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.8rem; height: 100%;
+    }
+    .btn {
+      border: none; border-radius: var(--radius-sm); font-size: 1.35rem;
+      font-weight: 600; cursor: pointer; transition: var(--transition);
+      background: var(--ring-bg); color: var(--text);
+      box-shadow: 0 2px 6px rgb(0 0 0 / 0.05);
+      display: flex; align-items: center; justify-content: center;
+      user-select: none; -webkit-tap-highlight-color: transparent;
+      min-height: 64px; position: relative; overflow: hidden;
+    }
+    .btn:hover { background: var(--border); transform: translateY(-2px); }
+    .btn:active { transform: translateY(0); box-shadow: inset 0 2px 4px rgb(0 0 0 / 0.1); }
+    .btn:focus-visible { outline: 2px solid var(--primary-soft); outline-offset: 2px; }
+    .btn::after {
+      content: attr(data-key); position: absolute; bottom: 6px; right: 8px;
+      font-size: 0.7rem; color: var(--text-light); opacity: 0.4; pointer-events: none;
+    }
+
+    .btn.op { background: #e0e7ff; color: #4338ca; }
+    .btn.op:hover { background: #c7d2fe; }
+    .btn.action { background: #fee2e2; color: #b91c1c; }
+    .btn.action:hover { background: #fecaca; }
+    .btn.del { background: #fef3c7; color: #b45309; }
+    .btn.del:hover { background: #fde68a; }
+    .btn.equals {
+      background: var(--primary); color: white;
+      box-shadow: 0 4px 14px rgb(99 102 241 / 0.4);
+    }
+    .btn.equals:hover { background: var(--primary-hover); box-shadow: 0 6px 20px rgb(99 102 241 / 0.6); }
+    .btn.zero { grid-column: span 2; }
+
+    .footer-hint {
+      grid-column: 1 / -1; padding: 1rem 2rem; font-size: 0.85rem;
+      color: var(--text-light); background: var(--ring-bg);
+      border-top: 1px solid var(--border); text-align: center;
+      display: flex; flex-direction: column; gap: 0.5rem; align-items: center;
+    }
+    .footer-hint kbd {
+      background: var(--card-bg); border: 1px solid var(--border);
+      border-radius: 4px; padding: 0.15rem 0.45rem; font-family: var(--font-mono);
+      font-size: 0.75rem; box-shadow: 0 1px 2px rgb(0 0 0 / 0.05); margin: 0 0.2rem;
+    }
+    .footer-nav a {
+      color: var(--primary); text-decoration: none; font-weight: 500;
+      display: inline-flex; align-items: center; gap: 0.3rem; transition: var(--transition);
+    }
+    .footer-nav a:hover { opacity: 0.8; text-decoration: underline; }
+
+    @media (max-width: 900px) {
+      body { padding: 1.5rem; }
+      .calc-body { grid-template-columns: 1fr; }
+      .history-panel { max-height: 180px; border-right: none; border-bottom: 1px solid var(--border); }
+      .btn { min-height: 56px; font-size: 1.2rem; }
+      .result { font-size: 2.5rem; }
+    }
+  </style>
 </head>
 <body>
-<div class="container">
-    <nav>
-        <a href="../">🏠 首页</a>
-        <a href="../blog/">📝 博客</a>
-        <a href="index.html">🛠️ 工具</a>
-    </nav>
 
-    <div style="margin-bottom: 1rem;">
-        <h1>🌤️ 天气查询</h1>
-        <p>输入城市名（拼音或英文），获取实时天气和未来3天预报</p>
-    </div>
-
-    <div class="weather-container">
-        <div class="search-box">
-            <input type="text" id="cityInput" placeholder="例如：Beijing, Shanghai, New York" autocomplete="off">
-            <button class="btn" id="searchBtn">查询</button>
+  <main class="calc-desktop">
+    <!-- 顶部导航：醒目返回入口 -->
+    <header class="calc-header">
+      <a href="../" class="back-btn" title="返回工具集">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><polyline points="12 19 5 12 12 5"/></svg>
+        返回工具集
+      </a>
+      <span class="header-title">🧮 专注计算器</span>
+      <div style="width: 100px;"></div> <!-- 占位保持标题居中 -->
+    </header>
+    
+    <div class="calc-body">
+      <section class="history-panel">
+        <div class="history-list" id="historyList">
+          <div style="text-align:center; color:var(--text-light); padding:2rem 0; opacity:0.6;">暂无计算记录</div>
         </div>
-        <div id="weatherResult"></div>
+        <div class="current-display" aria-live="polite">
+          <div class="expression" id="expression"></div>
+          <div class="result" id="result">0</div>
+        </div>
+      </section>
+
+      <section class="keypad-panel">
+        <div class="btn-grid">
+          <button class="btn action" data-action="clear" data-key="Esc">C</button>
+          <button class="btn del" data-action="delete" data-key="⌫">⌫</button>
+          <button class="btn op" data-action="op" data-value="%" data-key="%">%</button>
+          <button class="btn op" data-action="op" data-value="÷" data-key="/">÷</button>
+
+          <button data-action="num" data-value="7" data-key="7">7</button>
+          <button data-action="num" data-value="8" data-key="8">8</button>
+          <button data-action="num" data-value="9" data-key="9">9</button>
+          <button class="btn op" data-action="op" data-value="×" data-key="*">×</button>
+
+          <button data-action="num" data-value="4" data-key="4">4</button>
+          <button data-action="num" data-value="5" data-key="5">5</button>
+          <button data-action="num" data-value="6" data-key="6">6</button>
+          <button class="btn op" data-action="op" data-value="−" data-key="-">−</button>
+
+          <button data-action="num" data-value="1" data-key="1">1</button>
+          <button data-action="num" data-value="2" data-key="2">2</button>
+          <button data-action="num" data-value="3" data-key="3">3</button>
+          <button class="btn op" data-action="op" data-value="+" data-key="+">+</button>
+
+          <button class="btn zero" data-action="num" data-value="0" data-key="0">0</button>
+          <button data-action="num" data-value="." data-key=".">.</button>
+          <button class="btn equals" data-action="compute" data-key="Enter">=</button>
+        </div>
+      </section>
     </div>
 
-    <div style="margin-top: 2rem; text-align: center;">
-        <a href="index.html" class="btn">← 返回工具集</a>
+    <div class="footer-hint">
+      <div>⌨️ 桌面快捷键：<kbd>0-9</kbd> 输入 · <kbd>Esc</kbd> 清空 · <kbd>⌫</kbd> 退格 · <kbd>Enter</kbd> 计算 · <kbd>↑/↓</kbd> 浏览历史</div>
+      <div class="footer-nav">
+        <a href="../">← 返回工具集</a> · <a href="https://github.com/WJULY42" target="_blank" rel="noopener">GitHub</a>
+      </div>
     </div>
-</div>
+  </main>
 
-<script>
-    const searchBtn = document.getElementById('searchBtn');
-    const cityInput = document.getElementById('cityInput');
-    const resultDiv = document.getElementById('weatherResult');
-
-    // 通过城市名获取坐标 (使用 Open-Meteo Geocoding API)
-    async function getCoordinates(city) {
-        const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=zh&format=json`;
-        const resp = await fetch(url);
-        const data = await resp.json();
-        if (data.results && data.results.length > 0) {
-            const result = data.results[0];
-            return { lat: result.latitude, lon: result.longitude, name: result.name, country: result.country };
+  <script>
+    class Calculator {
+      constructor(prevEl, currEl, historyEl) {
+        this.prevEl = prevEl; this.currEl = currEl; this.historyEl = historyEl;
+        this.history = []; this.historyIndex = -1;
+        this.clear();
+      }
+      clear() { this.curr = '0'; this.prev = ''; this.operation = undefined; this.updateDisplay(); }
+      delete() {
+        if (this.curr === '0' || this.curr === '') return;
+        this.curr = this.curr.slice(0, -1);
+        if (this.curr === '' || this.curr === '-') this.curr = '0';
+        this.updateDisplay();
+      }
+      append(num) {
+        if (num === '.' && this.curr.includes('.')) return;
+        if (this.curr === '0' && num !== '.') this.curr = num;
+        else this.curr += num;
+        this.updateDisplay();
+      }
+      chooseOp(op) {
+        if (this.curr === '') return;
+        if (this.prev !== '') this.compute();
+        this.operation = op; this.prev = this.curr; this.curr = '';
+        this.updateDisplay();
+      }
+      compute() {
+        let comp; const p = parseFloat(this.prev); const c = parseFloat(this.curr);
+        if (isNaN(p) || isNaN(c)) return;
+        switch (this.operation) {
+          case '+': comp = p + c; break; case '−': comp = p - c; break;
+          case '×': comp = p * c; break; case '÷': comp = c === 0 ? '错误' : p / c; break;
+          case '%': comp = p % c; break; default: return;
         }
-        return null;
-    }
-
-    // 获取天气
-    async function getWeather(lat, lon) {
-        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&daily=temperature_2m_max,temperature_2m_min,weathercode&timezone=auto&forecast_days=3`;
-        const resp = await fetch(url);
-        const data = await resp.json();
-        return data;
-    }
-
-    // 天气代码映射 (WMO 标准)
-    function getWeatherDesc(code) {
-        const codes = {
-            0: "☀️ 晴朗",
-            1: "🌤️ 大致晴朗",
-            2: "⛅ 部分多云",
-            3: "☁️ 阴天",
-            45: "🌫️ 雾",
-            51: "🌦️ 毛毛雨",
-            61: "🌧️ 雨",
-            71: "❄️ 雪",
-            80: "🌦️ 阵雨"
-        };
-        return codes[code] || "🌡️ 未知";
-    }
-
-    function displayWeather(cityInfo, weatherData) {
-        const current = weatherData.current_weather;
-        const daily = weatherData.daily;
-        const temp = current.temperature;
-        const wind = current.windspeed;
-        const weatherCode = current.weathercode;
-        const desc = getWeatherDesc(weatherCode);
-
-        let forecastHtml = '';
-        for (let i = 0; i < daily.time.length; i++) {
-            const date = daily.time[i];
-            const max = daily.temperature_2m_max[i];
-            const min = daily.temperature_2m_min[i];
-            const code = daily.weathercode[i];
-            forecastHtml += `
-                <div class="forecast-item">
-                    <span>${date}</span>
-                    <span>${getWeatherDesc(code)}</span>
-                    <span>${min}° / ${max}°</span>
-                </div>
-            `;
+        if (comp === '错误') { this.curr = '错误'; this.prev = ''; this.operation = undefined; this.updateDisplay(); return; }
+        this.curr = Math.round(comp * 1e10) / 1e10;
+        this.addToHistory(`${this.prev} ${this.operation} ${p}`, this.curr);
+        this.operation = undefined; this.prev = ''; this.updateDisplay();
+      }
+      addToHistory(expr, res) {
+        this.history.unshift({ expr, res }); if (this.history.length > 20) this.history.pop();
+        this.historyIndex = -1; this.renderHistory();
+      }
+      renderHistory() {
+        if (this.history.length === 0) {
+          this.historyEl.innerHTML = '<div style="text-align:center;color:var(--text-light);padding:2rem 0;opacity:0.6;">暂无计算记录</div>';
+          return;
         }
-
-        resultDiv.innerHTML = `
-            <div class="weather-card">
-                <div class="city-name">${cityInfo.name}, ${cityInfo.country}</div>
-                <div class="temp">${temp}°C</div>
-                <div>${desc} · 风速 ${wind} km/h</div>
-                <div class="forecast">
-                    <strong>未来三天预报</strong>
-                    ${forecastHtml}
-                </div>
-            </div>
-        `;
+        this.historyEl.innerHTML = this.history.map((h, i) => 
+          `<div class="history-item" data-index="${i}"><span class="history-expr">${h.expr} =</span><span class="history-res">${this.formatNum(h.res)}</span></div>`
+        ).join('');
+        this.historyEl.scrollTop = 0;
+      }
+      loadHistory(index) {
+        if (index >= 0 && index < this.history.length) { this.curr = String(this.history[index].res); this.updateDisplay(); }
+      }
+      formatNum(num) {
+        if (num === '错误') return num;
+        return parseFloat(num).toLocaleString('zh-CN', { maximumFractionDigits: 8 });
+      }
+      updateDisplay() {
+        this.currEl.innerText = this.formatNum(this.curr);
+        this.prevEl.innerText = this.operation ? `${this.formatNum(this.prev)} ${this.operation}` : '';
+      }
     }
 
-    async function searchWeather() {
-        const city = cityInput.value.trim();
-        if (!city) {
-            resultDiv.innerHTML = '<div class="error">请输入城市名</div>';
-            return;
-        }
-        resultDiv.innerHTML = '<div class="loading">⏳ 查询中...</div>';
-        try {
-            const coords = await getCoordinates(city);
-            if (!coords) {
-                resultDiv.innerHTML = '<div class="error">未找到该城市，请尝试拼音或英文名</div>';
-                return;
-            }
-            const weather = await getWeather(coords.lat, coords.lon);
-            displayWeather(coords, weather);
-        } catch (err) {
-            resultDiv.innerHTML = '<div class="error">查询失败，请稍后重试</div>';
-            console.error(err);
-        }
-    }
+    const prevEl = document.getElementById('expression');
+    const currEl = document.getElementById('result');
+    const historyEl = document.getElementById('historyList');
+    const calc = new Calculator(prevEl, currEl, historyEl);
 
-    searchBtn.addEventListener('click', searchWeather);
-    cityInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') searchWeather();
+    document.querySelectorAll('[data-action]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const action = btn.dataset.action, value = btn.dataset.value;
+        switch(action) {
+          case 'num': calc.append(value); break; case 'op': calc.chooseOp(value); break;
+          case 'compute': calc.compute(); break; case 'clear': calc.clear(); break; case 'delete': calc.delete(); break;
+        }
+      });
     });
-</script>
+    historyEl.addEventListener('click', (e) => {
+      const item = e.target.closest('.history-item');
+      if (item) calc.loadHistory(parseInt(item.dataset.index));
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.target.tagName === 'INPUT') return;
+      let handled = true; const key = e.key;
+      if (key >= '0' && key <= '9' || key === '.') calc.append(key);
+      else if (['+', '-', '*', '/'].includes(key)) {
+        const map = { '+': '+', '-': '−', '*': '×', '/': '÷' }; calc.chooseOp(map[key]);
+      }
+      else if (key === 'Enter' || key === '=') calc.compute();
+      else if (key === 'Backspace') calc.delete();
+      else if (key === 'Escape') calc.clear();
+      else if (key === 'ArrowUp') { if(calc.history.length>0) { calc.historyIndex = Math.max(0, calc.historyIndex-1); calc.loadHistory(calc.historyIndex); } }
+      else if (key === 'ArrowDown') { if(calc.history.length>0) { calc.historyIndex = Math.min(calc.history.length-1, calc.historyIndex+1); calc.loadHistory(calc.historyIndex); } }
+      else handled = false;
+      if (handled) e.preventDefault();
+    });
+  </script>
 </body>
 </html>
