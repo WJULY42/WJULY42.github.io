@@ -3,188 +3,321 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <meta name="description" content="🍅 番茄时钟">
-  <title>🍅 番茄时钟 | LAN</title>
+  <meta name="description" content="🍅 番茄时钟 · 专注工作法">
+  <title>🍅 番茄时钟 | WJULY42</title>
+  
+  <!-- ✅ 统一引入项目全局样式 -->
+  <link rel="stylesheet" href="../style.css">
+  
+  <!-- 工具专属微调样式（仅保留必要的特殊样式，其余继承全局） -->
   <style>
-    :root {
-      --primary: #6366f1; --primary-hover: #4f46e5; --primary-soft: #818cf8;
-      --secondary: #64748b; --success: #22c55e; --warning: #f59e0b;
-      --bg: #f8fafc; --card-bg: #ffffff; --text: #1e293b; --text-light: #64748b;
-      --border: #e2e8f0; --shadow: 0 8px 30px rgb(0 0 0 / 0.12);
-      --ring-bg: #f1f5f9; --ring-progress: var(--primary);
-      --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-      --radius: 20px; --radius-sm: 12px;
-      --font-mono: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    /* 进度环和卡片微调 —— 使用全局变量，暗色模式自动适配 */
+    .tomato-container {
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 2.5rem;
+      align-items: start;
+      max-width: 960px;
+      margin: 0 auto;
     }
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --bg: #0f172a; --card-bg: #1e293b; --text: #f1f5f9;
-        --text-light: #94a3b8; --border: #334155; --ring-bg: #334155;
-        --shadow: 0 8px 30px rgb(0 0 0 / 0.4);
+    
+    /* 全局卡片已有样式，这里微调内部间距 */
+    .timer-card {
+      padding: 2rem 1.8rem;
+      text-align: center;
+    }
+    
+    .mode-toggle {
+      display: flex;
+      gap: 0.75rem;
+      justify-content: center;
+      margin: 1.5rem 0;
+      background: var(--border);
+      padding: 0.35rem;
+      border-radius: 14px;
+      inline-size: fit-content;
+      margin-inline: auto;
+    }
+    
+    .mode-btn {
+      padding: 0.6rem 1.4rem;
+      border: none;
+      background: transparent;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 1rem;
+      color: var(--text-light);
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    
+    .mode-btn:hover {
+      color: var(--text);
+      background: var(--card);
+    }
+    
+    .mode-btn.active {
+      background: var(--card);
+      color: var(--primary);
+      box-shadow: var(--shadow);
+    }
+    
+    /* SVG 进度环 */
+    .timer-ring {
+      width: 260px;
+      height: 260px;
+      margin: 0 auto;
+      display: block;
+      filter: drop-shadow(0 4px 12px rgba(0,0,0,0.1));
+    }
+    
+    .ring-bg {
+      stroke: var(--border);
+    }
+    
+    .ring-progress {
+      stroke: var(--primary);
+      stroke-dasharray: 565.48;
+      stroke-dashoffset: 0;
+      stroke-linecap: round;
+      transform: rotate(-90deg);
+      transform-origin: 100px 100px;
+      transition: stroke-dashoffset 0.3s linear;
+    }
+    
+    /* 不同模式下的进度环颜色 */
+    body[data-mode="work"] .ring-progress { stroke: #ef4444; }
+    body[data-mode="break"] .ring-progress { stroke: #22c55e; }
+    
+    .timer-text {
+      dominant-baseline: middle;
+      font-size: 2.8rem;
+      font-weight: 700;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      fill: var(--text);
+    }
+    
+    .timer-label {
+      font-size: 1rem;
+      fill: var(--text-light);
+    }
+    
+    /* 控制按钮组：继承全局 .btn，这里只调整间距 */
+    .controls {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      margin: 2rem 0 1.5rem;
+      flex-wrap: wrap;
+    }
+    
+    .btn-secondary {
+      background: var(--text-light);
+      box-shadow: none;
+    }
+    
+    .btn-secondary:hover {
+      background: #475569;
+    }
+    
+    /* 右侧面板卡片微调 */
+    .panel-card {
+      padding: 1.2rem;
+    }
+    
+    .shortcut-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.5rem 1rem;
+      font-size: 0.9rem;
+      margin-top: 0.5rem;
+    }
+    
+    .shortcut-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--text-light);
+    }
+    
+    .key {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.2rem 0.5rem;
+      font-family: monospace;
+      font-weight: 600;
+      font-size: 0.85rem;
+      min-width: 28px;
+      text-align: center;
+    }
+    
+    /* 音乐选项网格 */
+    .music-options {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.6rem;
+      margin: 1rem 0;
+    }
+    
+    .music-btn {
+      padding: 0.6rem 0.8rem;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--card);
+      color: var(--text);
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+      font-weight: 500;
+    }
+    
+    .music-btn:hover {
+      border-color: var(--primary);
+      transform: translateY(-1px);
+    }
+    
+    .music-btn.active {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+    
+    .music-controls {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    
+    .volume-control {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      flex: 1;
+    }
+    
+    .volume-control input {
+      flex: 1;
+      height: 6px;
+      accent-color: var(--primary);
+    }
+    
+    .music-status {
+      font-size: 0.85rem;
+      color: var(--text-light);
+      margin-top: 0.5rem;
+    }
+    
+    /* 通知横幅 */
+    .notification-banner {
+      position: fixed;
+      top: 1.5rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--primary);
+      color: white;
+      padding: 0.9rem 1.8rem;
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      display: none;
+      z-index: 100;
+      align-items: center;
+      gap: 1rem;
+    }
+    
+    .notification-banner.show {
+      display: flex;
+    }
+    
+    /* 响应式 */
+    @media (max-width: 800px) {
+      .tomato-container {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+      }
+      .timer-ring {
+        width: 220px;
+        height: 220px;
+      }
+      .timer-text {
+        font-size: 2.4rem;
       }
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    html { scroll-behavior: smooth; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: var(--bg); color: var(--text); line-height: 1.6;
-      padding: 2rem; min-height: 100vh; display: flex; align-items: center; justify-content: center;
-      transition: var(--transition);
+    
+    @media (max-width: 480px) {
+      .timer-ring {
+        width: 190px;
+        height: 190px;
+      }
+      .timer-text {
+        font-size: 2rem;
+      }
+      .shortcut-grid {
+        grid-template-columns: 1fr;
+      }
+      .music-options {
+        grid-template-columns: 1fr;
+      }
     }
-    .tomato-container {
-      background: var(--card-bg); border-radius: var(--radius); padding: 2.5rem 3rem;
-      max-width: 900px; width: 100%; box-shadow: var(--shadow);
-      border: 1px solid var(--border); display: grid;
-      grid-template-columns: 1fr 320px; gap: 2.5rem; align-items: start;
+    
+    /* 保留原有关键动画 */
+    @keyframes pulse {
+      0%,100% { transform: rotate(-90deg) scale(1); }
+      50% { transform: rotate(-90deg) scale(1.05); }
     }
-    .timer-section { display: flex; flex-direction: column; align-items: center; }
-    .header { text-align: center; margin-bottom: 2rem; }
-    .header h1 { font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem; letter-spacing: -0.02em; }
-    .header p { color: var(--text-light); font-size: 1.1rem; }
-    .mode-toggle {
-      display: flex; gap: 0.75rem; justify-content: center; margin-bottom: 2rem;
-      background: var(--ring-bg); padding: 0.35rem; border-radius: 14px;
-      inline-size: fit-content; margin-inline: auto;
+    body.timer-complete .ring-progress {
+      animation: pulse 0.5s ease-in-out 3;
     }
-    .mode-btn {
-      padding: 0.7rem 1.5rem; border: none; background: transparent;
-      border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 1rem;
-      color: var(--text-light); transition: var(--transition);
-      display: flex; align-items: center; gap: 0.4rem;
-    }
-    .mode-btn:hover { color: var(--text); transform: translateY(-1px); }
-    .mode-btn.active {
-      background: var(--card-bg); color: var(--primary);
-      box-shadow: 0 4px 12px rgb(0 0 0 / 0.1); transform: translateY(0);
-    }
-    .timer-ring {
-      width: 260px; height: 260px; margin: 1.5rem auto; display: block;
-      filter: drop-shadow(0 4px 12px rgb(0 0 0 / 0.1));
-    }
-    .ring-bg { stroke: var(--ring-bg); }
-    .ring-progress {
-      stroke: var(--ring-progress); stroke-dasharray: 565.48; stroke-dashoffset: 0;
-      stroke-linecap: round; transition: stroke-dashoffset 1s linear, stroke 0.3s ease;
-      transform: rotate(-90deg); transform-origin: 100px 100px;
-      filter: drop-shadow(0 0 8px var(--primary-soft));
-    }
-    body[data-mode="work"] .ring-progress { stroke: #ef4444 !important; filter: drop-shadow(0 0 8px #f87171); }
-    body[data-mode="break"] .ring-progress { stroke: #22c55e !important; filter: drop-shadow(0 0 8px #4ade80); }
-    body.timer-complete .ring-progress { animation: pulse 0.5s ease-in-out 3; }
-    @keyframes pulse { 0%,100%{transform:rotate(-90deg) scale(1)} 50%{transform:rotate(-90deg) scale(1.05)} }
-    .timer-text {
-      dominant-baseline: middle; font-size: 3rem; font-weight: 700;
-      font-family: var(--font-mono); fill: var(--text);
-      text-shadow: 0 2px 4px rgb(0 0 0 / 0.1);
-    }
-    .timer-label { font-size: 1.1rem; fill: var(--text-light); opacity: 0.9; font-weight: 500; }
-    .controls { display: flex; gap: 1rem; justify-content: center; margin: 2rem 0 1.5rem; flex-wrap: wrap; }
-    .btn {
-      padding: 0.9rem 2rem; border: none; border-radius: 14px;
-      background: var(--primary); color: white; font-weight: 600; font-size: 1.05rem;
-      cursor: pointer; transition: var(--transition);
-      display: flex; align-items: center; gap: 0.5rem;
-      box-shadow: 0 4px 14px rgb(99 102 241 / 0.4);
-    }
-    .btn:hover { background: var(--primary-hover); transform: translateY(-2px); box-shadow: 0 6px 20px rgb(99 102 241 / 0.6); }
-    .btn:active { transform: translateY(0); }
-    .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; box-shadow: none; }
-    .btn-secondary { background: var(--secondary); box-shadow: 0 4px 14px rgb(100 116 139 / 0.3); }
-    .btn-secondary:hover { background: #475569; box-shadow: 0 6px 20px rgb(100 116 139 / 0.5); }
-    .status { min-height: 1.8rem; color: var(--text-light); font-size: 1.05rem; margin: 0.5rem 0 1rem; font-weight: 500; text-align: center; }
-    .controls-panel { display: flex; flex-direction: column; gap: 1.5rem; padding-left: 1.5rem; border-left: 1px dashed var(--border); }
-    .shortcuts-card { background: var(--ring-bg); border-radius: var(--radius-sm); padding: 1.2rem; border: 1px solid var(--border); }
-    .shortcuts-card h4 { font-size: 0.95rem; font-weight: 600; margin-bottom: 0.8rem; display: flex; align-items: center; gap: 0.4rem; }
-    .shortcut-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem 1rem; font-size: 0.9rem; }
-    .shortcut-item { display: flex; align-items: center; gap: 0.5rem; color: var(--text-light); }
-    .key { background: var(--card-bg); border: 1px solid var(--border); border-radius: 6px; padding: 0.2rem 0.5rem; font-family: var(--font-mono); font-weight: 600; font-size: 0.85rem; min-width: 28px; text-align: center; box-shadow: 0 2px 4px rgb(0 0 0 / 0.05); }
-    .settings-panel { background: var(--ring-bg); border-radius: var(--radius-sm); padding: 1.2rem; border: 1px solid var(--border); }
-    .settings-panel summary { cursor: pointer; font-weight: 600; font-size: 0.95rem; display: flex; align-items: center; gap: 0.4rem; user-select: none; color: var(--primary); }
-    .settings-panel summary::-webkit-details-marker { display: none; }
-    .settings-content { padding-top: 1rem; display: grid; gap: 0.9rem; font-size: 0.95rem; }
-    .settings-content label { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }
-    .settings-content input[type="number"] { width: 70px; padding: 0.4rem 0.6rem; border: 1px solid var(--border); border-radius: 8px; background: var(--card-bg); color: var(--text); text-align: center; font-family: var(--font-mono); font-weight: 500; }
-    .settings-content input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; accent-color: var(--primary); }
-    .music-section { background: var(--ring-bg); border-radius: var(--radius-sm); padding: 1.2rem; border: 1px solid var(--border); }
-    .music-title { font-weight: 600; margin-bottom: 1rem; font-size: 0.95rem; display: flex; align-items: center; gap: 0.4rem; }
-    .music-options { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.6rem; margin-bottom: 1rem; }
-    .music-btn { padding: 0.6rem 0.8rem; border: 1px solid var(--border); border-radius: 10px; background: var(--card-bg); color: var(--text); font-size: 0.9rem; cursor: pointer; transition: var(--transition); text-align: center; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 0.3rem; }
-    .music-btn:hover { border-color: var(--primary); transform: translateY(-1px); box-shadow: 0 4px 12px rgb(0 0 0 / 0.08); }
-    .music-btn.active { background: var(--primary); color: white; border-color: var(--primary); box-shadow: 0 4px 14px rgb(99 102 241 / 0.4); }
-    .music-controls { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
-    .music-toggle { padding: 0.6rem 1.4rem; border: none; border-radius: 10px; background: var(--secondary); color: white; font-weight: 500; cursor: pointer; transition: var(--transition); display: flex; align-items: center; gap: 0.4rem; font-size: 0.95rem; }
-    .music-toggle:hover { background: #475569; transform: translateY(-1px); }
-    .volume-control { display: flex; align-items: center; gap: 0.6rem; font-size: 0.9rem; flex: 1; min-width: 160px; }
-    .volume-control input { flex: 1; height: 6px; cursor: pointer; accent-color: var(--primary); }
-    .music-status { font-size: 0.85rem; color: var(--text-light); min-height: 1.4rem; margin-top: 0.5rem; display: flex; align-items: center; gap: 0.3rem; }
-    .loop-indicator { display: inline-flex; align-items: center; gap: 0.2rem; font-size: 0.8rem; color: var(--success); font-weight: 500; }
-    .loop-indicator::before { content: "🔁"; font-size: 0.9rem; }
-    .footer { grid-column: 1 / -1; margin-top: 1rem; padding-top: 1.5rem; border-top: 1px solid var(--border); text-align: center; font-size: 0.9rem; color: var(--text-light); }
-    .footer a { color: var(--primary); text-decoration: none; font-weight: 500; }
-    .footer a:hover { text-decoration: underline; }
-    .notification-banner { position: fixed; top: 1.5rem; left: 50%; transform: translateX(-50%); background: var(--primary); color: white; padding: 0.9rem 1.8rem; border-radius: 12px; font-size: 0.95rem; display: none; z-index: 100; box-shadow: 0 8px 25px rgb(0 0 0 / 0.2); align-items: center; gap: 1rem; max-width: 90%; }
-    .notification-banner.show { display: flex; animation: slideDown 0.3s ease; }
-    @keyframes slideDown { from { opacity: 0; transform: translate(-50%, -20px) } to { opacity: 1; transform: translate(-50%, 0) } }
-    .notification-banner button { background: white; color: var(--primary); border: none; padding: 0.4rem 1.2rem; border-radius: 8px; cursor: pointer; font-weight: 600; transition: var(--transition); }
-    .notification-banner button:hover { transform: translateY(-1px); }
-    .notification-banner button.close { background: transparent; color: white; padding: 0.4rem 0.8rem; }
-    @media (max-width: 1024px) {
-      .tomato-container { grid-template-columns: 1fr; padding: 2rem; gap: 2rem; }
-      .controls-panel { padding-left: 0; border-left: none; border-top: 1px dashed var(--border); padding-top: 1.5rem; }
-      .timer-ring { width: 220px; height: 220px; }
-      .timer-text { font-size: 2.5rem; }
-    }
-    @media (max-width: 640px) {
-      body { padding: 1rem; }
-      .tomato-container { padding: 1.5rem; border-radius: 16px; }
-      .header h1 { font-size: 1.6rem; }
-      .timer-ring { width: 190px; height: 190px; }
-      .timer-text { font-size: 2rem; }
-      .controls { gap: 0.75rem; }
-      .btn { padding: 0.75rem 1.5rem; font-size: 0.95rem; }
-      .music-options { grid-template-columns: 1fr; }
-      .shortcut-grid { grid-template-columns: 1fr; }
-    }
-    .mode-btn:focus, .btn:focus, .music-btn:focus, .music-toggle:focus { outline: 2px solid var(--primary-soft); outline-offset: 2px; }
-    @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
-    .loading { background: linear-gradient(90deg, var(--ring-bg) 25%, var(--border) 50%, var(--ring-bg) 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 8px; height: 1.2rem; margin: 0.3rem 0; }
   </style>
 </head>
 <body data-mode="work">
 
+  <!-- 桌面通知横幅 -->
   <div class="notification-banner" id="notificationBanner">
     🔔 开启桌面通知，不错过每个专注时刻
-    <button onclick="requestNotificationPermission()">允许</button>
-    <button class="close" onclick="this.parentElement.classList.remove('show')">✕</button>
+    <button class="btn" onclick="requestNotificationPermission()" style="padding:0.3rem 1rem;">允许</button>
+    <button class="btn btn-secondary" onclick="this.parentElement.classList.remove('show')" style="padding:0.3rem 0.8rem;">✕</button>
   </div>
 
   <main class="tomato-container">
-    <section class="timer-section">
-      <header class="header">
-        <h1>🍅 番茄时钟</h1>
-        <p>25 分钟深度专注 · 5 分钟高效休息</p>
+    <!-- 左侧计时核心区 -->
+    <section class="card timer-card">
+      <header style="margin-bottom: 1rem;">
+        <h1 style="font-size: 1.8rem;">🍅 番茄时钟</h1>
+        <p style="color: var(--text-light);">25 分钟深度专注 · 5 分钟高效休息</p>
       </header>
-      <div class="mode-toggle" role="tablist" aria-label="计时模式">
-        <button class="mode-btn active" data-mode="work" role="tab" aria-selected="true">🍅 工作模式</button>
-        <button class="mode-btn" data-mode="break" role="tab" aria-selected="false">☕ 休息模式</button>
+      
+      <div class="mode-toggle">
+        <button class="mode-btn active" data-mode="work">🍅 工作</button>
+        <button class="mode-btn" data-mode="break">☕ 休息</button>
       </div>
-      <svg class="timer-ring" viewBox="0 0 200 200" aria-label="倒计时进度">
+      
+      <svg class="timer-ring" viewBox="0 0 200 200">
         <circle class="ring-bg" cx="100" cy="100" r="90" fill="none" stroke-width="10"/>
-        <circle class="ring-progress" cx="100" cy="100" r="90" fill="none" stroke-width="10" stroke-dasharray="565.48" stroke-linecap="round"/>
+        <circle class="ring-progress" cx="100" cy="100" r="90" fill="none" stroke-width="10" stroke-dasharray="565.48"/>
         <text class="timer-text" x="100" y="95" text-anchor="middle">25:00</text>
         <text class="timer-label" x="100" y="125" text-anchor="middle">准备专注</text>
       </svg>
+      
       <div class="controls">
-        <button class="btn" id="startBtn" aria-label="开始计时">▶ 开始</button>
-        <button class="btn btn-secondary" id="pauseBtn" disabled aria-label="暂停计时">⏸ 暂停</button>
-        <button class="btn btn-secondary" id="resetBtn" aria-label="重置计时">🔄 重置</button>
+        <button class="btn" id="startBtn">▶ 开始</button>
+        <button class="btn btn-secondary" id="pauseBtn" disabled>⏸ 暂停</button>
+        <button class="btn btn-secondary" id="resetBtn">🔄 重置</button>
       </div>
-      <div class="status" id="statusText" aria-live="polite">准备开始专注～</div>
+      
+      <div class="status" id="statusText" style="min-height:1.8rem; color: var(--text-light);">准备开始专注～</div>
     </section>
 
-    <aside class="controls-panel">
-      <div class="shortcuts-card">
-        <h4>⌨️ 键盘快捷键</h4>
+    <!-- 右侧辅助面板 -->
+    <aside style="display: flex; flex-direction: column; gap: 1.5rem;">
+      <!-- 快捷键卡片 -->
+      <div class="card panel-card">
+        <h4 style="margin-bottom: 0.8rem;">⌨️ 键盘快捷键</h4>
         <div class="shortcut-grid">
           <div class="shortcut-item"><span class="key">Space</span> 开始/暂停</div>
           <div class="shortcut-item"><span class="key">R</span> 重置</div>
@@ -194,215 +327,425 @@
           <div class="shortcut-item"><span class="key">↑↓</span> 调节音量</div>
         </div>
       </div>
-      <details class="settings-panel">
-        <summary>⚙️ 个性化设置</summary>
-        <div class="settings-content">
-          <label>🍅 工作时长 <input type="number" id="workDuration" min="1" max="120" value="25"> 分钟</label>
-          <label>☕ 休息时长 <input type="number" id="breakDuration" min="1" max="60" value="5"> 分钟</label>
-          <label><input type="checkbox" id="autoStart" checked> 自动开始下一轮</label>
-          <label><input type="checkbox" id="soundEnabled" checked> 启用完成提示音</label>
-          <button class="btn" onclick="saveSettings()" style="padding:0.5rem 1.2rem;font-size:0.9rem;">💾 保存设置</button>
+      
+      <!-- 设置卡片 -->
+      <details class="card panel-card">
+        <summary style="cursor:pointer; font-weight:600; list-style:none;">⚙️ 个性化设置</summary>
+        <div style="padding-top:1rem; display:grid; gap:0.9rem;">
+          <label style="display:flex; justify-content:space-between;">
+            🍅 工作时长 <input type="number" id="workDuration" min="1" max="120" value="25" style="width:70px; padding:0.3rem; border:1px solid var(--border); border-radius:6px; background:var(--card); color:var(--text);"> 分钟
+          </label>
+          <label style="display:flex; justify-content:space-between;">
+            ☕ 休息时长 <input type="number" id="breakDuration" min="1" max="60" value="5" style="width:70px; padding:0.3rem; border:1px solid var(--border); border-radius:6px; background:var(--card); color:var(--text);"> 分钟
+          </label>
+          <label style="display:flex; align-items:center; gap:0.5rem;">
+            <input type="checkbox" id="autoStart" checked> 自动开始下一轮
+          </label>
+          <label style="display:flex; align-items:center; gap:0.5rem;">
+            <input type="checkbox" id="soundEnabled" checked> 启用完成提示音
+          </label>
+          <button class="btn" onclick="saveSettings()" style="padding:0.5rem 1rem;">💾 保存设置</button>
         </div>
       </details>
-      <div class="music-section">
-        <div class="music-title">🎵 专注钢琴曲</div>
+      
+      <!-- 音乐卡片 -->
+      <div class="card panel-card">
+        <div style="font-weight:600; margin-bottom:1rem;">🎵 专注钢琴曲</div>
         <div class="music-options">
           <button class="music-btn active" data-sound="none">🔇 关闭</button>
-          <button class="music-btn" data-sound="piano1">🎹 经典钢琴</button>
-          <button class="music-btn" data-sound="piano2">🌙 舒缓钢琴</button>
-          <button class="music-btn" data-sound="piano3">☕ 爵士钢琴</button>
-          <button class="music-btn" data-sound="piano4">🌌 氛围钢琴</button>
+          <button class="music-btn" data-sound="piano1">🎹 经典</button>
+          <button class="music-btn" data-sound="piano2">🌙 舒缓</button>
+          <button class="music-btn" data-sound="piano3">☕ 爵士</button>
+          <button class="music-btn" data-sound="piano4">🌌 氛围</button>
         </div>
         <div class="music-controls">
-          <button class="music-toggle" id="musicToggle">▶ 播放</button>
+          <button class="btn btn-secondary" id="musicToggle" style="padding:0.5rem 1.2rem;">▶ 播放</button>
           <div class="volume-control">
             <span>🔈</span>
             <input type="range" id="volumeSlider" min="0" max="1" step="0.05" value="0.4">
             <span id="volumeValue">40%</span>
           </div>
         </div>
-        <div class="music-status" id="musicStatus">点击播放开始聆听 <span class="loop-indicator" id="loopIndicator" style="display:none">无缝循环</span></div>
+        <div class="music-status" id="musicStatus">点击播放开始聆听</div>
       </div>
     </aside>
-
-    <footer class="footer">
-      <p>💡 技巧：每完成 4 个番茄钟，建议长休息 15-30 分钟</p>
-      <p style="margin-top:0.4rem">
-        <a href="https://wjuly42.github.io/tools/">← 返回工具集</a> · <a href="https://github.com/WJULY42" target="_blank" rel="noopener">GitHub</a> · <span style="color:var(--success)">●</span> 本地运行
-      </p>
-    </footer>
   </main>
+  
+  <footer style="text-align:center; margin-top:2rem; padding-top:1.5rem; border-top:1px solid var(--border); color:var(--text-light);">
+    <p>💡 技巧：每完成 4 个番茄钟，建议长休息 15-30 分钟</p>
+    <p style="margin-top:0.5rem;">
+      <a href="https://wjuly42.github.io/tools/" style="color:var(--primary);">← 返回工具集</a> · 
+      <a href="https://github.com/WJULY42" target="_blank" style="color:var(--primary);">GitHub</a>
+    </p>
+  </footer>
 
   <script>
-    let timeLeft = 25 * 60, totalTime = 25 * 60, timerId = null, isRunning = false, currentMode = 'work';
-    let settings = { work: 1500, break: 300, auto: true, sound: true };
-    let currentSound = 'none', isMusicPlaying = false, musicLoopEnabled = true;
-    let audioCtx = null, musicSource = null, musicGain = null, musicBuffer = null;
-    let activeAudio = null;
-
-    const $ = id => document.getElementById(id);
-    const timerText = document.querySelector('.timer-text');
-    const timerLabel = document.querySelector('.timer-label');
-    const ringProgress = document.querySelector('.ring-progress');
-    const startBtn = $('startBtn'), pauseBtn = $('pauseBtn'), resetBtn = $('resetBtn');
-    const statusText = $('statusText');
-    const modeBtns = document.querySelectorAll('.mode-btn');
-    const musicBtns = document.querySelectorAll('.music-btn');
-    const musicToggle = $('musicToggle');
-    const volumeSlider = $('volumeSlider');
-    const volumeValue = $('volumeValue');
-    const musicStatus = $('musicStatus');
-    const loopIndicator = $('loopIndicator');
-    const notificationBanner = $('notificationBanner');
-
-    // 🎵 本地钢琴音频路径
-    const soundPaths = {
-      piano1: './sounds/piano1.mp3',
-      piano2: './sounds/piano2.mp3',
-      piano3: './sounds/piano3.mp3',
-      piano4: './sounds/piano4.mp3'
-    };
-
-    document.addEventListener('DOMContentLoaded', () => {
-      loadSettings(); updateDisplay(); setupEventListeners(); checkNotificationPermission(); updateVolumeDisplay();
-    });
-
-    function setupEventListeners() {
-      startBtn.addEventListener('click', startTimer);
-      pauseBtn.addEventListener('click', pauseTimer);
-      resetBtn.addEventListener('click', resetTimer);
-      modeBtns.forEach(btn => btn.addEventListener('click', () => { if (!isRunning) switchMode(btn.dataset.mode); }));
-      document.addEventListener('keydown', handleKeyPress);
-      musicBtns.forEach(btn => btn.addEventListener('click', () => {
-        musicBtns.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        currentSound = btn.dataset.sound;
-        if (isMusicPlaying) playMusic(currentSound);
-        else musicStatus.textContent = currentSound === 'none' ? '已关闭' : `已选择 ${getSoundName(currentSound)}`;
-      }));
-      musicToggle.addEventListener('click', toggleMusic);
-      volumeSlider.addEventListener('input', (e) => {
-        const vol = parseFloat(e.target.value); updateVolumeDisplay(vol);
+    (function(){
+      "use strict";
+      
+      // ---------- DOM 元素 ----------
+      const $ = id => document.getElementById(id);
+      const timerText = document.querySelector('.timer-text');
+      const timerLabel = document.querySelector('.timer-label');
+      const ringProgress = document.querySelector('.ring-progress');
+      const startBtn = $('startBtn'), pauseBtn = $('pauseBtn'), resetBtn = $('resetBtn');
+      const statusText = $('statusText');
+      const modeBtns = document.querySelectorAll('.mode-btn');
+      const musicBtns = document.querySelectorAll('.music-btn');
+      const musicToggle = $('musicToggle');
+      const volumeSlider = $('volumeSlider');
+      const volumeValue = $('volumeValue');
+      const musicStatus = $('musicStatus');
+      const notificationBanner = $('notificationBanner');
+      
+      // ---------- 状态变量 ----------
+      let timeLeft = 25 * 60, totalTime = 25 * 60;
+      let isRunning = false;
+      let currentMode = 'work';
+      let settings = { work: 1500, break: 300, auto: true, sound: true };
+      
+      // 🚀 rAF 计时相关
+      let animFrame = null;
+      let startTimestamp = 0;
+      let initialRemaining = 0;
+      
+      // 音乐相关
+      let currentSound = 'none';
+      let isMusicPlaying = false;
+      let activeAudio = null;
+      let audioCtx = null, musicSource = null, musicGain = null;
+      
+      const soundPaths = {
+        piano1: './sounds/piano1.mp3',
+        piano2: './sounds/piano2.mp3',
+        piano3: './sounds/piano3.mp3',
+        piano4: './sounds/piano4.mp3'
+      };
+      
+      // ---------- 辅助函数 ----------
+      function formatTime(sec) {
+        const m = Math.floor(sec / 60), s = sec % 60;
+        return `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+      }
+      
+      function updateDisplay() {
+        timerText.textContent = formatTime(timeLeft);
+        document.title = `${formatTime(timeLeft)} · 🍅 番茄时钟`;
+        const progress = (totalTime - timeLeft) / totalTime;
+        ringProgress.style.strokeDashoffset = 565.48 * (1 - progress);
+      }
+      
+      // ---------- 基于 rAF 的计时器 ----------
+      function stopTimer() {
+        if (animFrame) {
+          cancelAnimationFrame(animFrame);
+          animFrame = null;
+        }
+        isRunning = false;
+        startBtn.disabled = false;
+        startBtn.textContent = '▶ 开始';
+        pauseBtn.disabled = true;
+      }
+      
+      function startTimer() {
+        if (isRunning || timeLeft <= 0) return;
+        initAudioContext(); // 预初始化音频上下文
+        
+        isRunning = true;
+        startBtn.disabled = true;
+        startBtn.textContent = '⏳ 专注中';
+        pauseBtn.disabled = false;
+        statusText.textContent = currentMode === 'work' ? '🍅 深度工作中，请勿打扰' : '☕ 放松休息，恢复精力';
+        timerLabel.textContent = currentMode === 'work' ? '专注中' : '休息中';
+        
+        startTimestamp = performance.now();
+        initialRemaining = timeLeft;
+        
+        function tick(now) {
+          const elapsedSeconds = Math.floor((now - startTimestamp) / 1000);
+          const newRemaining = Math.max(0, initialRemaining - elapsedSeconds);
+          
+          if (newRemaining !== timeLeft) {
+            timeLeft = newRemaining;
+            updateDisplay();
+            
+            if (timeLeft <= 0) {
+              stopTimer();
+              handleTimerComplete();
+              return;
+            }
+          }
+          animFrame = requestAnimationFrame(tick);
+        }
+        
+        animFrame = requestAnimationFrame(tick);
+      }
+      
+      function pauseTimer() {
+        if (!isRunning) return;
+        stopTimer();
+        statusText.textContent = '已暂停 · 随时继续';
+        startBtn.textContent = '▶ 继续';
+      }
+      
+      function resetTimer() {
+        stopTimer();
+        timeLeft = totalTime = currentMode === 'work' ? settings.work : settings.break;
+        updateDisplay();
+        statusText.textContent = '准备开始专注～';
+        timerLabel.textContent = currentMode === 'work' ? '准备专注' : '准备休息';
+        document.body.classList.remove('timer-complete');
+        startBtn.textContent = '▶ 开始';
+      }
+      
+      // ---------- 计时完成 ----------
+      function handleTimerComplete() {
+        document.body.classList.add('timer-complete');
+        if (settings.sound) {
+          playAlertSound();
+          sendNotification(currentMode === 'work' ? '🍅 专注完成！' : '☕ 休息结束',
+                           currentMode === 'work' ? '该休息一下啦～' : '准备开始下一轮专注吧！');
+          if ('vibrate' in navigator) navigator.vibrate([100, 50, 100]);
+        }
+        
+        if (settings.auto) {
+          setTimeout(() => {
+            const nextMode = currentMode === 'work' ? 'break' : 'work';
+            switchMode(nextMode);
+            setTimeout(() => { if (!isRunning) startTimer(); }, 500);
+          }, 2000);
+        } else {
+          statusText.textContent = currentMode === 'work' ? '🎉 专注完成！点击重置开始休息' : '✨ 休息结束！点击重置继续专注';
+        }
+      }
+      
+      // ---------- 模式切换 ----------
+      function switchMode(mode) {
+        if (isRunning) return;
+        currentMode = mode;
+        document.body.dataset.mode = mode;
+        modeBtns.forEach(btn => {
+          const active = btn.dataset.mode === mode;
+          btn.classList.toggle('active', active);
+          btn.setAttribute('aria-selected', active);
+        });
+        totalTime = timeLeft = mode === 'work' ? settings.work : settings.break;
+        timerLabel.textContent = mode === 'work' ? '准备专注' : '准备休息';
+        statusText.textContent = mode === 'work' ? '🍅 准备开始深度专注' : '☕ 准备放松休息';
+        updateDisplay();
+        ringProgress.style.strokeDashoffset = 0;
+        document.body.classList.remove('timer-complete');
+      }
+      
+      // ---------- 设置 ----------
+      function loadSettings() {
+        try {
+          const saved = localStorage.getItem('tomato-settings');
+          if (saved) {
+            const p = JSON.parse(saved);
+            settings = { ...settings, ...p };
+            $('workDuration').value = settings.work / 60;
+            $('breakDuration').value = settings.break / 60;
+            $('autoStart').checked = settings.auto;
+            $('soundEnabled').checked = settings.sound;
+          }
+        } catch(e) {}
+        totalTime = timeLeft = currentMode === 'work' ? settings.work : settings.break;
+        updateDisplay();
+      }
+      
+      window.saveSettings = function() {
+        settings.work = Math.min(Math.max(parseInt($('workDuration').value) || 25, 1), 120) * 60;
+        settings.break = Math.min(Math.max(parseInt($('breakDuration').value) || 5, 1), 60) * 60;
+        settings.auto = $('autoStart').checked;
+        settings.sound = $('soundEnabled').checked;
+        localStorage.setItem('tomato-settings', JSON.stringify(settings));
+        if (!isRunning) {
+          totalTime = timeLeft = currentMode === 'work' ? settings.work : settings.break;
+          updateDisplay();
+        }
+        const btn = event.target;
+        const orig = btn.textContent;
+        btn.textContent = '✅ 已保存';
+        setTimeout(() => btn.textContent = orig, 1500);
+      };
+      
+      // ---------- 通知 ----------
+      function checkNotificationPermission() {
+        if ('Notification' in window && Notification.permission === 'default') {
+          notificationBanner.classList.add('show');
+        }
+      }
+      window.requestNotificationPermission = function() {
+        if ('Notification' in window) {
+          Notification.requestPermission().then(p => {
+            if (p === 'granted') notificationBanner.classList.remove('show');
+          });
+        }
+      };
+      function sendNotification(title, body) {
+        if ('Notification' in window && Notification.permission === 'granted') {
+          new Notification(title, { body, tag: 'tomato-timer', icon: '🍅' });
+        }
+      }
+      
+      // ---------- 键盘快捷键 ----------
+      function handleKeyPress(e) {
+        if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
+        switch(e.key.toLowerCase()) {
+          case ' ': e.preventDefault(); isRunning ? pauseTimer() : startTimer(); break;
+          case 'r': resetTimer(); break;
+          case 'w': if (!isRunning) switchMode('work'); break;
+          case 'b': if (!isRunning) switchMode('break'); break;
+          case 'm': toggleMusic(); break;
+          case 'arrowup': e.preventDefault(); volumeSlider.value = Math.min(1, +volumeSlider.value + 0.1); volumeSlider.dispatchEvent(new Event('input')); break;
+          case 'arrowdown': e.preventDefault(); volumeSlider.value = Math.max(0, +volumeSlider.value - 0.1); volumeSlider.dispatchEvent(new Event('input')); break;
+        }
+      }
+      
+      // ---------- 音频初始化 ----------
+      function initAudioContext() {
+        if (audioCtx) return true;
+        try {
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          return true;
+        } catch(e) { return false; }
+      }
+      
+      function playAlertSound() {
+        if (!settings.sound) return;
+        initAudioContext();
+        if (!audioCtx) return;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.frequency.value = 880;
+        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.4);
+      }
+      
+      // ---------- 音乐控制 ----------
+      function updateVolumeDisplay() {
+        const vol = parseFloat(volumeSlider.value);
+        volumeValue.textContent = Math.round(vol * 100) + '%';
         if (activeAudio) activeAudio.volume = vol;
         if (musicGain) musicGain.gain.value = vol;
-      });
-      document.querySelector('.settings-panel .btn').addEventListener('click', saveSettings);
-    }
-
-    function updateVolumeDisplay(vol = parseFloat(volumeSlider.value)) { volumeValue.textContent = `${Math.round(vol * 100)}%`; }
-
-    function startTimer() {
-      if (isRunning) return; initAudioContext();
-      isRunning = true; startBtn.disabled = true; startBtn.textContent = '⏳ 专注中'; pauseBtn.disabled = false;
-      statusText.textContent = currentMode === 'work' ? '🍅 深度工作中，请勿打扰' : '☕ 放松休息，恢复精力';
-      timerLabel.textContent = currentMode === 'work' ? '专注中' : '休息中';
-      timerId = setInterval(() => { timeLeft--; updateDisplay(); if (timeLeft <= 0) { clearInterval(timerId); timerId = null; handleTimerComplete(); } }, 1000);
-    }
-    function pauseTimer() { if (!isRunning) return; clearInterval(timerId); timerId = null; isRunning = false; startBtn.disabled = false; startBtn.textContent = '▶ 继续'; pauseBtn.disabled = true; statusText.textContent = '已暂停 · 随时继续'; }
-    function resetTimer() { clearInterval(timerId); timerId = null; isRunning = false; timeLeft = totalTime = currentMode === 'work' ? settings.work : settings.break; updateDisplay(); startBtn.disabled = false; startBtn.textContent = '▶ 开始'; pauseBtn.disabled = true; statusText.textContent = '准备开始专注～'; timerLabel.textContent = '准备中'; document.body.classList.remove('timer-complete'); }
-    function handleTimerComplete() {
-      isRunning = false; startBtn.disabled = false; startBtn.textContent = '▶ 开始'; pauseBtn.disabled = true; document.body.classList.add('timer-complete');
-      if (settings.sound) { playAlertSound(); sendNotification(currentMode === 'work' ? '🍅 专注完成！' : '☕ 休息结束', currentMode === 'work' ? '该休息一下啦～' : '准备开始下一轮专注吧！'); if ('vibrate' in navigator) navigator.vibrate([100, 50, 100]); }
-      if (settings.auto) { setTimeout(() => { const next = currentMode === 'work' ? 'break' : 'work'; switchMode(next); setTimeout(() => { if (!isRunning) startTimer(); }, 3000); }, 2000); }
-      else statusText.textContent = currentMode === 'work' ? '🎉 专注完成！点击重置开始休息' : '✨ 休息结束！点击重置继续专注';
-    }
-    function updateDisplay() {
-      const m = Math.floor(timeLeft / 60), s = timeLeft % 60;
-      const display = `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
-      timerText.textContent = display; document.title = `${display} · 🍅 番茄时钟`;
-      const progress = (totalTime - timeLeft) / totalTime; ringProgress.style.strokeDashoffset = 565.48 * (1 - progress);
-    }
-    function switchMode(mode) {
-      currentMode = mode; document.body.dataset.mode = mode;
-      modeBtns.forEach(btn => { const a = btn.dataset.mode === mode; btn.classList.toggle('active', a); btn.setAttribute('aria-selected', a); });
-      const duration = mode === 'work' ? settings.work : settings.break; timeLeft = totalTime = duration;
-      timerLabel.textContent = mode === 'work' ? '准备专注' : '准备休息';
-      statusText.textContent = mode === 'work' ? '🍅 准备开始 25 分钟深度专注' : '☕ 准备 5 分钟放松休息';
-      updateDisplay(); ringProgress.style.strokeDashoffset = 0;
-    }
-
-    function loadSettings() {
-      try { const saved = localStorage.getItem('tomato-settings'); if (saved) { const p = JSON.parse(saved); settings = { ...settings, ...p }; $('workDuration').value = settings.work / 60; $('breakDuration').value = settings.break / 60; $('autoStart').checked = settings.auto; $('soundEnabled').checked = settings.sound; } } catch(e) {}
-      if (currentMode === 'work') { totalTime = timeLeft = settings.work; } else { totalTime = timeLeft = settings.break; }
-    }
-    function saveSettings() {
-      settings.work = Math.min(Math.max(parseInt($('workDuration').value) || 25, 1), 120) * 60;
-      settings.break = Math.min(Math.max(parseInt($('breakDuration').value) || 5, 1), 60) * 60;
-      settings.auto = $('autoStart').checked; settings.sound = $('soundEnabled').checked;
-      localStorage.setItem('tomato-settings', JSON.stringify(settings));
-      if (!isRunning) { timeLeft = totalTime = currentMode === 'work' ? settings.work : settings.break; updateDisplay(); }
-      const btn = event.target; const orig = btn.textContent; btn.textContent = '✅ 已保存'; setTimeout(() => btn.textContent = orig, 1500);
-    }
-
-    function handleKeyPress(e) {
-      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
-      switch(e.key.toLowerCase()) {
-        case ' ': e.preventDefault(); isRunning ? pauseTimer() : startTimer(); break;
-        case 'r': resetTimer(); break;
-        case 'w': if (!isRunning) switchMode('work'); break;
-        case 'b': if (!isRunning) switchMode('break'); break;
-        case 'm': toggleMusic(); break;
-        case 'arrowup': e.preventDefault(); volumeSlider.value = Math.min(1, parseFloat(volumeSlider.value) + 0.1); volumeSlider.dispatchEvent(new Event('input')); break;
-        case 'arrowdown': e.preventDefault(); volumeSlider.value = Math.max(0, parseFloat(volumeSlider.value) - 0.1); volumeSlider.dispatchEvent(new Event('input')); break;
       }
-    }
-
-    function checkNotificationPermission() { if ('Notification' in window && Notification.permission === 'default') notificationBanner.classList.add('show'); }
-    function requestNotificationPermission() { if ('Notification' in window) Notification.requestPermission().then(p => { if (p === 'granted') notificationBanner.classList.remove('show'); }); }
-    function sendNotification(title, body) { if ('Notification' in window && Notification.permission === 'granted') new Notification(title, { body, tag: 'tomato-timer', icon: '🍅' }); }
-
-    function initAudioContext() {
-      if (audioCtx) { if (audioCtx.state === 'suspended') audioCtx.resume(); return true; }
-      try { const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return false; audioCtx = new AC(); return true; } catch(e) { return false; }
-    }
-    function playAlertSound() {
-      if (!settings.sound) return; initAudioContext(); if (!audioCtx) return;
-      try { const o = audioCtx.createOscillator(), g = audioCtx.createGain(); o.connect(g); g.connect(audioCtx.destination); o.frequency.value = 880; o.type = 'sine'; g.gain.setValueAtTime(0.3, audioCtx.currentTime); g.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4); o.start(); o.stop(audioCtx.currentTime + 0.4); } catch(e) {}
-    }
-    function getSoundName(k) { return { piano1: '🎹 经典钢琴', piano2: '🌙 舒缓钢琴', piano3: '☕ 爵士钢琴', piano4: '🌌 氛围钢琴', none: '🔇 关闭' }[k] || k; }
-    function toggleMusic() { initAudioContext(); if (currentSound === 'none') currentSound = 'piano1'; isMusicPlaying ? stopMusic() : playMusic(currentSound); }
-
-    function playMusic(type) {
-      stopMusic(); if (type === 'none') { updateMusicUI('none', '已关闭'); return; }
-      musicStatus.innerHTML = '🔄 加载音乐...'; loopIndicator.style.display = 'none';
-      try {
-        activeAudio = new Audio(soundPaths[type]);
-        activeAudio.loop = musicLoopEnabled; activeAudio.preload = 'auto'; activeAudio.volume = parseFloat(volumeSlider.value);
-        activeAudio.oncanplay = () => {
-          activeAudio.play().then(() => { isMusicPlaying = true; updateMusicUI('playing', `🎵 播放中: ${getSoundName(type)}`); if (musicLoopEnabled) loopIndicator.style.display = 'inline-flex'; })
-          .catch(err => { console.warn('播放被拦截:', err); updateMusicUI('error', '👆 请点击页面任意位置后重试'); });
-        };
-        activeAudio.onerror = () => { console.warn('Audio 加载失败，切换 Web Audio'); musicStatus.textContent = '⚠️ 加载失败，使用备用方案'; playMusicWebAudio(type); };
-        activeAudio.onstalled = () => musicStatus.textContent = '🔄 缓冲中...'; activeAudio.load();
-      } catch(e) { playMusicWebAudio(type); }
-    }
-
-    function playMusicWebAudio(type) {
-      if (!audioCtx) initAudioContext(); if (!audioCtx) { updateMusicUI('error', '❌ 浏览器不支持音频'); return; }
-      fetch(soundPaths[type]).then(res => res.arrayBuffer()).then(buf => audioCtx.decodeAudioData(buf)).then(audioBuffer => {
-        musicBuffer = audioBuffer; musicSource = audioCtx.createBufferSource(); musicSource.buffer = musicBuffer; musicSource.loop = true;
-        musicGain = audioCtx.createGain(); musicGain.gain.value = parseFloat(volumeSlider.value);
-        musicSource.connect(musicGain); musicGain.connect(audioCtx.destination); musicSource.start(0);
-        isMusicPlaying = true; updateMusicUI('playing', `🎵 播放中: ${getSoundName(type)}`); if (musicLoopEnabled) loopIndicator.style.display = 'inline-flex';
-      }).catch(err => { console.error('Web Audio 加载失败:', err); updateMusicUI('error', '❌ 无法加载音频文件'); });
-    }
-
-    function stopMusic() {
-      if (activeAudio) { activeAudio.pause(); activeAudio.src = ''; activeAudio = null; }
-      if (musicSource) { try { musicSource.stop(0); } catch(e) {} try { musicSource.disconnect(); } catch(e) {} musicSource = null; }
-      if (musicGain) { try { musicGain.disconnect(); } catch(e) {} musicGain = null; }
-      isMusicPlaying = false; loopIndicator.style.display = 'none'; updateMusicUI('paused', currentSound === 'none' ? '已关闭' : '已暂停');
-    }
-    function updateMusicUI(status, message) {
-      switch(status) {
-        case 'none': case 'paused': musicToggle.textContent = '▶ 播放'; musicToggle.disabled = false; break;
-        case 'playing': musicToggle.textContent = '⏸ 暂停'; musicToggle.disabled = false; break;
-        case 'loading': musicToggle.textContent = '🔄 加载'; musicToggle.disabled = true; break;
-        case 'error': musicToggle.textContent = '🔄 重试'; musicToggle.disabled = false; break;
+      
+      function stopMusic() {
+        if (activeAudio) { activeAudio.pause(); activeAudio.src = ''; activeAudio = null; }
+        if (musicSource) { try { musicSource.stop(); } catch(e) {} musicSource = null; }
+        isMusicPlaying = false;
+        musicToggle.textContent = '▶ 播放';
+        musicStatus.textContent = currentSound === 'none' ? '已关闭' : '已暂停';
       }
-      if (message) musicStatus.innerHTML = message;
-    }
-    window.addEventListener('beforeunload', () => { stopMusic(); if (audioCtx && audioCtx.state !== 'closed') try { audioCtx.close(); } catch(e) {} });
+      
+      function playMusic(type) {
+        stopMusic();
+        if (type === 'none') {
+          musicStatus.textContent = '已关闭';
+          return;
+        }
+        musicStatus.textContent = '🔄 加载音乐...';
+        try {
+          activeAudio = new Audio(soundPaths[type]);
+          activeAudio.loop = true;
+          activeAudio.volume = parseFloat(volumeSlider.value);
+          activeAudio.oncanplay = () => {
+            activeAudio.play().then(() => {
+              isMusicPlaying = true;
+              musicToggle.textContent = '⏸ 暂停';
+              musicStatus.textContent = `🎵 播放中: ${getSoundName(type)}`;
+            }).catch(() => {
+              musicStatus.textContent = '👆 请点击页面任意位置后重试';
+            });
+          };
+          activeAudio.onerror = () => {
+            musicStatus.textContent = '⚠️ 加载失败，尝试备用方案';
+            playMusicWebAudio(type);
+          };
+          activeAudio.load();
+        } catch(e) {
+          playMusicWebAudio(type);
+        }
+      }
+      
+      function playMusicWebAudio(type) {
+        initAudioContext();
+        if (!audioCtx) { musicStatus.textContent = '❌ 浏览器不支持音频'; return; }
+        fetch(soundPaths[type])
+          .then(res => res.arrayBuffer())
+          .then(buf => audioCtx.decodeAudioData(buf))
+          .then(buffer => {
+            musicSource = audioCtx.createBufferSource();
+            musicSource.buffer = buffer;
+            musicSource.loop = true;
+            musicGain = audioCtx.createGain();
+            musicGain.gain.value = parseFloat(volumeSlider.value);
+            musicSource.connect(musicGain);
+            musicGain.connect(audioCtx.destination);
+            musicSource.start(0);
+            isMusicPlaying = true;
+            musicToggle.textContent = '⏸ 暂停';
+            musicStatus.textContent = `🎵 播放中: ${getSoundName(type)}`;
+          })
+          .catch(() => { musicStatus.textContent = '❌ 无法加载音频文件'; });
+      }
+      
+      function toggleMusic() {
+        initAudioContext();
+        if (currentSound === 'none') currentSound = 'piano1';
+        isMusicPlaying ? stopMusic() : playMusic(currentSound);
+      }
+      
+      function getSoundName(k) {
+        const map = { piano1:'经典钢琴', piano2:'舒缓钢琴', piano3:'爵士钢琴', piano4:'氛围钢琴', none:'关闭' };
+        return map[k] || k;
+      }
+      
+      // ---------- 事件绑定 ----------
+      function bindEvents() {
+        startBtn.addEventListener('click', startTimer);
+        pauseBtn.addEventListener('click', pauseTimer);
+        resetBtn.addEventListener('click', resetTimer);
+        
+        modeBtns.forEach(btn => btn.addEventListener('click', () => {
+          if (!isRunning) switchMode(btn.dataset.mode);
+        }));
+        
+        musicBtns.forEach(btn => btn.addEventListener('click', () => {
+          musicBtns.forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          currentSound = btn.dataset.sound;
+          if (isMusicPlaying) playMusic(currentSound);
+          else musicStatus.textContent = currentSound === 'none' ? '已关闭' : `已选择 ${getSoundName(currentSound)}`;
+        }));
+        
+        musicToggle.addEventListener('click', toggleMusic);
+        volumeSlider.addEventListener('input', updateVolumeDisplay);
+        document.addEventListener('keydown', handleKeyPress);
+        document.querySelector('.settings-panel .btn').addEventListener('click', saveSettings);
+        
+        window.addEventListener('beforeunload', () => {
+          stopMusic();
+          if (audioCtx) audioCtx.close();
+        });
+      }
+      
+      // ---------- 初始化 ----------
+      function init() {
+        loadSettings();
+        updateDisplay();
+        bindEvents();
+        checkNotificationPermission();
+        updateVolumeDisplay();
+      }
+      
+      init();
+    })();
   </script>
 </body>
 </html>
