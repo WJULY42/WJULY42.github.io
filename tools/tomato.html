@@ -3,747 +3,861 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <meta name="description" content="🍅 番茄时钟 · 专注工作法">
-  <title>🍅 番茄时钟 | WJULY42</title>
+  <meta name="description" content="🌤️ 天气查询 - 实时天气 + 7天预报 + 小时趋势">
+  <title>🌤️ 天气查询 | WJULY42的工具箱</title>
   
-  <!-- ✅ 统一引入项目全局样式 -->
+  <!-- ✅ 引入项目全局样式 -->
   <link rel="stylesheet" href="../style.css">
   
-  <!-- 工具专属微调样式（仅保留必要的特殊样式，其余继承全局） -->
+  <!-- 天气工具专属样式微调 -->
   <style>
-    /* 进度环和卡片微调 —— 使用全局变量，暗色模式自动适配 */
-    .tomato-container {
-      display: grid;
-      grid-template-columns: 1fr 320px;
-      gap: 2.5rem;
-      align-items: start;
-      max-width: 960px;
+    /* 全局卡片已有样式，这里仅作布局微调 */
+    .weather-desktop {
+      max-width: 1100px;
       margin: 0 auto;
     }
     
-    /* 全局卡片已有样式，这里微调内部间距 */
-    .timer-card {
-      padding: 2rem 1.8rem;
-      text-align: center;
-    }
-    
-    .mode-toggle {
-      display: flex;
-      gap: 0.75rem;
-      justify-content: center;
-      margin: 1.5rem 0;
-      background: var(--border);
-      padding: 0.35rem;
-      border-radius: 14px;
-      inline-size: fit-content;
-      margin-inline: auto;
-    }
-    
-    .mode-btn {
-      padding: 0.6rem 1.4rem;
-      border: none;
-      background: transparent;
-      border-radius: 10px;
-      cursor: pointer;
-      font-weight: 600;
-      font-size: 1rem;
-      color: var(--text-light);
-      transition: all 0.2s;
+    .weather-header {
       display: flex;
       align-items: center;
-      gap: 0.4rem;
+      justify-content: space-between;
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid var(--border);
     }
     
-    .mode-btn:hover {
-      color: var(--text);
-      background: var(--card);
-    }
-    
-    .mode-btn.active {
-      background: var(--card);
-      color: var(--primary);
-      box-shadow: var(--shadow);
-    }
-    
-    /* SVG 进度环 */
-    .timer-ring {
-      width: 260px;
-      height: 260px;
-      margin: 0 auto;
-      display: block;
-      filter: drop-shadow(0 4px 12px rgba(0,0,0,0.1));
-    }
-    
-    .ring-bg {
-      stroke: var(--border);
-    }
-    
-    .ring-progress {
-      stroke: var(--primary);
-      stroke-dasharray: 565.48;
-      stroke-dashoffset: 0;
-      stroke-linecap: round;
-      transform: rotate(-90deg);
-      transform-origin: 100px 100px;
-      transition: stroke-dashoffset 0.3s linear;
-    }
-    
-    /* 不同模式下的进度环颜色 */
-    body[data-mode="work"] .ring-progress { stroke: #ef4444; }
-    body[data-mode="break"] .ring-progress { stroke: #22c55e; }
-    
-    .timer-text {
-      dominant-baseline: middle;
-      font-size: 2.8rem;
+    .header-title {
+      font-size: 1.3rem;
       font-weight: 700;
-      font-family: 'SF Mono', 'Fira Code', monospace;
-      fill: var(--text);
+      margin: 0 auto 0 0;
     }
     
-    .timer-label {
-      font-size: 1rem;
-      fill: var(--text-light);
-    }
-    
-    /* 控制按钮组：继承全局 .btn，这里只调整间距 */
-    .controls {
+    .header-actions {
       display: flex;
-      gap: 1rem;
-      justify-content: center;
-      margin: 2rem 0 1.5rem;
-      flex-wrap: wrap;
-    }
-    
-    .btn-secondary {
-      background: var(--text-light);
-      box-shadow: none;
-    }
-    
-    .btn-secondary:hover {
-      background: #475569;
-    }
-    
-    /* 右侧面板卡片微调 */
-    .panel-card {
-      padding: 1.2rem;
-    }
-    
-    .shortcut-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 0.5rem 1rem;
-      font-size: 0.9rem;
-      margin-top: 0.5rem;
-    }
-    
-    .shortcut-item {
-      display: flex;
-      align-items: center;
       gap: 0.5rem;
-      color: var(--text-light);
     }
     
-    .key {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 0.2rem 0.5rem;
-      font-family: monospace;
-      font-weight: 600;
-      font-size: 0.85rem;
-      min-width: 28px;
-      text-align: center;
-    }
-    
-    /* 音乐选项网格 */
-    .music-options {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 0.6rem;
-      margin: 1rem 0;
-    }
-    
-    .music-btn {
-      padding: 0.6rem 0.8rem;
+    .icon-btn {
+      width: 36px;
+      height: 36px;
       border: 1px solid var(--border);
       border-radius: 10px;
       background: var(--card);
       color: var(--text);
-      font-size: 0.9rem;
       cursor: pointer;
-      transition: all 0.2s;
-      text-align: center;
-      font-weight: 500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: var(--transition, all 0.2s);
+      font-size: 1.1rem;
     }
     
-    .music-btn:hover {
-      border-color: var(--primary);
+    .icon-btn:hover {
+      background: var(--border);
       transform: translateY(-1px);
     }
     
-    .music-btn.active {
+    .icon-btn.active {
       background: var(--primary);
       color: white;
       border-color: var(--primary);
     }
     
-    .music-controls {
+    .weather-body {
+      display: grid;
+      grid-template-columns: 400px 1fr;
+      min-height: 550px;
+    }
+    
+    .current-panel {
+      padding: 1.5rem;
+      border-right: 1px solid var(--border);
       display: flex;
-      align-items: center;
-      gap: 1rem;
+      flex-direction: column;
+      gap: 1.2rem;
+    }
+    
+    /* 修复搜索框布局：防止按钮被遮挡 */
+    .search-box {
+      display: flex;
+      gap: 0.5rem;
       flex-wrap: wrap;
     }
     
-    .volume-control {
-      display: flex;
-      align-items: center;
-      gap: 0.6rem;
+    .search-box input {
       flex: 1;
+      min-width: 0;  /* 防止flex溢出 */
+      padding: 0.7rem 1rem;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--card);
+      color: var(--text);
+      font-size: 1rem;
+      outline: none;
+      transition: var(--transition, all 0.2s);
     }
     
-    .volume-control input {
-      flex: 1;
-      height: 6px;
-      accent-color: var(--primary);
+    .search-box input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
     }
     
-    .music-status {
-      font-size: 0.85rem;
-      color: var(--text-light);
-      margin-top: 0.5rem;
-    }
-    
-    /* 通知横幅 */
-    .notification-banner {
-      position: fixed;
-      top: 1.5rem;
-      left: 50%;
-      transform: translateX(-50%);
+    .search-box button {
+      padding: 0.7rem 1.4rem;
+      border: none;
+      border-radius: 10px;
       background: var(--primary);
       color: white;
-      padding: 0.9rem 1.8rem;
-      border-radius: 12px;
-      box-shadow: var(--shadow);
-      display: none;
-      z-index: 100;
-      align-items: center;
-      gap: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition, all 0.2s);
+      white-space: nowrap;  /* 按钮文字不换行 */
     }
     
-    .notification-banner.show {
+    .search-box button:hover {
+      background: var(--primary-dark, #4f46e5);
+    }
+    
+    .current-weather {
+      text-align: center;
+      padding: 1.2rem;
+      border-radius: 14px;
+      background: var(--card);
+      border: 1px solid var(--border);
+    }
+    
+    .city-name {
+      font-size: 1.4rem;
+      font-weight: 700;
+      margin-bottom: 0.3rem;
+    }
+    
+    .weather-icon {
+      font-size: 3.5rem;
+      margin: 0.3rem 0;
+    }
+    
+    .current-temp {
+      font-size: 3rem;
+      font-weight: 700;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+    }
+    
+    .current-desc {
+      font-size: 1rem;
+      color: var(--text-light);
+      margin: 0.3rem 0;
+    }
+    
+    .current-meta {
       display: flex;
+      justify-content: center;
+      gap: 1rem;
+      margin-top: 0.8rem;
+      font-size: 0.85rem;
+      color: var(--text-light);
     }
     
-    /* 响应式 */
-    @media (max-width: 800px) {
-      .tomato-container {
+    /* 详情网格 - 修复响应式布局，避免重叠 */
+    .details-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.8rem;
+    }
+    
+    .detail-item {
+      padding: 0.8rem;
+      border-radius: 10px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      text-align: center;
+    }
+    
+    .detail-label {
+      font-size: 0.8rem;
+      color: var(--text-light);
+      margin-bottom: 0.2rem;
+    }
+    
+    .detail-value {
+      font-size: 1.1rem;
+      font-weight: 600;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+    }
+    
+    .saved-cities h4 {
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-bottom: 0.6rem;
+    }
+    
+    .city-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+    }
+    
+    .city-chip {
+      padding: 0.3rem 0.7rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      background: var(--card);
+      border: 1px solid var(--border);
+      cursor: pointer;
+      transition: var(--transition, all 0.2s);
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+    
+    .city-chip:hover {
+      background: var(--border);
+    }
+    
+    .city-chip.active {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+    
+    .city-chip .remove {
+      opacity: 0.6;
+      cursor: pointer;
+      margin-left: 0.2rem;
+    }
+    
+    .city-chip .remove:hover {
+      opacity: 1;
+    }
+    
+    .forecast-panel {
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+    
+    .hourly-chart {
+      background: var(--card);
+      border-radius: 14px;
+      padding: 1rem;
+      border: 1px solid var(--border);
+    }
+    
+    .chart-title {
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-bottom: 0.8rem;
+    }
+    
+    .chart-canvas {
+      width: 100%;
+      height: 120px;
+    }
+    
+    .daily-forecast h4 {
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-bottom: 0.8rem;
+    }
+    
+    .forecast-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    
+    .forecast-item {
+      display: grid;
+      grid-template-columns: 70px 1fr 90px;
+      gap: 0.8rem;
+      padding: 0.7rem;
+      border-radius: 10px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      align-items: center;
+    }
+    
+    .forecast-date {
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+    
+    .forecast-weather {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .forecast-icon {
+      font-size: 1.2rem;
+    }
+    
+    .forecast-temp {
+      text-align: right;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      font-weight: 600;
+    }
+    
+    .forecast-temp .min {
+      color: var(--text-light);
+      font-size: 0.85rem;
+    }
+    
+    .forecast-temp .max {
+      color: var(--primary);
+    }
+    
+    .footer-hint {
+      padding: 0.8rem 1.5rem;
+      font-size: 0.8rem;
+      color: var(--text-light);
+      background: var(--card);
+      border-top: 1px solid var(--border);
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+    
+    .footer-hint kbd {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0.1rem 0.4rem;
+      font-family: monospace;
+      font-size: 0.75rem;
+      margin: 0 0.2rem;
+    }
+    
+    .loading, .error {
+      text-align: center;
+      padding: 2rem;
+      color: var(--text-light);
+    }
+    
+    .error {
+      color: #ef4444;
+    }
+    
+    /* 响应式 - 修复网格布局，杜绝重叠 */
+    @media (max-width: 1024px) {
+      .weather-body {
         grid-template-columns: 1fr;
-        gap: 1.5rem;
       }
-      .timer-ring {
-        width: 220px;
-        height: 220px;
+      .current-panel {
+        border-right: none;
+        border-bottom: 1px solid var(--border);
       }
-      .timer-text {
-        font-size: 2.4rem;
+      .details-grid {
+        grid-template-columns: repeat(2, 1fr);  /* 6项完美适配2列，无重叠 */
       }
     }
     
-    @media (max-width: 480px) {
-      .timer-ring {
-        width: 190px;
-        height: 190px;
+    @media (max-width: 640px) {
+      .weather-desktop {
+        border-radius: 16px;
       }
-      .timer-text {
-        font-size: 2rem;
+      .current-temp {
+        font-size: 2.5rem;
       }
-      .shortcut-grid {
-        grid-template-columns: 1fr;
+      .details-grid {
+        grid-template-columns: 1fr;  /* 手机端单列，更清晰 */
       }
-      .music-options {
-        grid-template-columns: 1fr;
+      .forecast-item {
+        grid-template-columns: 60px 1fr 80px;
+        font-size: 0.85rem;
       }
-    }
-    
-    /* 保留原有关键动画 */
-    @keyframes pulse {
-      0%,100% { transform: rotate(-90deg) scale(1); }
-      50% { transform: rotate(-90deg) scale(1.05); }
-    }
-    body.timer-complete .ring-progress {
-      animation: pulse 0.5s ease-in-out 3;
+      /* 移动端搜索框调整：输入框和按钮可各占一行，但不会重叠 */
+      .search-box {
+        flex-direction: column;
+      }
+      .search-box button {
+        width: 100%;
+      }
     }
   </style>
 </head>
-<body data-mode="work">
-
-  <!-- 桌面通知横幅 -->
-  <div class="notification-banner" id="notificationBanner">
-    🔔 开启桌面通知，不错过每个专注时刻
-    <button class="btn" onclick="requestNotificationPermission()" style="padding:0.3rem 1rem;">允许</button>
-    <button class="btn btn-secondary" onclick="this.parentElement.classList.remove('show')" style="padding:0.3rem 0.8rem;">✕</button>
-  </div>
-
-  <main class="tomato-container">
-    <!-- 左侧计时核心区 -->
-    <section class="card timer-card">
-      <header style="margin-bottom: 1rem;">
-        <h1 style="font-size: 1.8rem;">🍅 番茄时钟</h1>
-        <p style="color: var(--text-light);">25 分钟深度专注 · 5 分钟高效休息</p>
-      </header>
-      
-      <div class="mode-toggle">
-        <button class="mode-btn active" data-mode="work">🍅 工作</button>
-        <button class="mode-btn" data-mode="break">☕ 休息</button>
+<body>
+  <main class="weather-desktop card">
+    <!-- 顶部导航：移除返回按钮，仅保留标题与操作 -->
+    <header class="weather-header">
+      <h1 class="header-title">🌤️ 天气查询</h1>
+      <div class="header-actions">
+        <button class="icon-btn" id="locateBtn" title="自动定位">📍</button>
+        <button class="icon-btn" id="refreshBtn" title="刷新">🔄</button>
+        <button class="icon-btn" id="unitBtn" title="切换温度单位">°C</button>
       </div>
-      
-      <svg class="timer-ring" viewBox="0 0 200 200">
-        <circle class="ring-bg" cx="100" cy="100" r="90" fill="none" stroke-width="10"/>
-        <circle class="ring-progress" cx="100" cy="100" r="90" fill="none" stroke-width="10" stroke-dasharray="565.48"/>
-        <text class="timer-text" x="100" y="95" text-anchor="middle">25:00</text>
-        <text class="timer-label" x="100" y="125" text-anchor="middle">准备专注</text>
-      </svg>
-      
-      <div class="controls">
-        <button class="btn" id="startBtn">▶ 开始</button>
-        <button class="btn btn-secondary" id="pauseBtn" disabled>⏸ 暂停</button>
-        <button class="btn btn-secondary" id="resetBtn">🔄 重置</button>
-      </div>
-      
-      <div class="status" id="statusText" style="min-height:1.8rem; color: var(--text-light);">准备开始专注～</div>
-    </section>
+    </header>
 
-    <!-- 右侧辅助面板 -->
-    <aside style="display: flex; flex-direction: column; gap: 1.5rem;">
-      <!-- 快捷键卡片 -->
-      <div class="card panel-card">
-        <h4 style="margin-bottom: 0.8rem;">⌨️ 键盘快捷键</h4>
-        <div class="shortcut-grid">
-          <div class="shortcut-item"><span class="key">Space</span> 开始/暂停</div>
-          <div class="shortcut-item"><span class="key">R</span> 重置</div>
-          <div class="shortcut-item"><span class="key">W</span> 工作模式</div>
-          <div class="shortcut-item"><span class="key">B</span> 休息模式</div>
-          <div class="shortcut-item"><span class="key">M</span> 播放/暂停音乐</div>
-          <div class="shortcut-item"><span class="key">↑↓</span> 调节音量</div>
+    <div class="weather-body">
+      <section class="current-panel">
+        <div class="search-box">
+          <input type="text" id="cityInput" placeholder="搜索城市 (拼音/英文)" autocomplete="off">
+          <button id="searchBtn">查询</button>
         </div>
-      </div>
-      
-      <!-- 设置卡片 -->
-      <details class="card panel-card">
-        <summary style="cursor:pointer; font-weight:600; list-style:none;">⚙️ 个性化设置</summary>
-        <div style="padding-top:1rem; display:grid; gap:0.9rem;">
-          <label style="display:flex; justify-content:space-between;">
-            🍅 工作时长 <input type="number" id="workDuration" min="1" max="120" value="25" style="width:70px; padding:0.3rem; border:1px solid var(--border); border-radius:6px; background:var(--card); color:var(--text);"> 分钟
-          </label>
-          <label style="display:flex; justify-content:space-between;">
-            ☕ 休息时长 <input type="number" id="breakDuration" min="1" max="60" value="5" style="width:70px; padding:0.3rem; border:1px solid var(--border); border-radius:6px; background:var(--card); color:var(--text);"> 分钟
-          </label>
-          <label style="display:flex; align-items:center; gap:0.5rem;">
-            <input type="checkbox" id="autoStart" checked> 自动开始下一轮
-          </label>
-          <label style="display:flex; align-items:center; gap:0.5rem;">
-            <input type="checkbox" id="soundEnabled" checked> 启用完成提示音
-          </label>
-          <button class="btn" onclick="saveSettings()" style="padding:0.5rem 1rem;">💾 保存设置</button>
-        </div>
-      </details>
-      
-      <!-- 音乐卡片 -->
-      <div class="card panel-card">
-        <div style="font-weight:600; margin-bottom:1rem;">🎵 专注钢琴曲</div>
-        <div class="music-options">
-          <button class="music-btn active" data-sound="none">🔇 关闭</button>
-          <button class="music-btn" data-sound="piano1">🎹 经典</button>
-          <button class="music-btn" data-sound="piano2">🌙 舒缓</button>
-          <button class="music-btn" data-sound="piano3">☕ 爵士</button>
-          <button class="music-btn" data-sound="piano4">🌌 氛围</button>
-        </div>
-        <div class="music-controls">
-          <button class="btn btn-secondary" id="musicToggle" style="padding:0.5rem 1.2rem;">▶ 播放</button>
-          <div class="volume-control">
-            <span>🔈</span>
-            <input type="range" id="volumeSlider" min="0" max="1" step="0.05" value="0.4">
-            <span id="volumeValue">40%</span>
+
+        <div class="current-weather" id="currentWeather">
+          <div class="city-name" id="cityName">--</div>
+          <div class="weather-icon" id="weatherIcon">🌤️</div>
+          <div class="current-temp" id="currentTemp">--°</div>
+          <div class="current-desc" id="currentDesc">--</div>
+          <div class="current-meta">
+            <span id="updateTime">--</span>
+            <span id="windSpeed">-- km/h</span>
           </div>
         </div>
-        <div class="music-status" id="musicStatus">点击播放开始聆听</div>
+
+        <div class="details-grid">
+          <div class="detail-item"><div class="detail-label">💧 湿度</div><div class="detail-value" id="humidity">--%</div></div>
+          <div class="detail-item"><div class="detail-label">🌡️ 体感</div><div class="detail-value" id="feelsLike">--°</div></div>
+          <div class="detail-item"><div class="detail-label">🔽 气压</div><div class="detail-value" id="pressure">-- hPa</div></div>
+          <div class="detail-item"><div class="detail-label">☀️ 紫外线</div><div class="detail-value" id="uvIndex">--</div></div>
+          <div class="detail-item"><div class="detail-label">👁️ 能见度</div><div class="detail-value" id="visibility">-- km</div></div>
+          <div class="detail-item"><div class="detail-label">🌅 日出</div><div class="detail-value" id="sunrise">--:--</div></div>
+        </div>
+
+        <div class="saved-cities">
+          <h4>📌 常用城市</h4>
+          <div class="city-list" id="cityList">
+            <span style="color:var(--text-light);">暂无收藏</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="forecast-panel">
+        <div class="hourly-chart">
+          <div class="chart-title">📈 24小时温度趋势</div>
+          <canvas class="chart-canvas" id="tempChart"></canvas>
+        </div>
+        <div class="daily-forecast">
+          <h4>📅 7天预报</h4>
+          <div class="forecast-list" id="forecastList">
+            <div class="loading">⏳ 加载预报中...</div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- 底部导航：修正返回链接为 tools 目录 -->
+    <div class="footer-hint">
+      <div>⌨️ 快捷键：<kbd>/</kbd> 聚焦搜索 · <kbd>Esc</kbd> 清空 · <kbd>↑/↓</kbd> 切换历史 · <kbd>R</kbd> 刷新</div>
+      <div>
+        <a href="../tools/" style="color:var(--primary);">← 返回工具集</a> · 
+        <a href="https://github.com/WJULY42" target="_blank" style="color:var(--primary);">GitHub</a>
       </div>
-    </aside>
+    </div>
   </main>
-  
-  <footer style="text-align:center; margin-top:2rem; padding-top:1.5rem; border-top:1px solid var(--border); color:var(--text-light);">
-    <p>💡 技巧：每完成 4 个番茄钟，建议长休息 15-30 分钟</p>
-    <p style="margin-top:0.5rem;">
-      <a href="https://wjuly42.github.io/tools/" style="color:var(--primary);">← 返回工具集</a> · 
-      <a href="https://github.com/WJULY42" target="_blank" style="color:var(--primary);">GitHub</a>
-    </p>
-  </footer>
 
   <script>
-    (function(){
+    (function() {
       "use strict";
-      
+
       // ---------- DOM 元素 ----------
       const $ = id => document.getElementById(id);
-      const timerText = document.querySelector('.timer-text');
-      const timerLabel = document.querySelector('.timer-label');
-      const ringProgress = document.querySelector('.ring-progress');
-      const startBtn = $('startBtn'), pauseBtn = $('pauseBtn'), resetBtn = $('resetBtn');
-      const statusText = $('statusText');
-      const modeBtns = document.querySelectorAll('.mode-btn');
-      const musicBtns = document.querySelectorAll('.music-btn');
-      const musicToggle = $('musicToggle');
-      const volumeSlider = $('volumeSlider');
-      const volumeValue = $('volumeValue');
-      const musicStatus = $('musicStatus');
-      const notificationBanner = $('notificationBanner');
-      
-      // ---------- 状态变量 ----------
-      let timeLeft = 25 * 60, totalTime = 25 * 60;
-      let isRunning = false;
-      let currentMode = 'work';
-      let settings = { work: 1500, break: 300, auto: true, sound: true };
-      
-      // 🚀 rAF 计时相关
-      let animFrame = null;
-      let startTimestamp = 0;
-      let initialRemaining = 0;
-      
-      // 音乐相关
-      let currentSound = 'none';
-      let isMusicPlaying = false;
-      let activeAudio = null;
-      let audioCtx = null, musicSource = null, musicGain = null;
-      
-      const soundPaths = {
-        piano1: './sounds/piano1.mp3',
-        piano2: './sounds/piano2.mp3',
-        piano3: './sounds/piano3.mp3',
-        piano4: './sounds/piano4.mp3'
+      const cityInput = $('cityInput');
+      const searchBtn = $('searchBtn');
+      const locateBtn = $('locateBtn');
+      const refreshBtn = $('refreshBtn');
+      const unitBtn = $('unitBtn');
+      const cityName = $('cityName');
+      const weatherIcon = $('weatherIcon');
+      const currentTemp = $('currentTemp');
+      const currentDesc = $('currentDesc');
+      const updateTime = $('updateTime');
+      const windSpeed = $('windSpeed');
+      const humidity = $('humidity');
+      const feelsLike = $('feelsLike');
+      const pressure = $('pressure');
+      const uvIndex = $('uvIndex');
+      const visibility = $('visibility');
+      const sunrise = $('sunrise');
+      const forecastList = $('forecastList');
+      const cityList = $('cityList');
+      const tempChart = $('tempChart');
+
+      // ---------- 状态 ----------
+      const state = {
+        currentCity: null,
+        unit: 'C',
+        savedCities: [],
+        hourlyData: [],
+        dailyData: []
       };
-      
-      // ---------- 辅助函数 ----------
-      function formatTime(sec) {
-        const m = Math.floor(sec / 60), s = sec % 60;
-        return `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
-      }
-      
-      function updateDisplay() {
-        timerText.textContent = formatTime(timeLeft);
-        document.title = `${formatTime(timeLeft)} · 🍅 番茄时钟`;
-        const progress = (totalTime - timeLeft) / totalTime;
-        ringProgress.style.strokeDashoffset = 565.48 * (1 - progress);
-      }
-      
-      // ---------- 基于 rAF 的计时器 ----------
-      function stopTimer() {
-        if (animFrame) {
-          cancelAnimationFrame(animFrame);
-          animFrame = null;
-        }
-        isRunning = false;
-        startBtn.disabled = false;
-        startBtn.textContent = '▶ 开始';
-        pauseBtn.disabled = true;
-      }
-      
-      function startTimer() {
-        if (isRunning || timeLeft <= 0) return;
-        initAudioContext(); // 预初始化音频上下文
-        
-        isRunning = true;
-        startBtn.disabled = true;
-        startBtn.textContent = '⏳ 专注中';
-        pauseBtn.disabled = false;
-        statusText.textContent = currentMode === 'work' ? '🍅 深度工作中，请勿打扰' : '☕ 放松休息，恢复精力';
-        timerLabel.textContent = currentMode === 'work' ? '专注中' : '休息中';
-        
-        startTimestamp = performance.now();
-        initialRemaining = timeLeft;
-        
-        function tick(now) {
-          const elapsedSeconds = Math.floor((now - startTimestamp) / 1000);
-          const newRemaining = Math.max(0, initialRemaining - elapsedSeconds);
-          
-          if (newRemaining !== timeLeft) {
-            timeLeft = newRemaining;
-            updateDisplay();
-            
-            if (timeLeft <= 0) {
-              stopTimer();
-              handleTimerComplete();
-              return;
-            }
-          }
-          animFrame = requestAnimationFrame(tick);
-        }
-        
-        animFrame = requestAnimationFrame(tick);
-      }
-      
-      function pauseTimer() {
-        if (!isRunning) return;
-        stopTimer();
-        statusText.textContent = '已暂停 · 随时继续';
-        startBtn.textContent = '▶ 继续';
-      }
-      
-      function resetTimer() {
-        stopTimer();
-        timeLeft = totalTime = currentMode === 'work' ? settings.work : settings.break;
-        updateDisplay();
-        statusText.textContent = '准备开始专注～';
-        timerLabel.textContent = currentMode === 'work' ? '准备专注' : '准备休息';
-        document.body.classList.remove('timer-complete');
-        startBtn.textContent = '▶ 开始';
-      }
-      
-      // ---------- 计时完成 ----------
-      function handleTimerComplete() {
-        document.body.classList.add('timer-complete');
-        if (settings.sound) {
-          playAlertSound();
-          sendNotification(currentMode === 'work' ? '🍅 专注完成！' : '☕ 休息结束',
-                           currentMode === 'work' ? '该休息一下啦～' : '准备开始下一轮专注吧！');
-          if ('vibrate' in navigator) navigator.vibrate([100, 50, 100]);
-        }
-        
-        if (settings.auto) {
-          setTimeout(() => {
-            const nextMode = currentMode === 'work' ? 'break' : 'work';
-            switchMode(nextMode);
-            setTimeout(() => { if (!isRunning) startTimer(); }, 500);
-          }, 2000);
-        } else {
-          statusText.textContent = currentMode === 'work' ? '🎉 专注完成！点击重置开始休息' : '✨ 休息结束！点击重置继续专注';
-        }
-      }
-      
-      // ---------- 模式切换 ----------
-      function switchMode(mode) {
-        if (isRunning) return;
-        currentMode = mode;
-        document.body.dataset.mode = mode;
-        modeBtns.forEach(btn => {
-          const active = btn.dataset.mode === mode;
-          btn.classList.toggle('active', active);
-          btn.setAttribute('aria-selected', active);
-        });
-        totalTime = timeLeft = mode === 'work' ? settings.work : settings.break;
-        timerLabel.textContent = mode === 'work' ? '准备专注' : '准备休息';
-        statusText.textContent = mode === 'work' ? '🍅 准备开始深度专注' : '☕ 准备放松休息';
-        updateDisplay();
-        ringProgress.style.strokeDashoffset = 0;
-        document.body.classList.remove('timer-complete');
-      }
-      
-      // ---------- 设置 ----------
-      function loadSettings() {
-        try {
-          const saved = localStorage.getItem('tomato-settings');
-          if (saved) {
-            const p = JSON.parse(saved);
-            settings = { ...settings, ...p };
-            $('workDuration').value = settings.work / 60;
-            $('breakDuration').value = settings.break / 60;
-            $('autoStart').checked = settings.auto;
-            $('soundEnabled').checked = settings.sound;
-          }
-        } catch(e) {}
-        totalTime = timeLeft = currentMode === 'work' ? settings.work : settings.break;
-        updateDisplay();
-      }
-      
-      window.saveSettings = function() {
-        settings.work = Math.min(Math.max(parseInt($('workDuration').value) || 25, 1), 120) * 60;
-        settings.break = Math.min(Math.max(parseInt($('breakDuration').value) || 5, 1), 60) * 60;
-        settings.auto = $('autoStart').checked;
-        settings.sound = $('soundEnabled').checked;
-        localStorage.setItem('tomato-settings', JSON.stringify(settings));
-        if (!isRunning) {
-          totalTime = timeLeft = currentMode === 'work' ? settings.work : settings.break;
-          updateDisplay();
-        }
-        const btn = event.target;
-        const orig = btn.textContent;
-        btn.textContent = '✅ 已保存';
-        setTimeout(() => btn.textContent = orig, 1500);
-      };
-      
-      // ---------- 通知 ----------
-      function checkNotificationPermission() {
-        if ('Notification' in window && Notification.permission === 'default') {
-          notificationBanner.classList.add('show');
-        }
-      }
-      window.requestNotificationPermission = function() {
-        if ('Notification' in window) {
-          Notification.requestPermission().then(p => {
-            if (p === 'granted') notificationBanner.classList.remove('show');
-          });
+
+      // 演示数据（用于API失败时的兜底展示）
+      const DEMO_DATA = {
+        city: { name: '北京', country: '中国', lat: 39.9, lon: 116.4 },
+        current: {
+          temperature_2m: 22,
+          relative_humidity_2m: 58,
+          apparent_temperature: 21,
+          weather_code: 1,
+          wind_speed_10m: 12,
+          pressure_msl: 1013,
+          visibility: 10000,
+          uv_index: 3
+        },
+        hourly: {
+          time: Array.from({ length: 24 }, (_, i) => {
+            const d = new Date(); d.setHours(d.getHours() + i); return d.toISOString();
+          }),
+          temperature_2m: [20, 19, 18, 17, 16, 16, 17, 19, 21, 23, 25, 27, 28, 29, 30, 29, 28, 26, 24, 23, 22, 21, 20, 19]
+        },
+        daily: {
+          time: Array.from({ length: 7 }, (_, i) => {
+            const d = new Date(); d.setDate(d.getDate() + i); return d.toISOString().split('T')[0];
+          }),
+          weather_code: [1, 2, 3, 61, 61, 2, 1],
+          temperature_2m_max: [28, 30, 27, 22, 24, 26, 29],
+          temperature_2m_min: [18, 20, 19, 15, 16, 18, 20],
+          sunrise: Array(7).fill(new Date().toISOString()),
+          sunset: Array(7).fill(new Date().toISOString())
         }
       };
-      function sendNotification(title, body) {
-        if ('Notification' in window && Notification.permission === 'granted') {
-          new Notification(title, { body, tag: 'tomato-timer', icon: '🍅' });
-        }
-      }
-      
-      // ---------- 键盘快捷键 ----------
-      function handleKeyPress(e) {
-        if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
-        switch(e.key.toLowerCase()) {
-          case ' ': e.preventDefault(); isRunning ? pauseTimer() : startTimer(); break;
-          case 'r': resetTimer(); break;
-          case 'w': if (!isRunning) switchMode('work'); break;
-          case 'b': if (!isRunning) switchMode('break'); break;
-          case 'm': toggleMusic(); break;
-          case 'arrowup': e.preventDefault(); volumeSlider.value = Math.min(1, +volumeSlider.value + 0.1); volumeSlider.dispatchEvent(new Event('input')); break;
-          case 'arrowdown': e.preventDefault(); volumeSlider.value = Math.max(0, +volumeSlider.value - 0.1); volumeSlider.dispatchEvent(new Event('input')); break;
-        }
-      }
-      
-      // ---------- 音频初始化 ----------
-      function initAudioContext() {
-        if (audioCtx) return true;
-        try {
-          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-          return true;
-        } catch(e) { return false; }
-      }
-      
-      function playAlertSound() {
-        if (!settings.sound) return;
-        initAudioContext();
-        if (!audioCtx) return;
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.frequency.value = 880;
-        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
-        osc.start();
-        osc.stop(audioCtx.currentTime + 0.4);
-      }
-      
-      // ---------- 音乐控制 ----------
-      function updateVolumeDisplay() {
-        const vol = parseFloat(volumeSlider.value);
-        volumeValue.textContent = Math.round(vol * 100) + '%';
-        if (activeAudio) activeAudio.volume = vol;
-        if (musicGain) musicGain.gain.value = vol;
-      }
-      
-      function stopMusic() {
-        if (activeAudio) { activeAudio.pause(); activeAudio.src = ''; activeAudio = null; }
-        if (musicSource) { try { musicSource.stop(); } catch(e) {} musicSource = null; }
-        isMusicPlaying = false;
-        musicToggle.textContent = '▶ 播放';
-        musicStatus.textContent = currentSound === 'none' ? '已关闭' : '已暂停';
-      }
-      
-      function playMusic(type) {
-        stopMusic();
-        if (type === 'none') {
-          musicStatus.textContent = '已关闭';
-          return;
-        }
-        musicStatus.textContent = '🔄 加载音乐...';
-        try {
-          activeAudio = new Audio(soundPaths[type]);
-          activeAudio.loop = true;
-          activeAudio.volume = parseFloat(volumeSlider.value);
-          activeAudio.oncanplay = () => {
-            activeAudio.play().then(() => {
-              isMusicPlaying = true;
-              musicToggle.textContent = '⏸ 暂停';
-              musicStatus.textContent = `🎵 播放中: ${getSoundName(type)}`;
-            }).catch(() => {
-              musicStatus.textContent = '👆 请点击页面任意位置后重试';
-            });
-          };
-          activeAudio.onerror = () => {
-            musicStatus.textContent = '⚠️ 加载失败，尝试备用方案';
-            playMusicWebAudio(type);
-          };
-          activeAudio.load();
-        } catch(e) {
-          playMusicWebAudio(type);
-        }
-      }
-      
-      function playMusicWebAudio(type) {
-        initAudioContext();
-        if (!audioCtx) { musicStatus.textContent = '❌ 浏览器不支持音频'; return; }
-        fetch(soundPaths[type])
-          .then(res => res.arrayBuffer())
-          .then(buf => audioCtx.decodeAudioData(buf))
-          .then(buffer => {
-            musicSource = audioCtx.createBufferSource();
-            musicSource.buffer = buffer;
-            musicSource.loop = true;
-            musicGain = audioCtx.createGain();
-            musicGain.gain.value = parseFloat(volumeSlider.value);
-            musicSource.connect(musicGain);
-            musicGain.connect(audioCtx.destination);
-            musicSource.start(0);
-            isMusicPlaying = true;
-            musicToggle.textContent = '⏸ 暂停';
-            musicStatus.textContent = `🎵 播放中: ${getSoundName(type)}`;
-          })
-          .catch(() => { musicStatus.textContent = '❌ 无法加载音频文件'; });
-      }
-      
-      function toggleMusic() {
-        initAudioContext();
-        if (currentSound === 'none') currentSound = 'piano1';
-        isMusicPlaying ? stopMusic() : playMusic(currentSound);
-      }
-      
-      function getSoundName(k) {
-        const map = { piano1:'经典钢琴', piano2:'舒缓钢琴', piano3:'爵士钢琴', piano4:'氛围钢琴', none:'关闭' };
-        return map[k] || k;
-      }
-      
-      // ---------- 事件绑定 ----------
-      function bindEvents() {
-        startBtn.addEventListener('click', startTimer);
-        pauseBtn.addEventListener('click', pauseTimer);
-        resetBtn.addEventListener('click', resetTimer);
-        
-        modeBtns.forEach(btn => btn.addEventListener('click', () => {
-          if (!isRunning) switchMode(btn.dataset.mode);
-        }));
-        
-        musicBtns.forEach(btn => btn.addEventListener('click', () => {
-          musicBtns.forEach(b => b.classList.remove('active'));
-          btn.classList.add('active');
-          currentSound = btn.dataset.sound;
-          if (isMusicPlaying) playMusic(currentSound);
-          else musicStatus.textContent = currentSound === 'none' ? '已关闭' : `已选择 ${getSoundName(currentSound)}`;
-        }));
-        
-        musicToggle.addEventListener('click', toggleMusic);
-        volumeSlider.addEventListener('input', updateVolumeDisplay);
-        document.addEventListener('keydown', handleKeyPress);
-        document.querySelector('.settings-panel .btn').addEventListener('click', saveSettings);
-        
-        window.addEventListener('beforeunload', () => {
-          stopMusic();
-          if (audioCtx) audioCtx.close();
-        });
-      }
-      
+
       // ---------- 初始化 ----------
       function init() {
         loadSettings();
-        updateDisplay();
         bindEvents();
-        checkNotificationPermission();
-        updateVolumeDisplay();
+        if (state.savedCities.length > 0) {
+          searchWeather(state.savedCities[0]);
+        } else {
+          autoLocate();
+        }
       }
-      
+
+      function loadSettings() {
+        try {
+          const saved = localStorage.getItem('weather-settings');
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            state.unit = parsed.unit || 'C';
+            state.savedCities = parsed.savedCities || [];
+            state.currentCity = parsed.currentCity;
+            unitBtn.textContent = `°${state.unit}`;
+            renderSavedCities();
+          }
+        } catch(e) {}
+      }
+
+      function saveSettings() {
+        localStorage.setItem('weather-settings', JSON.stringify({
+          unit: state.unit,
+          savedCities: state.savedCities,
+          currentCity: state.currentCity
+        }));
+      }
+
+      function bindEvents() {
+        searchBtn.addEventListener('click', () => searchWeather(cityInput.value.trim()));
+        cityInput.addEventListener('keypress', e => { if(e.key==='Enter') searchWeather(cityInput.value.trim()); });
+        locateBtn.addEventListener('click', autoLocate);
+        refreshBtn.addEventListener('click', refreshCurrent);
+        unitBtn.addEventListener('click', toggleUnit);
+        
+        document.addEventListener('keydown', e => {
+          if (e.target.tagName === 'INPUT') return;
+          if (e.key === '/') { e.preventDefault(); cityInput.focus(); }
+          if (e.key === 'Escape') { cityInput.blur(); cityInput.value = ''; }
+          if (e.key.toLowerCase() === 'r') refreshCurrent();
+          if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+            e.preventDefault();
+            const idx = state.savedCities.indexOf(state.currentCity);
+            const next = e.key === 'ArrowUp' ? Math.max(0, idx-1) : Math.min(state.savedCities.length-1, idx+1);
+            if (state.savedCities[next]) searchWeather(state.savedCities[next]);
+          }
+        });
+
+        cityList.addEventListener('click', e => {
+          const chip = e.target.closest('.city-chip');
+          if (chip && !e.target.classList.contains('remove')) {
+            searchWeather(chip.dataset.city);
+          }
+          if (e.target.classList.contains('remove')) {
+            e.stopPropagation();
+            removeSavedCity(e.target.dataset.city);
+          }
+        });
+
+        window.addEventListener('resize', debounce(() => {
+          if (state.hourlyData.length) drawChart(state.hourlyData.map(d => d.temp));
+        }, 200));
+      }
+
+      function debounce(fn, delay) {
+        let timer;
+        return (...args) => { clearTimeout(timer); timer = setTimeout(() => fn(...args), delay); };
+      }
+
+      // ---------- 核心API ----------
+      async function searchWeather(city, retry = true) {
+        if (!city) {
+          showStatus('请输入城市名', 'error');
+          return;
+        }
+        showLoading();
+        
+        try {
+          const coords = await geocode(city);
+          if (!coords) {
+            showStatus('未找到该城市，请尝试拼音或英文名', 'error');
+            return;
+          }
+          
+          const weather = await fetchWeather(coords.lat, coords.lon);
+          
+          // 数据校验
+          if (!weather.current || !weather.hourly?.temperature_2m?.length) {
+            throw new Error('数据不完整');
+          }
+          
+          state.currentCity = city;
+          updateUI(coords, weather);
+          
+          if (!state.savedCities.includes(city)) {
+            state.savedCities.unshift(city);
+            if (state.savedCities.length > 8) state.savedCities.pop();
+            renderSavedCities();
+          }
+          saveSettings();
+          
+        } catch(err) {
+          console.warn('天气查询失败:', err);
+          if (retry) {
+            setTimeout(() => searchWeather(city, false), 1000);
+          } else {
+            showFallbackData(city);
+          }
+        }
+      }
+
+      function showFallbackData(city) {
+        console.log('使用演示数据展示');
+        const demo = DEMO_DATA;
+        demo.city.name = city || '北京';
+        
+        state.currentCity = city;
+        updateUI(demo.city, demo);
+        
+        const statusEl = $('currentWeather');
+        const hint = document.createElement('div');
+        hint.style.cssText = 'margin-top:0.5rem;font-size:0.8rem;color:var(--warning,#f59e0b);';
+        hint.textContent = '⚠️ 当前为演示数据，请检查网络后重试';
+        statusEl.appendChild(hint);
+      }
+
+      async function geocode(city) {
+        const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=zh&format=json`;
+        const resp = await fetch(url);
+        const data = await resp.json();
+        if (data.results?.[0]) {
+          const r = data.results[0];
+          return { lat: r.latitude, lon: r.longitude, name: r.name, country: r.country };
+        }
+        return null;
+      }
+
+      async function fetchWeather(lat, lon) {
+        const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,pressure_msl,visibility,uv_index&hourly=temperature_2m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset,uv_index_max&timezone=auto&forecast_days=7`;
+        const resp = await fetch(url);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        return await resp.json();
+      }
+
+      async function autoLocate() {
+        if (!navigator.geolocation) {
+          searchWeather('Beijing');
+          return;
+        }
+        showLoading();
+        navigator.geolocation.getCurrentPosition(
+          async pos => {
+            const { latitude, longitude } = pos.coords;
+            const url = `https://geocoding-api.open-meteo.com/v1/reverse?latitude=${latitude}&longitude=${longitude}&language=zh`;
+            try {
+              const resp = await fetch(url);
+              const data = await resp.json();
+              const city = data.results?.[0]?.name || 'Beijing';
+              searchWeather(city);
+            } catch(e) {
+              searchWeather('Beijing');
+            }
+          },
+          () => searchWeather('Beijing'),
+          { enableHighAccuracy: true, timeout: 8000 }
+        );
+      }
+
+      function refreshCurrent() {
+        if (state.currentCity) searchWeather(state.currentCity);
+      }
+
+      function toggleUnit() {
+        state.unit = state.unit === 'C' ? 'F' : 'C';
+        unitBtn.textContent = `°${state.unit}`;
+        if (state.currentCity) refreshCurrent();
+        saveSettings();
+      }
+
+      function cToF(c) { return Math.round(c * 9/5 + 32); }
+      function formatTemp(c) { return state.unit === 'C' ? `${c}°` : `${cToF(c)}°`; }
+
+      // ---------- UI更新 ----------
+      function showLoading() {
+        $('currentWeather').innerHTML = '<div class="loading">⏳ 加载天气数据...</div>';
+        forecastList.innerHTML = '<div class="loading">⏳ 加载预报...</div>';
+      }
+
+      function showStatus(msg, type) {
+        $('currentWeather').innerHTML = `<div class="${type}">${msg}</div>`;
+      }
+
+      function updateUI(city, data) {
+        updateCurrentWeather(city, data);
+        updateHourlyChart(data);
+        updateDailyForecast(data);
+      }
+
+      function updateCurrentWeather(city, data) {
+        const c = data.current;
+        const code = c.weather_code;
+        
+        cityName.textContent = `${city.name}, ${city.country}`;
+        weatherIcon.textContent = getWeatherIcon(code);
+        currentTemp.textContent = formatTemp(c.temperature_2m);
+        currentDesc.textContent = getWeatherDesc(code);
+        updateTime.textContent = `更新: ${new Date().toLocaleTimeString('zh-CN', {hour:'2-digit',minute:'2-digit'})}`;
+        windSpeed.textContent = `${Math.round(c.wind_speed_10m)} km/h`;
+        humidity.textContent = `${c.relative_humidity_2m}%`;
+        feelsLike.textContent = formatTemp(c.apparent_temperature);
+        pressure.textContent = `${Math.round(c.pressure_msl)} hPa`;
+        uvIndex.textContent = c.uv_index != null ? (c.uv_index < 3 ? '低' : c.uv_index < 6 ? '中' : c.uv_index < 8 ? '高' : '极高') : '--';
+        visibility.textContent = c.visibility != null ? `${Math.round(c.visibility/1000)} km` : '--';
+        
+        if (data.daily?.sunrise?.[0]) {
+          const sr = new Date(data.daily.sunrise[0]);
+          sunrise.textContent = `${sr.getHours().toString().padStart(2,'0')}:${sr.getMinutes().toString().padStart(2,'0')}`;
+        }
+      }
+
+      function updateHourlyChart(data) {
+        const hours = data.hourly.time?.slice(0, 24) || [];
+        const temps = data.hourly.temperature_2m?.slice(0, 24) || [];
+        if (!temps.length) return;
+        
+        state.hourlyData = temps.map((t, i) => ({ time: hours[i], temp: t }));
+        drawChart(temps);
+      }
+
+      function drawChart(temps) {
+        if (!temps.length) return;
+        const ctx = tempChart.getContext('2d');
+        const container = tempChart.parentElement;
+        const w = tempChart.width = container.offsetWidth * 2;
+        const h = tempChart.height = 240;
+        ctx.clearRect(0, 0, w, h);
+        
+        const min = Math.min(...temps) - 2;
+        const max = Math.max(...temps) + 2;
+        const range = max - min || 1;
+        const stepX = (w - 60) / Math.max(1, temps.length - 1);
+        const stepY = (h - 40) / range;
+        
+        ctx.strokeStyle = 'rgba(100,116,139,0.2)';
+        ctx.lineWidth = 1;
+        for (let i = 0; i <= 4; i++) {
+          const y = 20 + i * (h-40)/4;
+          ctx.beginPath(); ctx.moveTo(40, y); ctx.lineTo(w-20, y); ctx.stroke();
+        }
+        
+        ctx.strokeStyle = 'var(--primary, #6366f1)';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        temps.forEach((t, i) => {
+          const x = 40 + i * stepX;
+          const y = h - 20 - (t - min) * stepY;
+          i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+        
+        ctx.fillStyle = 'var(--primary, #6366f1)';
+        temps.forEach((t, i) => {
+          if (i % 4 === 0) {
+            const x = 40 + i * stepX;
+            const y = h - 20 - (t - min) * stepY;
+            ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI*2); ctx.fill();
+          }
+        });
+      }
+
+      function updateDailyForecast(data) {
+        const daily = data.daily;
+        if (!daily?.time?.length) return;
+        
+        state.dailyData = daily.time.map((date, i) => ({
+          date, code: daily.weather_code[i],
+          min: daily.temperature_2m_min[i], max: daily.temperature_2m_max[i]
+        }));
+        
+        forecastList.innerHTML = state.dailyData.map((d, i) => {
+          const dateObj = new Date(d.date);
+          const label = i === 0 ? '今天' : i === 1 ? '明天' : dateObj.toLocaleDateString('zh-CN', {weekday:'short', month:'numeric', day:'numeric'});
+          return `
+            <div class="forecast-item">
+              <span class="forecast-date">${label}</span>
+              <span class="forecast-weather">
+                <span class="forecast-icon">${getWeatherIcon(d.code)}</span>
+                <span>${getWeatherDesc(d.code)}</span>
+              </span>
+              <span class="forecast-temp">
+                <span class="min">${formatTemp(d.min)}</span> / 
+                <span class="max">${formatTemp(d.max)}</span>
+              </span>
+            </div>
+          `;
+        }).join('');
+      }
+
+      function renderSavedCities() {
+        if (!state.savedCities.length) {
+          cityList.innerHTML = '<span style="color:var(--text-light);">暂无收藏</span>';
+          return;
+        }
+        cityList.innerHTML = state.savedCities.map(city => `
+          <span class="city-chip ${city===state.currentCity?'active':''}" data-city="${city}">
+            ${city}
+            <span class="remove" data-city="${city}" title="移除">✕</span>
+          </span>
+        `).join('');
+      }
+
+      function removeSavedCity(city) {
+        state.savedCities = state.savedCities.filter(c => c !== city);
+        if (state.currentCity === city) state.currentCity = null;
+        renderSavedCities();
+        saveSettings();
+      }
+
+      // ---------- 工具函数 ----------
+      function getWeatherIcon(code) {
+        const map = {
+          0:'☀️', 1:'🌤️', 2:'⛅', 3:'☁️', 45:'🌫️', 48:'🌫️',
+          51:'🌦️', 53:'🌦️', 55:'🌦️', 61:'🌧️', 63:'🌧️', 65:'🌧️',
+          71:'❄️', 73:'❄️', 75:'❄️', 80:'🌦️', 95:'⛈️', 96:'⛈️', 99:'⛈️'
+        };
+        return map[code] || '🌡️';
+      }
+
+      function getWeatherDesc(code) {
+        const map = {
+          0:"晴朗",1:"大致晴朗",2:"多云",3:"阴天",45:"雾",48:"雾凇",
+          51:"毛毛雨",53:"小雨",55:"大雨",61:"小雨",63:"中雨",65:"大雨",
+          71:"小雪",73:"中雪",75:"大雪",80:"阵雨",95:"雷阵雨"
+        };
+        return map[code] || '未知';
+      }
+
+      window.addEventListener('beforeunload', saveSettings);
       init();
     })();
   </script>
