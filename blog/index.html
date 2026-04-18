@@ -3,8 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>博客 - LAN</title>
+    <title>博客 · WJULY42</title>
     <link rel="stylesheet" href="../style.css">
+    <style>
+        /* 微调加载与错误状态样式 */
+        .loading-state, .error-state {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-light);
+        }
+        .error-state {
+            background: var(--card);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+        }
+        .error-state h3 {
+            margin-bottom: 1rem;
+            color: var(--text);
+        }
+        .error-state button {
+            margin-top: 1rem;
+        }
+        .post-item:last-child {
+            border-bottom: none;
+        }
+    </style>
 </head>
 <body>
 <div class="container">
@@ -19,38 +42,130 @@
         <p>记录学习过程中的思考、踩坑和解决方案。</p>
     </div>
 
-    <div class="card" id="postsList"></div>
+    <div class="card" id="postsList">
+        <div class="loading-state">⏳ 正在加载文章列表...</div>
+    </div>
 </div>
 
 <script>
-    async function loadAllPosts() {
-        try {
-            const response = await fetch('../data/posts.json');
-            const data = await response.json();
-            const posts = data.posts;
-            // 按日期倒序
-            const sorted = posts.sort((a,b) => new Date(b.date) - new Date(a.date));
-            const container = document.getElementById('postsList');
-            container.innerHTML = '';
-            if (sorted.length === 0) {
-                container.innerHTML = '<p>还没有文章，敬请期待。</p>';
+    (async function() {
+        const container = document.getElementById('postsList');
+        const POSTS_URL = '../data/posts.json';
+        let retries = 2;
+
+        // 显示加载状态
+        function showLoading() {
+            container.innerHTML = '<div class="loading-state">⏳ 正在加载文章列表...</div>';
+        }
+
+        // 显示错误信息
+        function showError(message, detail = '') {
+            container.innerHTML = `
+                <div class="error-state">
+                    <div style="font-size: 3rem; margin-bottom: 0.5rem;">📭</div>
+                    <h3>文章加载失败</h3>
+                    <p>${message}</p>
+                    ${detail ? `<p style="font-size:0.9rem; margin-top:0.5rem;">${detail}</p>` : ''}
+                    <button class="btn" onclick="location.reload()">🔄 重新加载</button>
+                    <p style="font-size:0.85rem; margin-top:1.5rem; color: var(--text-light);">
+                        如果问题持续，请检查 <code style="background:var(--border); padding:0.2rem 0.4rem; border-radius:4px;">data/posts.json</code> 文件是否存在且格式正确。
+                    </p>
+                </div>
+            `;
+        }
+
+        // 清除 JSON 中的注释（安全措施）
+        function cleanJsonText(text) {
+            // 移除单行注释 // ...
+            text = text.replace(/\/\/.*$/gm, '');
+            // 移除多行注释 /* ... */
+            text = text.replace(/\/\*[\s\S]*?\*\//g, '');
+            return text;
+        }
+
+        async function loadPosts() {
+            for (let attempt = retries; attempt >= 0; attempt--) {
+                try {
+                    const response = await fetch(POSTS_URL);
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    const rawText = await response.text();
+                    const cleanText = cleanJsonText(rawText);
+                    const data = JSON.parse(cleanText);
+                    return data.posts || [];
+                } catch (error) {
+                    console.warn(`加载文章失败 (剩余重试: ${attempt})`, error);
+                    if (attempt === 0) {
+                        // 最终失败，抛出详细错误
+                        let errorMsg = '';
+                        if (error.message.includes('404')) {
+                            errorMsg = '找不到文章列表文件 (posts.json)';
+                        } else if (error.message.includes('JSON')) {
+                            errorMsg = '文章列表格式错误，请检查 JSON 语法';
+                        } else {
+                            errorMsg = `网络错误: ${error.message}`;
+                        }
+                        throw new Error(errorMsg);
+                    }
+                    // 等待后重试
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+            }
+            return [];
+        }
+
+        function renderPosts(posts) {
+            if (!posts || posts.length === 0) {
+                container.innerHTML = '<div class="loading-state">✨ 还没有文章，敬请期待。</div>';
                 return;
             }
+
+            // 按日期倒序
+            const sorted = [...posts].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            let html = '';
             sorted.forEach(post => {
-                const postDiv = document.createElement('div');
-                postDiv.className = 'post-item';
-                postDiv.innerHTML = `
-                    <div class="post-title"><a href="../${post.url}">${post.title}</a></div>
-                    <div class="post-meta">📅 ${post.date}</div>
-                    <div class="post-excerpt">${post.excerpt}</div>
+                // 修正文章链接：移除可能的 "blog/" 前缀，使其相对于当前 blog/ 目录正确
+                let postUrl = post.url;
+                if (postUrl.startsWith('blog/')) {
+                    postUrl = postUrl.replace('blog/', '');
+                }
+                // 如果 post.url 是完整路径，提取最后部分
+                if (postUrl.includes('/')) {
+                    const parts = postUrl.split('/');
+                    postUrl = parts[parts.length - 1];
+                }
+                // 确保是相对路径
+                const href = `posts/${postUrl}`;
+
+                html += `
+                    <div class="post-item">
+                        <div class="post-title"><a href="${href}">${escapeHtml(post.title)}</a></div>
+                        <div class="post-meta">📅 ${escapeHtml(post.date) || '未知日期'}</div>
+                        <div class="post-excerpt">${escapeHtml(post.excerpt) || ''}</div>
+                    </div>
                 `;
-                container.appendChild(postDiv);
             });
-        } catch (err) {
-            document.getElementById('postsList').innerHTML = '<p>加载失败，请刷新重试。</p>';
+            container.innerHTML = html;
         }
-    }
-    loadAllPosts();
+
+        // 辅助函数：转义 HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // 主流程
+        try {
+            showLoading();
+            const posts = await loadPosts();
+            renderPosts(posts);
+        } catch (error) {
+            showError(error.message);
+        }
+    })();
 </script>
 </body>
 </html>
