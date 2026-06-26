@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>校服防丢 - 距离显示</title>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; }
+    #rssi { font-size: 3em; font-weight: bold; }
+    #distance { font-size: 2em; margin-top: 20px; }
+    #status { margin-top: 30px; color: gray; }
+    button { font-size: 1.2em; padding: 10px 20px; }
+  </style>
+</head>
+<body>
+  <h1>校服距离显示器</h1>
+  <button onclick="startScan()">开始扫描</button>
+  <div id="status">未连接</div>
+  <div id="rssi">--- dBm</div>
+  <div id="distance">距离: --- 米</div>
+
+  <script>
+    const TARGET_NAME = "SchoolUniform";
+    let rssiElem = document.getElementById('rssi');
+    let distElem = document.getElementById('distance');
+    let statusElem = document.getElementById('status');
+
+    function rssiToDistance(rssi) {
+      // 简单公式：RSSI = -20 * log10(distance) + A (A 设为 -50 左右)
+      // 这里取参考值 A = -50（在1米处约为 -50dBm）
+      let ratio = (rssi + 50) / (-20);
+      let distance = Math.pow(10, ratio);
+      if (distance < 0.1) distance = 0.1;
+      return distance.toFixed(1);
+    }
+
+    async function startScan() {
+      try {
+        statusElem.innerText = "扫描中...";
+        const device = await navigator.bluetooth.requestLEScan({
+          acceptAllAdvertisements: true,
+        });
+
+        // 监听广播包
+        navigator.bluetooth.addEventListener('advertisementreceived', event => {
+          if (event.device.name === TARGET_NAME) {
+            let rssi = event.rssi;
+            rssiElem.innerText = rssi + " dBm";
+            distElem.innerText = "距离: " + rssiToDistance(rssi) + " 米";
+            statusElem.innerText = "已发现校服标签";
+            // 让图表更生动：颜色变化
+            if (rssi > -50) distElem.style.color = "green";
+            else if (rssi > -70) distElem.style.color = "orange";
+            else distElem.style.color = "red";
+          }
+        });
+
+        // 10秒后自动停止扫描（避免耗电，可重新点击按钮）
+        setTimeout(() => {
+          navigator.bluetooth.stopLEScan();
+          statusElem.innerText = "扫描已停止";
+        }, 10000);
+
+      } catch (error) {
+        statusElem.innerText = "错误: " + error;
+        console.error(error);
+      }
+    }
+  </script>
+</body>
+</html>
