@@ -49,6 +49,17 @@
 </div>
 
 <script>
+    // 工具卡片鼠标跟随光效
+    document.querySelectorAll('.tool-card').forEach(card => {
+        card.addEventListener('mousemove', (e) => {
+            const rect = card.getBoundingClientRect();
+            const x = ((e.clientX - rect.left) / rect.width) * 100;
+            const y = ((e.clientY - rect.top) / rect.height) * 100;
+            card.style.setProperty('--mouse-x', `${x}%`);
+            card.style.setProperty('--mouse-y', `${y}%`);
+        });
+    });
+
     async function loadLatestPosts() {
         try {
             const response = await fetch('data/posts.json');
