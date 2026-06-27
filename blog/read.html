@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loading... | lunarHope</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- Markdown 渲染与代码高亮 -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        space: { 900: '#010409', 800: '#0d1117', 700: '#161b22', 600: '#21262d', border: '#30363d', text: '#f0f6fc', muted: '#8b949e' },
+                        glow: { purple: '#8957e5', blue: '#58a6ff', pink: '#da3633', green: '#3fb950' }
+                    },
+                    fontFamily: { sans: ['Inter', 'sans-serif'], mono: ['"JetBrains Mono"', 'monospace'] }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #010409; color: #f0f6fc; }
+        ::-webkit-scrollbar { width: 8px; } ::-webkit-scrollbar-track { background: #010409; } ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 4px; }
+        
+        /* 阅读进度条 */
+        #progress-bar { position: fixed; top: 0; left: 0; height: 2px; background: linear-gradient(90deg, #58a6ff, #8957e5, #da3633); z-index: 100; transition: width 0.1s ease-out; }
+
+        /* Markdown 核心排版样式 (GitHub Dark 风格) */
+        .markdown-body { color: #f0f6fc; line-height: 1.7; font-size: 16px; }
+        .markdown-body h1, .markdown-body h2 { border-bottom: 1px solid #30363d; padding-bottom: 0.3em; margin-top: 2em; margin-bottom: 1em; font-weight: 600; }
+        .markdown-body h1 { font-size: 2em; }
+        .markdown-body h2 { font-size: 1.5em; }
+        .markdown-body h3 { font-size: 1.25em; margin-top: 1.5em; margin-bottom: 0.5em; font-weight: 600; }
+        .markdown-body p { margin-bottom: 1.2em; }
+        .markdown-body a { color: #58a6ff; text-decoration: none; border-bottom: 1px solid transparent; transition: border-color 0.2s; }
+        .markdown-body a:hover { border-bottom-color: #58a6ff; }
+        .markdown-body strong { color: #ffffff; font-weight: 600; }
+        .markdown-body blockquote { border-left: 4px solid #8957e5; padding: 0.5em 1em; margin: 1.5em 0; background: #161b22; color: #8b949e; border-radius: 0 6px 6px 0; }
+        .markdown-body ul, .markdown-body ol { padding-left: 2em; margin-bottom: 1.2em; }
+        .markdown-body li { margin-bottom: 0.5em; }
+        .markdown-body code { background: #161b22; padding: 0.2em 0.4em; border-radius: 6px; font-size: 85%; color: #f0f6fc; font-family: 'JetBrains Mono', monospace; border: 1px solid #30363d; }
+        .markdown-body pre { background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 16px; overflow: auto; margin: 1.5em 0; position: relative; }
+        .markdown-body pre code { background: transparent; padding: 0; border: none; color: #f0f6fc; font-size: 14px; line-height: 1.5; }
+        .markdown-body img { max-width: 100%; border-radius: 6px; border: 1px solid #30363d; cursor: zoom-in; transition: transform 0.2s; }
+        .markdown-body img:hover { transform: scale(1.01); }
+        .markdown-body table { border-collapse: collapse; width: 100%; margin: 1.5em 0; }
+        .markdown-body table th, .markdown-body table td { border: 1px solid #30363d; padding: 8px 13px; }
+        .markdown-body table th { background: #161b22; font-weight: 600; }
+        .markdown-body table tr { background: #0d1117; border-top: 1px solid #30363d; }
+        .markdown-body hr { border: none; border-top: 1px solid #30363d; margin: 2em 0; }
+
+        /* 代码复制按钮 */
+        .copy-btn { position: absolute; top: 8px; right: 8px; padding: 4px 8px; font-size: 12px; background: #21262d; color: #8b949e; border: 1px solid #30363d; border-radius: 4px; cursor: pointer; opacity: 0; transition: opacity 0.2s; }
+        .markdown-body pre:hover .copy-btn { opacity: 1; }
+        .copy-btn:hover { background: #30363d; color: #f0f6fc; }
+    </style>
+</head>
+<body class="font-sans antialiased">
+
+    <!-- 阅读进度条 -->
+    <div id="progress-bar" style="width: 0%;"></div>
+
+    <!-- 顶部导航 -->
+    <header class="sticky top-0 z-50 bg-space-900/80 backdrop-blur-md border-b border-white/5">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+            <a href="/blog/" class="flex items-center text-space-muted hover:text-space-text transition font-mono text-sm">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                Back to Blog
+            </a>
+            <span class="text-xs text-space-muted font-mono hidden md:block" id="header-title">Loading...</span>
+        </div>
+    </header>
+
+    <!-- 主体内容 -->
+    <main class="max-w-7xl mx-auto px-6 py-12 grid grid-cols-1 lg:grid-cols-4 gap-12">
+        
+        <!-- 左侧/主内容区 -->
+        <article class="lg:col-span-3 min-w-0">
+            <!-- 文章元数据 -->
+            <header class="mb-12 border-b border-space-border pb-8">
+                <h1 id="post-title" class="text-4xl md:text-5xl font-bold text-space-text mb-4 leading-tight">Loading...</h1>
+                <div class="flex flex-wrap items-center gap-4 text-sm text-space-muted">
+                    <span id="post-date" class="font-mono flex items-center">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                        Date
+                    </span>
+                    <div id="post-tags" class="flex gap-2"></div>
+                </div>
+            </header>
+
+            <!-- Markdown 渲染区 -->
+            <div id="markdown-content" class="markdown-body">
+                <p class="text-space-muted font-mono">Fetching content...</p>
+            </div>
+
+            <!-- 评论区 -->
+            <section class="mt-20 pt-10 border-t border-space-border">
+                <h3 class="text-xl font-bold text-space-text mb-6 flex items-center">
+                    <svg class="w-5 h-5 mr-2 text-glow-purple" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
+                    Discussion
+                </h3>
+                <div class="bg-space-800 border border-space-border rounded-xl p-6 min-h-[200px]">
+                    <!-- Giscus 脚本 (请确保替换为你的真实 ID) -->
+                    <script src="https://giscus.app/client.js"
+                            data-repo="WJULY42/WJULY42.github.io"
+                            data-repo-id="YOUR_REPO_ID"
+                            data-category="Announcements"
+                            data-category-id="YOUR_CATEGORY_ID"
+                            data-mapping="pathname"
+                            data-strict="0"
+                            data-reactions-enabled="1"
+                            data-emit-metadata="0"
+                            data-input-position="bottom"
+                            data-theme="dark"
+                            data-lang="zh-CN"
+                            crossorigin="anonymous"
+                            async>
+                    </script>
+                </div>
+            </section>
+        </article>
+
+        <!-- 右侧边栏 (目录 TOC) -->
+        <aside class="hidden lg:block lg:col-span-1">
+            <div class="sticky top-24">
+                <h4 class="text-xs font-bold text-space-muted uppercase tracking-wider mb-4 flex items-center">
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"></path></svg>
+                    Contents
+                </h4>
+                <nav id="toc-list" class="space-y-1 border-l border-space-border pl-4">
+                    <!-- JS 动态生成 -->
+                </nav>
+            </div>
+        </aside>
+    </main>
+
+    <script>
+        // 1. 获取 URL 参数
+        const params = new URLSearchParams(window.location.search);
+        const slug = params.get('slug');
+        const contentEl = document.getElementById('markdown-content');
+        const titleEl = document.getElementById('post-title');
+        const dateEl = document.getElementById('post-date');
+        const tagsEl = document.getElementById('post-tags');
+        const headerTitle = document.getElementById('header-title');
+
+        if (!slug) {
+            contentEl.innerHTML = '<p class="text-glow-pink font-mono">Error: No slug provided in URL.</p>';
+        } else {
+            loadArticle(slug);
+        }
+
+        // 2. 加载并渲染 Markdown
+        async function loadArticle(slug) {
+            try {
+                // 尝试从本地 /blog/posts/ 读取 md 文件
+                const res = await fetch(`/blog/posts/${slug}.md`);
+                if (!res.ok) throw new Error('Article not found');
+                const mdText = await res.text();
+
+                // 解析 Frontmatter (简单的正则提取)
+                const fmMatch = mdText.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
+                let rawMd = mdText;
+                let meta = {};
+
+                if (fmMatch) {
+                    const fmStr = fmMatch[1];
+                    rawMd = fmMatch[2];
+                    // 简单解析 YAML (仅支持基础键值对)
+                    fmStr.split('\n').forEach(line => {
+                        const [key, ...val] = line.split(':');
+                        if(key && val) meta[key.trim()] = val.join(':').trim().replace(/^["']|["']$/g, '');
+                    });
+                    
+                    // 处理 Tags 数组
+                    if (meta.tags) {
+                        meta.tags = meta.tags.replace(/[\[\]]/g, '').split(',').map(t => t.trim()).filter(t => t);
+                    }
+                }
+
+                // 更新 UI 元数据
+                const title = meta.title || slug;
+                titleEl.textContent = title;
+                document.title = `${title} | lunarHope`;
+                headerTitle.textContent = title;
+                dateEl.innerHTML = `<svg class="w-4 h-4 mr-1 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path> ${meta.date || 'Unknown'}`;
+                
+                if (meta.tags && Array.isArray(meta.tags)) {
+                    tagsEl.innerHTML = meta.tags.map(t => `<span class="px-2 py-0.5 rounded-full text-xs bg-blue-900/30 text-blue-400 border border-blue-800/50">${t}</span>`).join('');
+                }
+
+                // 渲染 Markdown
+                contentEl.innerHTML = marked.parse(rawMd);
+                
+                // 后处理：代码高亮、复制按钮、图片放大、目录生成
+                postProcess();
+
+            } catch (err) {
+                contentEl.innerHTML = `<div class="text-center py-20"><p class="text-glow-pink font-mono text-xl">404 - Article Not Found</p><p class="text-space-muted mt-2">The post "${slug}.md" does not exist.</p></div>`;
+            }
+        }
+
+        // 3. 后处理增强交互
+        function postProcess() {
+            // 代码高亮
+            document.querySelectorAll('.markdown-body pre code').forEach((block) => {
+                hljs.highlightElement(block);
+            });
+
+            // 添加代码复制按钮
+            document.querySelectorAll('.markdown-body pre').forEach(pre => {
+                const btn = document.createElement('button');
+                btn.innerText = 'Copy';
+                btn.className = 'copy-btn';
+                pre.appendChild(btn);
+                btn.onclick = () => {
+                    const code = pre.querySelector('code').innerText;
+                    navigator.clipboard.writeText(code).then(() => {
+                        btn.innerText = 'Copied!';
+                        setTimeout(() => btn.innerText = 'Copy', 2000);
+                    });
+                };
+            });
+
+            // 图片点击放大
+            document.querySelectorAll('.markdown-body img').forEach(img => {
+                img.addEventListener('click', () => {
+                    const overlay = document.createElement('div');
+                    overlay.className = 'fixed inset-0 z-[200] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 cursor-zoom-out';
+                    overlay.innerHTML = `<img src="${img.src}" class="max-w-full max-h-full rounded-lg shadow-2xl border border-space-border">`;
+                    overlay.onclick = () => document.body.removeChild(overlay);
+                    document.body.appendChild(overlay);
+                });
+            });
+
+            // 生成目录 (TOC)
+            const tocList = document.getElementById('toc-list');
+            const headings = document.querySelectorAll('.markdown-body h1, .markdown-body h2, .markdown-body h3');
+            headings.forEach((h, i) => {
+                const id = 'heading-' + i;
+                h.id = id;
+                const link = document.createElement('a');
+                link.href = '#' + id;
+                link.textContent = h.textContent;
+                link.className = 'block text-sm text-space-muted hover:text-space-text py-1 transition truncate';
+                if(h.tagName === 'H2') link.classList.add('pl-2');
+                if(h.tagName === 'H3') link.classList.add('pl-4', 'text-xs');
+                tocList.appendChild(link);
+            });
+        }
+
+        // 4. 阅读进度条
+        window.onscroll = () => {
+            const h = document.documentElement;
+            const b = document.body;
+            const st = 'scrollTop';
+            const sh = 'scrollHeight';
+            const percent = (h[st] || b[st]) / ((h[sh] || b[sh]) - h.clientHeight) * 100;
+            document.getElementById('progress-bar').style.width = percent + '%';
+        };
+    </script>
+</body>
+</html>
