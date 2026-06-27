@@ -16,7 +16,7 @@
                 extend: {
                     colors: {
                         space: {
-                            900: '#010409', // 极深空黑
+                            900: '#010409', 
                             800: '#0d1117',
                             700: '#161b22',
                             600: '#21262d',
@@ -63,17 +63,16 @@
             overflow-x: hidden;
         }
 
-        /* 全局滚动条 */
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: #010409; }
         ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 4px; }
 
-        /* 鼠标追光卡片效果 */
         .spotlight-card {
             position: relative;
             background: #0d1117;
             border: 1px solid #30363d;
             overflow: hidden;
+            transition: border-color 0.3s ease;
         }
         .spotlight-card::before {
             content: '';
@@ -88,15 +87,10 @@
             opacity: 0;
             transition: opacity 0.3s ease;
         }
-        .spotlight-card:hover::before {
-            opacity: 1;
-        }
-        .spotlight-card > * {
-            position: relative;
-            z-index: 1;
-        }
+        .spotlight-card:hover::before { opacity: 1; }
+        .spotlight-card:hover { border-color: rgba(137, 87, 229, 0.5); }
+        .spotlight-card > * { position: relative; z-index: 1; }
 
-        /* 终端光标 */
         .cursor-blink::after {
             content: '_';
             animation: blink 1s step-end infinite;
@@ -106,7 +100,6 @@
             50% { opacity: 0; }
         }
 
-        /* 渐变文字 */
         .text-gradient {
             background: linear-gradient(135deg, #f0f6fc 0%, #8b949e 50%, #f0f6fc 100%);
             -webkit-background-clip: text;
@@ -122,11 +115,9 @@
             text-shadow: 0 0 30px rgba(137, 87, 229, 0.3);
         }
 
-        /* 隐藏默认滚动条但保留功能 (用于横向滚动区) */
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         
-        /* 滚动显示动画控制 */
         .reveal {
             opacity: 0;
             transform: translateY(30px);
@@ -144,20 +135,19 @@
     <div class="fixed inset-0 z-0 overflow-hidden pointer-events-none">
         <div class="absolute top-[-10%] left-[-5%] w-[500px] h-[500px] bg-glow-purple/20 rounded-full blur-[120px] animate-float"></div>
         <div class="absolute bottom-[-10%] right-[-5%] w-[600px] h-[600px] bg-glow-blue/20 rounded-full blur-[120px] animate-float-delayed"></div>
-        <!-- 网格背景 -->
         <div class="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000_70%,transparent_110%)]"></div>
     </div>
 
     <!-- ================= 顶部导航 (Nav) ================= -->
     <header class="fixed top-0 w-full z-50 bg-space-900/60 backdrop-blur-md border-b border-white/5">
         <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-            <a href="#" class="flex items-center space-x-2 font-mono font-bold text-lg text-space-text">
+            <a href="https://wjuly42.github.io/" class="flex items-center space-x-2 font-mono font-bold text-lg text-space-text">
                 <svg class="w-6 h-6 text-glow-purple" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
                 <span>lunarHope</span>
             </a>
             <nav class="hidden md:flex items-center space-x-8 text-sm text-space-muted font-medium">
-                <a href="#tools" class="hover:text-space-text transition">Tools</a>
-                <a href="#blog" class="hover:text-space-text transition">Blog</a>
+                <a href="/tools/" class="hover:text-space-text transition">Tools</a>
+                <a href="/blog/" class="hover:text-space-text transition">Blog</a>
                 <a href="#guestbook" class="hover:text-space-text transition">Guestbook</a>
                 <button id="cmd-k-btn" class="flex items-center space-x-2 bg-space-800 border border-space-border rounded-md px-3 py-1.5 text-xs hover:border-space-muted transition">
                     <span>Search...</span>
@@ -191,11 +181,11 @@
             </p>
             
             <div class="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
-                <a href="#tools" class="group relative px-8 py-3 bg-white text-space-900 rounded-md font-semibold text-sm overflow-hidden transition transform hover:scale-105">
+                <a href="/tools/" class="group relative px-8 py-3 bg-white text-space-900 rounded-md font-semibold text-sm overflow-hidden transition transform hover:scale-105">
                     <span class="relative z-10">Explore Tools</span>
                     <div class="absolute inset-0 bg-gradient-to-r from-glow-purple to-glow-blue opacity-0 group-hover:opacity-20 transition-opacity"></div>
                 </a>
-                <a href="#blog" class="px-8 py-3 bg-space-800 border border-space-border text-space-text rounded-md font-semibold text-sm hover:bg-space-700 hover:border-space-muted transition">
+                <a href="/blog/" class="px-8 py-3 bg-space-800 border border-space-border text-space-text rounded-md font-semibold text-sm hover:bg-space-700 hover:border-space-muted transition">
                     Read the Blog
                 </a>
             </div>
@@ -222,7 +212,6 @@
                 </ul>
             </div>
 
-            <!-- 交互式终端 UI -->
             <div class="reveal bg-space-800 border border-space-border rounded-xl shadow-2xl overflow-hidden">
                 <div class="bg-space-700 px-4 py-3 border-b border-space-border flex items-center justify-between">
                     <div class="flex space-x-2">
@@ -255,43 +244,77 @@
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <!-- Card 1 -->
-                <div class="spotlight-card rounded-xl p-6 transition-all duration-300 hover:border-glow-purple/50 reveal">
+                <!-- Card 1: 你的真实工具 find.html -->
+                <a href="/find.html" class="spotlight-card rounded-xl p-6 transition-all duration-300 hover:border-glow-purple/50 reveal block">
                     <div class="w-12 h-12 bg-glow-purple/10 rounded-lg flex items-center justify-center mb-4 text-glow-purple">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                     </div>
-                    <h3 class="text-xl font-bold text-space-text mb-2">JSON Formatter Pro</h3>
-                    <p class="text-space-muted text-sm mb-6">一个极致轻量、支持离线使用的 JSON 格式化与校验工具，专为开发者设计。</p>
+                    <h3 class="text-xl font-bold text-space-text mb-2">Find & Jump Utility</h3>
+                    <p class="text-space-muted text-sm mb-6">你最新肝出来的实用小工具，快速检索与跳转，提升日常操作效率。</p>
                     <div class="flex items-center justify-between text-xs text-space-muted">
-                        <span class="flex items-center"><span class="w-2 h-2 rounded-full bg-yellow-500 mr-2"></span> TypeScript</span>
-                        <a href="#" class="text-glow-blue hover:underline flex items-center">View Repo <svg class="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg></a>
+                        <span class="flex items-center"><span class="w-2 h-2 rounded-full bg-yellow-500 mr-2"></span> JavaScript</span>
+                        <span class="text-glow-blue hover:underline flex items-center">Try it out <svg class="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg></span>
                     </div>
-                </div>
+                </a>
 
-                <!-- Card 2 -->
-                <div class="spotlight-card rounded-xl p-6 transition-all duration-300 hover:border-glow-blue/50 reveal" style="transition-delay: 100ms;">
+                <!-- Card 2: 你的真实工具 jump.html -->
+                <a href="/jump.html" class="spotlight-card rounded-xl p-6 transition-all duration-300 hover:border-glow-blue/50 reveal block" style="transition-delay: 100ms;">
                     <div class="w-12 h-12 bg-glow-blue/10 rounded-lg flex items-center justify-center mb-4 text-glow-blue">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
                     </div>
-                    <h3 class="text-xl font-bold text-space-text mb-2">Auto-Deploy Script</h3>
-                    <p class="text-space-muted text-sm mb-6">一行命令实现前端项目的自动化打包、上传服务器并重启 Nginx 服务。</p>
+                    <h3 class="text-xl font-bold text-space-text mb-2">Quick Jump Engine</h3>
+                    <p class="text-space-muted text-sm mb-6">基于特定规则的快速跳转逻辑，体验丝滑的页面路由重定向。</p>
                     <div class="flex items-center justify-between text-xs text-space-muted">
-                        <span class="flex items-center"><span class="w-2 h-2 rounded-full bg-green-500 mr-2"></span> Shell</span>
-                        <a href="#" class="text-glow-blue hover:underline flex items-center">View Repo <svg class="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg></a>
+                        <span class="flex items-center"><span class="w-2 h-2 rounded-full bg-blue-500 mr-2"></span> HTML/JS</span>
+                        <span class="text-glow-blue hover:underline flex items-center">Try it out <svg class="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg></span>
                     </div>
-                </div>
+                </a>
 
-                <!-- Card 3 -->
-                <div class="spotlight-card rounded-xl p-6 transition-all duration-300 hover:border-glow-pink/50 reveal" style="transition-delay: 200ms;">
+                <!-- Card 3: 经典开源项目转向 (Giscus) -->
+                <a href="https://github.com/giscus/giscus" target="_blank" rel="noopener noreferrer" class="spotlight-card rounded-xl p-6 transition-all duration-300 hover:border-glow-pink/50 reveal block" style="transition-delay: 200ms;">
                     <div class="w-12 h-12 bg-glow-pink/10 rounded-lg flex items-center justify-center mb-4 text-glow-pink">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"></path></svg>
                     </div>
-                    <h3 class="text-xl font-bold text-space-text mb-2">Giscus Theme Sync</h3>
-                    <p class="text-space-muted text-sm mb-6">解决 GitHub Discussions 评论区主题与博客网站暗黑模式不同步的痛点。</p>
+                    <h3 class="text-xl font-bold text-space-text mb-2">Giscus (Inspiration)</h3>
+                    <p class="text-space-muted text-sm mb-6">本站留言板背后的经典开源项目。利用 GitHub Discussions 构建的评论系统。</p>
                     <div class="flex items-center justify-between text-xs text-space-muted">
-                        <span class="flex items-center"><span class="w-2 h-2 rounded-full bg-blue-500 mr-2"></span> JavaScript</span>
-                        <a href="#" class="text-glow-blue hover:underline flex items-center">View Repo <svg class="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg></a>
+                        <span class="flex items-center"><span class="w-2 h-2 rounded-full bg-purple-500 mr-2"></span> TypeScript</span>
+                        <span class="text-glow-blue hover:underline flex items-center">View Repo <svg class="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg></span>
                     </div>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- ================= 留言板 (Guestbook) ================= -->
+    <section id="guestbook" class="relative z-10 py-24 px-6 border-t border-white/5">
+        <div class="max-w-4xl mx-auto text-center space-y-8 reveal">
+            <h2 class="text-3xl md:text-4xl font-bold text-gradient">💬 Guestbook</h2>
+            <p class="text-space-muted text-lg">The future of building happens together. <br>Leave a trace, share your thoughts, or just say hi!</p>
+            
+            <div class="bg-space-800 border border-space-border rounded-xl p-8 min-h-[300px] flex flex-col items-center justify-center text-space-muted font-mono text-sm">
+                <p class="mb-4 text-glow-blue">// Giscus 评论区 (请在仓库开启 Discussions 并配置 Giscus)</p>
+                <div class="w-full max-w-2xl text-left text-space-text">
+                    <!-- 
+                        注意：要让它真正生效，请去 giscus.app 获取你的 data-repo-id 和 data-category-id 
+                        替换下方的 YOUR_REPO_ID 和 YOUR_CATEGORY_ID
+                    -->
+                    <script src="https://giscus.app/client.js"
+                            data-repo="WJULY42/WJULY42.github.io"
+                            data-repo-id="YOUR_REPO_ID"
+                            data-category="Announcements"
+                            data-category-id="YOUR_CATEGORY_ID"
+                            data-mapping="pathname"
+                            data-strict="0"
+                            data-reactions-enabled="1"
+                            data-emit-metadata="0"
+                            data-input-position="bottom"
+                            data-theme="dark"
+                            data-lang="zh-CN"
+                            crossorigin="anonymous"
+                            async>
+                    </script>
+                    <noscript>Please enable JavaScript to view the comments powered by Giscus.</noscript>
                 </div>
             </div>
         </div>
@@ -307,17 +330,31 @@
             </div>
             <div class="p-2 max-h-[300px] overflow-y-auto" id="cmd-results">
                 <p class="px-3 py-2 text-xs text-space-muted font-semibold uppercase tracking-wider">Navigation</p>
-                <a href="#tools" class="cmd-item flex items-center px-3 py-2 rounded-md text-space-text hover:bg-space-700 cursor-pointer transition">
+                <a href="/tools/" class="cmd-item flex items-center px-3 py-2 rounded-md text-space-text hover:bg-space-700 cursor-pointer transition">
                     <svg class="w-4 h-4 mr-3 text-space-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                    Go to Tools
+                    Go to Tools (/tools/)
                 </a>
-                <a href="#blog" class="cmd-item flex items-center px-3 py-2 rounded-md text-space-text hover:bg-space-700 cursor-pointer transition">
+                <a href="/blog/" class="cmd-item flex items-center px-3 py-2 rounded-md text-space-text hover:bg-space-700 cursor-pointer transition">
                     <svg class="w-4 h-4 mr-3 text-space-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"></path></svg>
-                    Read Blog
+                    Read Blog (/blog/)
+                </a>
+                <a href="https://github.com/WJULY42" target="_blank" class="cmd-item flex items-center px-3 py-2 rounded-md text-space-text hover:bg-space-700 cursor-pointer transition">
+                    <svg class="w-4 h-4 mr-3 text-space-muted" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+                    Visit GitHub Profile
                 </a>
             </div>
         </div>
     </div>
+
+    <!-- ================= 页脚 (Footer) ================= -->
+    <footer class="relative z-10 border-t border-white/5 mt-12 py-8 text-center text-xs text-space-muted">
+        <div class="flex justify-center space-x-6 mb-4">
+            <a href="https://github.com/WJULY42" target="_blank" class="hover:text-space-text transition">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+            </a>
+        </div>
+        <p>&copy; 2026 lunarHope. Built with ❤️ and Tailwind CSS.</p>
+    </footer>
 
     <script>
         // 1. 鼠标追光效果 (Spotlight)
@@ -358,30 +395,27 @@
                 { text: 'Enumerating objects: 5, done.', color: 'text-space-text' },
                 { text: 'Counting objects: 100% (5/5), done.', color: 'text-space-text' },
                 { text: 'remote: Resolving deltas: 100% (2/2), completed with 1 local object.', color: 'text-space-muted' },
-                { text: 'To github.com:lunarHope/tools.git', color: 'text-space-text' },
+                { text: 'To github.com:WJULY42/WJULY42.github.io.git', color: 'text-space-text' },
                 { text: '   8a1b2c3..9d4e5f6  main -> main', color: 'text-glow-blue' }
             ],
             'deploy --prod': [
-                { text: 'Connecting to production server...', color: 'text-yellow-500' },
+                { text: 'Connecting to GitHub Pages...', color: 'text-yellow-500' },
                 { text: 'Uploading assets... 100%', color: 'text-space-text' },
-                { text: 'Restarting PM2 instances...', color: 'text-space-text' },
-                { text: '✔ Deployment successful! Site is live.', color: 'text-glow-green' }
+                { text: 'Triggering GitHub Actions workflow...', color: 'text-space-text' },
+                { text: '✔ Deployment successful! Site is live at wjuly42.github.io', color: 'text-glow-green' }
             ]
         };
 
         cmdBtns.forEach(btn => {
             btn.addEventListener('click', () => {
                 const cmd = btn.dataset.cmd;
-                // 移除光标
                 const cursorLine = termOut.querySelector('.cursor-blink');
                 if(cursorLine) cursorLine.classList.remove('cursor-blink');
 
-                // 打印命令
                 const cmdLine = document.createElement('p');
                 cmdLine.innerHTML = `<span class="text-glow-green">➜</span> <span class="text-glow-blue">~</span> ${cmd}`;
                 termOut.appendChild(cmdLine);
 
-                // 模拟延迟打印结果
                 let delay = 300;
                 responses[cmd].forEach(res => {
                     setTimeout(() => {
@@ -394,7 +428,6 @@
                     delay += 200 + Math.random() * 300;
                 });
 
-                // 重新添加光标
                 setTimeout(() => {
                     const newCursor = document.createElement('p');
                     newCursor.innerHTML = `<span class="text-glow-green">➜</span> <span class="text-glow-blue">~</span> <span class="cursor-blink text-space-text"></span>`;
@@ -439,12 +472,10 @@
             }
         });
 
-        // 点击背景关闭
         palette.addEventListener('click', (e) => {
             if (e.target === palette) togglePalette();
         });
 
-        // 点击选项后关闭
         document.querySelectorAll('.cmd-item').forEach(item => {
             item.addEventListener('click', () => {
                 togglePalette();
