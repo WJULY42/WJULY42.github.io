@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Blog | lunarHope</title>
-    <meta name="description" content="lunarHope's tech notes, ramblings, and build logs.">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <script>
@@ -31,17 +30,17 @@
         .text-gradient { background: linear-gradient(135deg, #f0f6fc 0%, #8b949e 50%, #f0f6fc 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
         .reveal { opacity: 0; transform: translateY(20px); transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1); }
         .reveal.active { opacity: 1; transform: translateY(0); }
+        .loader { border: 2px solid #30363d; border-top: 2px solid #58a6ff; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body class="font-sans antialiased">
 
-    <!-- 背景光影 -->
     <div class="fixed inset-0 z-0 overflow-hidden pointer-events-none">
         <div class="absolute top-[-10%] left-[-5%] w-[500px] h-[500px] bg-glow-purple/10 rounded-full blur-[120px]"></div>
         <div class="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000_70%,transparent_110%)]"></div>
     </div>
 
-    <!-- Nav -->
     <header class="fixed top-0 w-full z-50 bg-space-900/80 backdrop-blur-md border-b border-white/5">
         <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
             <a href="/" class="flex items-center space-x-2 font-mono font-bold text-lg text-space-text">
@@ -56,86 +55,88 @@
         </div>
     </header>
 
-    <!-- Hero -->
     <section class="relative z-10 pt-32 pb-12 px-6 border-b border-space-border">
-        <div class="max-w-4xl mx-auto reveal">
-            <h1 class="text-4xl md:text-5xl font-bold text-gradient mb-4">Tech Notes & Ramblings</h1>
-            <p class="text-space-muted text-lg">Documenting the journey of building, breaking, and fixing things.</p>
+        <div class="max-w-4xl mx-auto reveal active flex justify-between items-end">
+            <div>
+                <h1 class="text-4xl md:text-5xl font-bold text-gradient mb-4">Tech Notes & Ramblings</h1>
+                <p class="text-space-muted text-lg">Documenting the journey of building, breaking, and fixing things.</p>
+            </div>
+            <a href="/blog/publish.html" class="hidden md:flex items-center space-x-2 px-4 py-2 bg-space-800 border border-space-border rounded-md text-sm text-glow-green hover:border-glow-green transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                <span>New Post</span>
+            </a>
         </div>
     </section>
 
-    <!-- Blog List -->
-    <main class="relative z-10 max-w-4xl mx-auto px-6 py-12 space-y-6">
-        
-        <!-- Article 1 -->
-        <a href="/blog/hello-world" class="spotlight-card rounded-xl p-6 block reveal">
-            <div class="flex flex-col md:flex-row md:items-center justify-between mb-3 gap-4">
-                <div class="flex items-center space-x-3">
-                    <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-blue-900/30 text-blue-400 border border-blue-800/50">Frontend</span>
-                    <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-purple-900/30 text-purple-400 border border-purple-800/50">CSS</span>
-                </div>
-                <span class="text-sm text-space-muted font-mono">2026-06-20</span>
-            </div>
-            <h2 class="text-2xl font-bold text-space-text mb-2 group-hover:text-glow-blue transition">Hello World: 为什么我决定重新开始搭建个人网站</h2>
-            <p class="text-space-muted leading-relaxed mb-4">折腾是开发者的天性。这篇文章记录了从选择静态站点生成器到部署 GitHub Pages 的完整心路历程，以及我对“数字自留地”的理解...</p>
-            <div class="flex items-center text-sm text-glow-blue font-medium">
-                Read article 
-                <svg class="w-4 h-4 ml-2 transform group-hover:translate-x-1 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
-            </div>
-        </a>
-
-        <!-- Article 2 -->
-        <a href="/blog/github-actions-deploy" class="spotlight-card rounded-xl p-6 block reveal" style="transition-delay: 100ms;">
-            <div class="flex flex-col md:flex-row md:items-center justify-between mb-3 gap-4">
-                <div class="flex items-center space-x-3">
-                    <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-green-900/30 text-green-400 border border-green-800/50">DevOps</span>
-                    <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-orange-900/30 text-orange-400 border border-orange-800/50">Automation</span>
-                </div>
-                <span class="text-sm text-space-muted font-mono">2026-06-25</span>
-            </div>
-            <h2 class="text-2xl font-bold text-space-text mb-2 group-hover:text-glow-blue transition">用 GitHub Actions 打造全自动的前端部署流水线</h2>
-            <p class="text-space-muted leading-relaxed mb-4">告别手动 FTP 上传。本文详解如何编写 workflow yml 文件，实现代码 Push 后自动构建、压缩并推送到服务器，附带踩坑记录...</p>
-            <div class="flex items-center text-sm text-glow-blue font-medium">
-                Read article 
-                <svg class="w-4 h-4 ml-2 transform group-hover:translate-x-1 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
-            </div>
-        </a>
-
-        <!-- Article 3 -->
-        <a href="/blog/giscus-dark-mode" class="spotlight-card rounded-xl p-6 block reveal" style="transition-delay: 200ms;">
-            <div class="flex flex-col md:flex-row md:items-center justify-between mb-3 gap-4">
-                <div class="flex items-center space-x-3">
-                    <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-pink-900/30 text-pink-400 border border-pink-800/50">Hack</span>
-                </div>
-                <span class="text-sm text-space-muted font-mono">2026-06-27</span>
-            </div>
-            <h2 class="text-2xl font-bold text-space-text mb-2 group-hover:text-glow-blue transition">强迫症福音：完美同步 Giscus 评论区与网站的暗黑模式</h2>
-            <p class="text-space-muted leading-relaxed mb-4">Giscus 默认的主题切换总是慢半拍？几十行 JS 代码配合 postMessage，教你实现丝滑的无闪烁主题同步方案...</p>
-            <div class="flex items-center text-sm text-glow-blue font-medium">
-                Read article 
-                <svg class="w-4 h-4 ml-2 transform group-hover:translate-x-1 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
-            </div>
-        </a>
-
+    <main class="relative z-10 max-w-4xl mx-auto px-6 py-12 space-y-6" id="blog-list">
+        <div class="flex flex-col items-center justify-center py-20 space-y-4 text-space-muted">
+            <div class="loader"></div>
+            <p class="font-mono text-sm">Loading posts from /data/posts.json...</p>
+        </div>
     </main>
 
-    <!-- Footer -->
     <footer class="relative z-10 border-t border-space-border mt-12 py-8 text-center text-xs text-space-muted">
         <p>&copy; 2026 lunarHope. Built with ❤️ and Tailwind CSS.</p>
     </footer>
 
     <script>
-        // Spotlight
-        document.querySelectorAll('.spotlight-card').forEach(card => {
-            card.addEventListener('mousemove', (e) => {
-                const rect = card.getBoundingClientRect();
-                card.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
-                card.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
-            });
-        });
-        // Reveal
+        const container = document.getElementById('blog-list');
         const obs = new IntersectionObserver((entries) => { entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('active'); }); }, { threshold: 0.1 });
-        document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
+
+        async function loadPosts() {
+            try {
+                const res = await fetch('/data/posts.json');
+                if (!res.ok) throw new Error('Failed to fetch');
+                const data = await res.json();
+                // 兼容 { "posts": [...] } 或直接数组
+                const posts = Array.isArray(data) ? data : (data.posts || []);
+                
+                container.innerHTML = '';
+                if (posts.length === 0) {
+                    container.innerHTML = '<p class="text-center text-space-muted font-mono">// No posts found.</p>';
+                    return;
+                }
+
+                posts.forEach((post, index) => {
+                    const card = document.createElement('a');
+                    card.href = post.url || `/blog/posts/${post.slug}.html`;
+                    card.className = 'spotlight-card rounded-xl p-6 block reveal';
+                    card.style.transitionDelay = `${index * 80}ms`;
+
+                    let tagsHtml = '';
+                    if (post.tags && Array.isArray(post.tags)) {
+                        tagsHtml = post.tags.map(t => 
+                            `<span class="px-2.5 py-1 rounded-full text-xs font-medium bg-blue-900/30 text-blue-400 border border-blue-800/50 mr-2">${t}</span>`
+                        ).join('');
+                    }
+
+                    card.innerHTML = `
+                        <div class="flex flex-col md:flex-row md:items-center justify-between mb-3 gap-4">
+                            <div class="flex items-center flex-wrap">${tagsHtml}</div>
+                            <span class="text-sm text-space-muted font-mono">${post.date || 'Unknown Date'}</span>
+                        </div>
+                        <h2 class="text-2xl font-bold text-space-text mb-2 group-hover:text-glow-blue transition">${post.title}</h2>
+                        <p class="text-space-muted leading-relaxed mb-4 line-clamp-2">${post.desc || post.excerpt || 'No description available.'}</p>
+                        <div class="flex items-center text-sm text-glow-blue font-medium">
+                            Read article 
+                            <svg class="w-4 h-4 ml-2 transform group-hover:translate-x-1 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                        </div>
+                    `;
+                    
+                    card.addEventListener('mousemove', (e) => {
+                        const rect = card.getBoundingClientRect();
+                        card.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
+                        card.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
+                    });
+                    
+                    container.appendChild(card);
+                    obs.observe(card);
+                });
+            } catch (err) {
+                container.innerHTML = `<div class="text-center text-glow-pink font-mono">Error loading posts: ${err.message}</div>`;
+            }
+        }
+        loadPosts();
     </script>
 </body>
 </html>
