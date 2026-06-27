@@ -5,7 +5,7 @@
       "date": "2026-06-27",
       "tags": [],
       "slug": "next-try",
-      "url": "/blog/posts/next-try.html"
+      "url": "/blog/read.html?slug=next-try"
     },
     {
       "title": "next level",
@@ -14,7 +14,7 @@
         "life"
       ],
       "slug": "next-level",
-      "url": "/blog/posts/next-level.html"
+      "url": "/blog/read.html?slug=next-level"
     }
   ]
 }
