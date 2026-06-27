@@ -23,18 +23,14 @@
     <style>
         body { background-color: #010409; color: #f0f6fc; overflow-x: hidden; }
         ::-webkit-scrollbar { width: 8px; } ::-webkit-scrollbar-track { background: #010409; } ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 4px; }
-        
         .spotlight-card { position: relative; background: #0d1117; border: 1px solid #30363d; overflow: hidden; transition: all 0.3s ease; height: 100%; display: flex; flex-direction: column; }
         .spotlight-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: radial-gradient(600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(88, 166, 255, 0.15), transparent 40%); z-index: 0; opacity: 0; transition: opacity 0.3s; }
         .spotlight-card:hover::before { opacity: 1; }
         .spotlight-card:hover { border-color: rgba(88, 166, 255, 0.5); transform: translateY(-4px); }
         .spotlight-card > * { position: relative; z-index: 1; }
-        
         .text-gradient { background: linear-gradient(135deg, #58a6ff 0%, #8957e5 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
-        
         .reveal { opacity: 0; transform: translateY(20px); transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1); }
         .reveal.active { opacity: 1; transform: translateY(0); }
-        
         .loader { border: 2px solid #30363d; border-top: 2px solid #58a6ff; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
@@ -73,7 +69,6 @@
     <!-- Tools Grid -->
     <main class="relative z-10 max-w-7xl mx-auto px-6 py-12">
         <div id="tools-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <!-- 加载状态占位符 -->
             <div class="col-span-full flex flex-col items-center justify-center py-20 space-y-4 text-space-muted">
                 <div class="loader"></div>
                 <p class="font-mono text-sm">Fetching /data/tools.json...</p>
@@ -88,48 +83,49 @@
 
     <script>
         const gridContainer = document.getElementById('tools-grid');
-        
-        // 初始化滚动动画观察器
-        const obs = new IntersectionObserver((entries) => { 
-            entries.forEach(e => { 
-                if(e.isIntersecting) e.target.classList.add('active'); 
-            }); 
+
+        const obs = new IntersectionObserver((entries) => {
+            entries.forEach(e => {
+                if (e.isIntersecting) e.target.classList.add('active');
+            });
         }, { threshold: 0.1 });
 
-        // 状态样式映射 (避免 Tailwind CDN JIT 扫描不到动态 class)
         const statusStyles = {
-            'Live': { bg: 'bg-green-900/40', text: 'text-green-400', border: 'border-green-800', iconColor: 'text-glow-green', iconBg: 'bg-glow-green/10' },
-            'WIP': { bg: 'bg-yellow-900/40', text: 'text-yellow-400', border: 'border-yellow-800', iconColor: 'text-glow-yellow', iconBg: 'bg-glow-yellow/10' },
-            'Archived': { bg: 'bg-space-700', text: 'text-space-muted', border: 'border-space-border', iconColor: 'text-space-muted', iconBg: 'bg-space-600/50' },
-            'Inspiration': { bg: 'bg-space-700', text: 'text-space-muted', border: 'border-space-border', iconColor: 'text-glow-pink', iconBg: 'bg-glow-pink/10' }
+            'Live':        { bg: 'bg-green-900/40',  text: 'text-green-400',  border: 'border-green-800',  iconColor: 'text-glow-green',  iconBg: 'bg-glow-green/10' },
+            'WIP':         { bg: 'bg-yellow-900/40', text: 'text-yellow-400', border: 'border-yellow-800', iconColor: 'text-glow-yellow', iconBg: 'bg-glow-yellow/10' },
+            'Archived':    { bg: 'bg-space-700',     text: 'text-space-muted', border: 'border-space-border', iconColor: 'text-space-muted', iconBg: 'bg-space-600/50' },
+            'Inspiration': { bg: 'bg-space-700',     text: 'text-space-muted', border: 'border-space-border', iconColor: 'text-glow-pink',   iconBg: 'bg-glow-pink/10' }
         };
 
         async function loadTools() {
             try {
                 const response = await fetch('/data/tools.json');
-                if (!response.ok) throw new Error('Network response was not ok');
-                const tools = await response.json();
-                
-                gridContainer.innerHTML = ''; // 清空加载提示
-                
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+
+                // ★ 关键修复：兼容 { "tools": [...] } 和直接 [...] 两种结构
+                const tools = Array.isArray(data) ? data : (data.tools || []);
+
+                gridContainer.innerHTML = '';
+
                 if (tools.length === 0) {
-                    gridContainer.innerHTML = `<p class="text-space-muted col-span-full text-center py-12 font-mono">// No tools found in database.</p>`;
+                    gridContainer.innerHTML = '<p class="text-space-muted col-span-full text-center py-12 font-mono">// No tools found in database.</p>';
                     return;
                 }
 
                 tools.forEach((tool, index) => {
                     const style = statusStyles[tool.status] || statusStyles['Live'];
                     const isExternal = tool.url && tool.url.startsWith('http');
-                    
-                    const card = document.createElement('a');
+
+                    const card = document.createElement(isExternal ? 'a' : 'a');
                     card.href = tool.url || '#';
                     if (isExternal) {
                         card.target = '_blank';
                         card.rel = 'noopener noreferrer';
                     }
-                    card.className = `spotlight-card rounded-xl p-6 reveal block`;
+                    card.className = 'spotlight-card rounded-xl p-6 reveal block';
                     card.style.transitionDelay = `${index * 80}ms`;
-                    
+
                     card.innerHTML = `
                         <div class="flex items-center justify-between mb-4">
                             <div class="w-10 h-10 ${style.iconBg} rounded-lg flex items-center justify-center ${style.iconColor}">
@@ -141,41 +137,38 @@
                         <p class="text-space-muted text-sm flex-grow mb-6">${tool.desc}</p>
                         <div class="flex items-center justify-between text-xs text-space-muted pt-4 border-t border-space-border">
                             <span class="flex items-center">
-                                <span class="w-2.5 h-2.5 rounded-full mr-2" style="background-color: ${tool.langColor || '#8b949e'}"></span> 
+                                <span class="w-2.5 h-2.5 rounded-full mr-2" style="background-color: ${tool.langColor || '#8b949e'}"></span>
                                 ${tool.lang || 'Code'}
                             </span>
                             <span class="text-glow-blue flex items-center">
-                                ${isExternal ? 'View Repo' : 'Launch'} 
+                                ${isExternal ? 'View Repo' : 'Launch'}
                                 <svg class="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
                             </span>
                         </div>
                     `;
-                    
+
                     gridContainer.appendChild(card);
-                    
-                    // 绑定鼠标追光事件
+
                     card.addEventListener('mousemove', (e) => {
                         const rect = card.getBoundingClientRect();
                         card.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
                         card.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
                     });
-                    
-                    // 加入滚动动画观察队列
+
                     obs.observe(card);
                 });
-                
+
             } catch (error) {
                 console.error('Failed to load tools:', error);
                 gridContainer.innerHTML = `
                     <div class="col-span-full bg-space-800 border border-glow-pink/50 rounded-xl p-8 text-center space-y-2">
                         <p class="text-glow-pink font-mono font-bold">Error: Failed to fetch /data/tools.json</p>
-                        <p class="text-space-muted text-sm">Please ensure the JSON file exists and is valid.</p>
+                        <p class="text-space-muted text-sm font-mono">${error.message}</p>
                     </div>
                 `;
             }
         }
 
-        // 执行加载
         loadTools();
     </script>
 </body>
