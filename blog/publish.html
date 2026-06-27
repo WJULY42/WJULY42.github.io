@@ -12,7 +12,7 @@
                 extend: {
                     colors: {
                         space: { 900: '#010409', 800: '#0d1117', 700: '#161b22', 600: '#21262d', border: '#30363d', text: '#f0f6fc', muted: '#8b949e' },
-                        glow: { green: '#3fb950', blue: '#58a6ff', pink: '#da3633' }
+                        glow: { green: '#3fb950', blue: '#58a6ff', pink: '#da3633', yellow: '#d29922' }
                     },
                     fontFamily: { mono: ['"JetBrains Mono"', 'monospace'] }
                 }
@@ -24,26 +24,33 @@
         textarea { resize: none; }
         .terminal-cursor::after { content: '_'; animation: blink 1s step-end infinite; }
         @keyframes blink { 50% { opacity: 0; } }
+        /* 滚动条美化 */
+        ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: #010409; } ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
     </style>
 </head>
 <body class="font-mono min-h-screen flex flex-col">
 
     <header class="border-b border-space-border bg-space-900/80 backdrop-blur px-6 py-4 flex justify-between items-center sticky top-0 z-50">
-        <a href="/blog/" class="text-space-text hover:text-glow-blue transition">&lt; Back to Blog</a>
-        <h1 class="text-glow-green font-bold">New Post Terminal</h1>
+        <a href="/blog/" class="text-space-text hover:text-glow-blue transition flex items-center">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+            Back to Blog
+        </a>
+        <h1 class="text-glow-green font-bold flex items-center">
+            <span class="mr-2">⚡</span> New Post Terminal
+        </h1>
     </header>
 
-    <main class="flex-grow max-w-5xl mx-auto w-full p-6 grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <main class="flex-grow max-w-6xl mx-auto w-full p-6 grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        <!-- Left: Form -->
+        <!-- Left: Editor -->
         <div class="lg:col-span-2 space-y-6">
             <div class="bg-space-800 border border-space-border rounded-lg p-6 shadow-lg">
-                <label class="block text-sm text-space-muted mb-2">Title (Slug will be auto-generated)</label>
-                <input type="text" id="post-title" class="w-full bg-space-900 border border-space-border rounded p-3 text-space-text focus:border-glow-blue outline-none transition" placeholder="e.g., My First Post">
+                <label class="block text-sm text-space-muted mb-2">Post Title</label>
+                <input type="text" id="post-title" class="w-full bg-space-900 border border-space-border rounded p-3 text-space-text focus:border-glow-blue outline-none transition font-sans font-bold text-lg" placeholder="e.g., How to optimize GitHub Pages">
                 
                 <div class="grid grid-cols-2 gap-4 mt-4">
                     <div>
-                        <label class="block text-sm text-space-muted mb-2">Date</label>
+                        <label class="block text-sm text-space-muted mb-2">Publish Date</label>
                         <input type="date" id="post-date" class="w-full bg-space-900 border border-space-border rounded p-3 text-space-text focus:border-glow-blue outline-none">
                     </div>
                     <div>
@@ -52,134 +59,183 @@
                     </div>
                 </div>
 
-                <label class="block text-sm text-space-muted mt-4 mb-2">Content (Markdown)</label>
-                <textarea id="post-content" rows="15" class="w-full bg-space-900 border border-space-border rounded p-4 text-space-text focus:border-glow-blue outline-none transition font-mono text-sm" placeholder="# Hello World..."></textarea>
+                <label class="block text-sm text-space-muted mt-4 mb-2">Markdown Content</label>
+                <textarea id="post-content" rows="18" class="w-full bg-space-900 border border-space-border rounded p-4 text-space-text focus:border-glow-blue outline-none transition font-mono text-sm leading-relaxed" placeholder="# Start writing your masterpiece here..."></textarea>
             </div>
         </div>
 
-        <!-- Right: Config & Action -->
+        <!-- Right: Config & Terminal -->
         <div class="space-y-6">
             <div class="bg-space-800 border border-space-border rounded-lg p-6 shadow-lg">
                 <h3 class="text-glow-blue font-bold mb-4 flex items-center">
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                    GitHub Config
+                    GitHub Credentials
                 </h3>
                 <div class="space-y-4">
                     <div>
-                        <label class="block text-xs text-space-muted mb-1">Personal Access Token</label>
+                        <label class="block text-xs text-space-muted mb-1">Personal Access Token (repo scope)</label>
                         <input type="password" id="gh-token" class="w-full bg-space-900 border border-space-border rounded p-2 text-xs text-space-text focus:border-glow-green outline-none" placeholder="ghp_xxxxxxxxxxxx">
-                        <p class="text-[10px] text-space-muted mt-1">Token needs 'repo' scope. Stored only in memory.</p>
+                        <p class="text-[10px] text-space-muted mt-1">Stored in localStorage for convenience.</p>
                     </div>
-                    <button onclick="publishPost()" class="w-full bg-glow-green/20 text-glow-green border border-glow-green/50 hover:bg-glow-green/30 py-3 rounded font-bold transition flex items-center justify-center">
-                        <span id="btn-text">git push origin main</span>
+                    <button onclick="publishPost()" id="publish-btn" class="w-full bg-glow-green/20 text-glow-green border border-glow-green/50 hover:bg-glow-green/30 py-3 rounded font-bold transition flex items-center justify-center group">
+                        <span id="btn-text">git commit -m "feat: new post"</span>
+                        <svg class="w-4 h-4 ml-2 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
                     </button>
                 </div>
             </div>
 
             <!-- Terminal Output -->
-            <div class="bg-black border border-space-border rounded-lg p-4 h-64 overflow-y-auto font-mono text-xs text-gray-400" id="terminal-log">
-                <p class="text-glow-green">➜  ~  Ready to publish.</p>
+            <div class="bg-black border border-space-border rounded-lg p-4 h-80 overflow-y-auto font-mono text-xs text-gray-400 shadow-inner" id="terminal-log">
+                <p class="text-glow-green">➜  ~  System ready. Waiting for input...</p>
             </div>
         </div>
     </main>
 
     <script>
-        // Auto-generate slug from title
-        document.getElementById('post-title').addEventListener('input', (e) => {
-            const slug = e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-            // You can show this slug somewhere if you want
-        });
-
-        // Set today's date by default
+        // 初始化日期
         document.getElementById('post-date').valueAsDate = new Date();
+        
+        // 从 localStorage 恢复 Token
+        const tokenInput = document.getElementById('gh-token');
+        if (localStorage.getItem('gh_token')) {
+            tokenInput.value = localStorage.getItem('gh_token');
+        }
 
         function log(msg, type = 'info') {
             const term = document.getElementById('terminal-log');
             const p = document.createElement('p');
-            p.className = type === 'error' ? 'text-glow-pink' : (type === 'success' ? 'text-glow-green' : 'text-gray-400');
+            p.className = type === 'error' ? 'text-glow-pink' : (type === 'success' ? 'text-glow-green' : (type === 'warn' ? 'text-glow-yellow' : 'text-gray-400'));
             p.textContent = `> ${msg}`;
             term.appendChild(p);
             term.scrollTop = term.scrollHeight;
         }
 
+        async function getFileSha(path, token) {
+            try {
+                const res = await fetch(`https://api.github.com/repos/WJULY42/WJULY42.github.io/contents/${path}`, {
+                    headers: { Authorization: `token ${token}` }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    return data.sha;
+                }
+            } catch (e) { return null; }
+            return null;
+        }
+
         async function publishPost() {
-            const token = document.getElementById('gh-token').value;
-            const title = document.getElementById('post-title').value;
+            const token = tokenInput.value.trim();
+            const title = document.getElementById('post-title').value.trim();
             const date = document.getElementById('post-date').value;
-            const tags = document.getElementById('post-tags').value.split(',').map(t => t.trim()).filter(t => t);
+            const tagsStr = document.getElementById('post-tags').value;
             const content = document.getElementById('post-content').value;
+            const btn = document.getElementById('publish-btn');
+            const btnText = document.getElementById('btn-text');
 
             if (!token || !title || !content) {
-                log('Error: Missing Title, Content or Token.', 'error');
+                log('Error: Title, Content and Token are required.', 'error');
                 return;
             }
 
-            const btn = document.querySelector('button');
-            const btnText = document.getElementById('btn-text');
+            // 保存 Token
+            localStorage.setItem('gh_token', token);
+
             btn.disabled = true;
-            btnText.textContent = 'Pushing...';
-            log('Initializing git push sequence...', 'info');
+            btnText.textContent = 'Processing...';
+            log('Starting publish sequence...', 'info');
 
             const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-            const fileName = `${slug}.md`;
-            const path = `blog/posts/${fileName}`;
-            
-            // Construct Markdown Frontmatter
-            const frontmatter = `---\ntitle: ${title}\ndate: ${date}\ntags: [${tags.join(', ')}]\n---\n\n`;
-            const fileContent = frontmatter + content;
-            const encodedContent = btoa(unescape(encodeURIComponent(fileContent)));
+            const mdPath = `blog/posts/${slug}.md`;
+            const jsonPath = `data/posts.json`;
+            const tags = tagsStr.split(',').map(t => t.trim()).filter(t => t);
 
             try {
-                // 1. Check if file exists to get SHA (for update) or create new
-                let sha = null;
-                try {
-                    const checkRes = await fetch(`https://api.github.com/repos/WJULY42/WJULY42.github.io/contents/${path}`, {
+                // 1. 准备 Markdown 内容
+                const frontmatter = `---\ntitle: "${title}"\ndate: ${date}\ntags: [${tags.join(', ')}]\n---\n\n`;
+                const fullMdContent = frontmatter + content;
+                const encodedMd = btoa(unescape(encodeURIComponent(fullMdContent)));
+
+                // 2. 处理 posts.json
+                log('Fetching current posts index...', 'info');
+                let posts = [];
+                const currentJsonSha = await getFileSha(jsonPath, token);
+                
+                if (currentJsonSha) {
+                    const jsonRes = await fetch(`https://api.github.com/repos/WJULY42/WJULY42.github.io/contents/${jsonPath}`, {
                         headers: { Authorization: `token ${token}` }
                     });
-                    if (checkRes.ok) {
-                        const data = await checkRes.json();
-                        sha = data.sha;
-                        log(`File exists. Updating SHA: ${sha.substring(0, 7)}...`, 'info');
-                    }
-                } catch (e) { /* File doesn't exist, proceed to create */ }
-
-                // 2. Put file
-                const payload = {
-                    message: `feat: publish new post "${title}"`,
-                    content: encodedContent,
-                    branch: 'main'
-                };
-                if (sha) payload.sha = sha;
-
-                const putRes = await fetch(`https://api.github.com/repos/WJULY42/WJULY42.github.io/contents/${path}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Authorization': `token ${token}`,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(payload)
-                });
-
-                if (!putRes.ok) {
-                    const err = await putRes.json();
-                    throw new Error(err.message);
+                    const jsonData = await jsonRes.json();
+                    const decodedJson = atob(jsonData.content);
+                    const parsed = JSON.parse(decodedJson);
+                    posts = Array.isArray(parsed) ? parsed : (parsed.posts || []);
+                    log(`Found ${posts.length} existing posts.`, 'info');
+                } else {
+                    log('No existing posts.json found. Creating new one.', 'warn');
                 }
 
-                log('Commit successful! File pushed to blog/posts/', 'success');
-                log('Note: Remember to update /data/posts.json manually or via your build script.', 'info');
-                
-                // Optional: Redirect back to blog
+                // 添加新文章到头部
+                const newPostMeta = {
+                    title: title,
+                    date: date,
+                    tags: tags,
+                    slug: slug,
+                    url: `/blog/posts/${slug}.html` // 假设你的博客文章路径规则
+                };
+                posts.unshift(newPostMeta);
+
+                // 重新序列化 JSON (美化格式)
+                const newJsonContent = JSON.stringify({ posts: posts }, null, 2);
+                const encodedJson = btoa(unescape(encodeURIComponent(newJsonContent)));
+
+                // 3. 执行提交 (先提交 MD，再提交 JSON)
+                log('Pushing Markdown file...', 'info');
+                const mdSha = await getFileSha(mdPath, token);
+                const mdPayload = {
+                    message: `feat: publish new post "${title}"`,
+                    content: encodedMd,
+                    branch: 'main'
+                };
+                if (mdSha) mdPayload.sha = mdSha;
+
+                const mdRes = await fetch(`https://api.github.com/repos/WJULY42/WJULY42.github.io/contents/${mdPath}`, {
+                    method: 'PUT',
+                    headers: { 'Authorization': `token ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify(mdPayload)
+                });
+
+                if (!mdRes.ok) throw new Error(`Failed to push MD: ${await mdRes.text()}`);
+                log('Markdown file pushed successfully.', 'success');
+
+                log('Updating posts index (posts.json)...', 'info');
+                const jsonPayload = {
+                    message: `chore: update posts index for "${title}"`,
+                    content: encodedJson,
+                    branch: 'main'
+                };
+                if (currentJsonSha) jsonPayload.sha = currentJsonSha;
+
+                const jsonRes = await fetch(`https://api.github.com/repos/WJULY42/WJULY42.github.io/contents/${jsonPath}`, {
+                    method: 'PUT',
+                    headers: { 'Authorization': `token ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify(jsonPayload)
+                });
+
+                if (!jsonRes.ok) throw new Error(`Failed to update JSON: ${await jsonRes.text()}`);
+                log('Posts index updated successfully.', 'success');
+
+                log('🎉 All done! Your post is live.', 'success');
                 setTimeout(() => {
-                    if(confirm('Post published! Go back to blog list?')) {
+                    if(confirm('Publish successful! Redirect to blog list?')) {
                         window.location.href = '/blog/';
                     }
                 }, 1000);
 
             } catch (err) {
-                log(`Push failed: ${err.message}`, 'error');
+                log(`Critical Error: ${err.message}`, 'error');
+                console.error(err);
             } finally {
                 btn.disabled = false;
-                btnText.textContent = 'git push origin main';
+                btnText.textContent = 'git commit -m "feat: new post"';
             }
         }
     </script>
