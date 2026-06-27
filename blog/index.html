@@ -1,171 +1,141 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>博客 · WJULY42</title>
-    <link rel="stylesheet" href="../style.css">
+    <title>Blog | lunarHope</title>
+    <meta name="description" content="lunarHope's tech notes, ramblings, and build logs.">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        space: { 900: '#010409', 800: '#0d1117', 700: '#161b22', 600: '#21262d', border: '#30363d', text: '#f0f6fc', muted: '#8b949e' },
+                        glow: { purple: '#8957e5', blue: '#58a6ff', pink: '#da3633', green: '#3fb950' }
+                    },
+                    fontFamily: { sans: ['Inter', 'sans-serif'], mono: ['"JetBrains Mono"', 'monospace'] }
+                }
+            }
+        }
+    </script>
     <style>
-        /* 微调加载与错误状态样式 */
-        .loading-state, .error-state {
-            text-align: center;
-            padding: 2rem;
-            color: var(--text-light);
-        }
-        .error-state {
-            background: var(--card);
-            border-radius: 16px;
-            border: 1px solid var(--border);
-        }
-        .error-state h3 {
-            margin-bottom: 1rem;
-            color: var(--text);
-        }
-        .error-state button {
-            margin-top: 1rem;
-        }
-        .post-item:last-child {
-            border-bottom: none;
-        }
+        body { background-color: #010409; color: #f0f6fc; overflow-x: hidden; }
+        ::-webkit-scrollbar { width: 8px; } ::-webkit-scrollbar-track { background: #010409; } ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 4px; }
+        .spotlight-card { position: relative; background: #0d1117; border: 1px solid #30363d; overflow: hidden; transition: all 0.3s ease; }
+        .spotlight-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: radial-gradient(600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(137, 87, 229, 0.15), transparent 40%); z-index: 0; opacity: 0; transition: opacity 0.3s; }
+        .spotlight-card:hover::before { opacity: 1; }
+        .spotlight-card:hover { border-color: rgba(137, 87, 229, 0.5); transform: translateY(-2px); }
+        .spotlight-card > * { position: relative; z-index: 1; }
+        .text-gradient { background: linear-gradient(135deg, #f0f6fc 0%, #8b949e 50%, #f0f6fc 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        .reveal { opacity: 0; transform: translateY(20px); transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1); }
+        .reveal.active { opacity: 1; transform: translateY(0); }
     </style>
 </head>
-<body>
-<div class="container">
-    <nav>
-        <a href="../">🏠 首页</a>
-        <a href="index.html">📝 博客</a>
-        <a href="../tools/">🛠️ 工具</a>
-    </nav>
+<body class="font-sans antialiased">
 
-    <div class="card">
-        <h1>📝 技术笔记</h1>
-        <p>记录学习过程中的思考、踩坑和解决方案。</p>
+    <!-- 背景光影 -->
+    <div class="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+        <div class="absolute top-[-10%] left-[-5%] w-[500px] h-[500px] bg-glow-purple/10 rounded-full blur-[120px]"></div>
+        <div class="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000_70%,transparent_110%)]"></div>
     </div>
 
-    <div class="card" id="postsList">
-        <div class="loading-state">⏳ 正在加载文章列表...</div>
-    </div>
-</div>
+    <!-- Nav -->
+    <header class="fixed top-0 w-full z-50 bg-space-900/80 backdrop-blur-md border-b border-white/5">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+            <a href="/" class="flex items-center space-x-2 font-mono font-bold text-lg text-space-text">
+                <svg class="w-6 h-6 text-glow-purple" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                <span>lunarHope</span>
+            </a>
+            <nav class="hidden md:flex items-center space-x-8 text-sm font-medium">
+                <a href="/tools/" class="text-space-muted hover:text-space-text transition">Tools</a>
+                <a href="/blog/" class="text-space-text border-b-2 border-glow-purple pb-1 transition">Blog</a>
+                <a href="/#guestbook" class="text-space-muted hover:text-space-text transition">Guestbook</a>
+            </nav>
+        </div>
+    </header>
 
-<script>
-    (async function() {
-        const container = document.getElementById('postsList');
-        const POSTS_URL = '../data/posts.json';
-        let retries = 2;
+    <!-- Hero -->
+    <section class="relative z-10 pt-32 pb-12 px-6 border-b border-space-border">
+        <div class="max-w-4xl mx-auto reveal">
+            <h1 class="text-4xl md:text-5xl font-bold text-gradient mb-4">Tech Notes & Ramblings</h1>
+            <p class="text-space-muted text-lg">Documenting the journey of building, breaking, and fixing things.</p>
+        </div>
+    </section>
 
-        // 显示加载状态
-        function showLoading() {
-            container.innerHTML = '<div class="loading-state">⏳ 正在加载文章列表...</div>';
-        }
-
-        // 显示错误信息
-        function showError(message, detail = '') {
-            container.innerHTML = `
-                <div class="error-state">
-                    <div style="font-size: 3rem; margin-bottom: 0.5rem;">📭</div>
-                    <h3>文章加载失败</h3>
-                    <p>${message}</p>
-                    ${detail ? `<p style="font-size:0.9rem; margin-top:0.5rem;">${detail}</p>` : ''}
-                    <button class="btn" onclick="location.reload()">🔄 重新加载</button>
-                    <p style="font-size:0.85rem; margin-top:1.5rem; color: var(--text-light);">
-                        如果问题持续，请检查 <code style="background:var(--border); padding:0.2rem 0.4rem; border-radius:4px;">data/posts.json</code> 文件是否存在且格式正确。
-                    </p>
+    <!-- Blog List -->
+    <main class="relative z-10 max-w-4xl mx-auto px-6 py-12 space-y-6">
+        
+        <!-- Article 1 -->
+        <a href="/blog/hello-world" class="spotlight-card rounded-xl p-6 block reveal">
+            <div class="flex flex-col md:flex-row md:items-center justify-between mb-3 gap-4">
+                <div class="flex items-center space-x-3">
+                    <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-blue-900/30 text-blue-400 border border-blue-800/50">Frontend</span>
+                    <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-purple-900/30 text-purple-400 border border-purple-800/50">CSS</span>
                 </div>
-            `;
-        }
+                <span class="text-sm text-space-muted font-mono">2026-06-20</span>
+            </div>
+            <h2 class="text-2xl font-bold text-space-text mb-2 group-hover:text-glow-blue transition">Hello World: 为什么我决定重新开始搭建个人网站</h2>
+            <p class="text-space-muted leading-relaxed mb-4">折腾是开发者的天性。这篇文章记录了从选择静态站点生成器到部署 GitHub Pages 的完整心路历程，以及我对“数字自留地”的理解...</p>
+            <div class="flex items-center text-sm text-glow-blue font-medium">
+                Read article 
+                <svg class="w-4 h-4 ml-2 transform group-hover:translate-x-1 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+            </div>
+        </a>
 
-        // 清除 JSON 中的注释（安全措施）
-        function cleanJsonText(text) {
-            // 移除单行注释 // ...
-            text = text.replace(/\/\/.*$/gm, '');
-            // 移除多行注释 /* ... */
-            text = text.replace(/\/\*[\s\S]*?\*\//g, '');
-            return text;
-        }
+        <!-- Article 2 -->
+        <a href="/blog/github-actions-deploy" class="spotlight-card rounded-xl p-6 block reveal" style="transition-delay: 100ms;">
+            <div class="flex flex-col md:flex-row md:items-center justify-between mb-3 gap-4">
+                <div class="flex items-center space-x-3">
+                    <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-green-900/30 text-green-400 border border-green-800/50">DevOps</span>
+                    <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-orange-900/30 text-orange-400 border border-orange-800/50">Automation</span>
+                </div>
+                <span class="text-sm text-space-muted font-mono">2026-06-25</span>
+            </div>
+            <h2 class="text-2xl font-bold text-space-text mb-2 group-hover:text-glow-blue transition">用 GitHub Actions 打造全自动的前端部署流水线</h2>
+            <p class="text-space-muted leading-relaxed mb-4">告别手动 FTP 上传。本文详解如何编写 workflow yml 文件，实现代码 Push 后自动构建、压缩并推送到服务器，附带踩坑记录...</p>
+            <div class="flex items-center text-sm text-glow-blue font-medium">
+                Read article 
+                <svg class="w-4 h-4 ml-2 transform group-hover:translate-x-1 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+            </div>
+        </a>
 
-        async function loadPosts() {
-            for (let attempt = retries; attempt >= 0; attempt--) {
-                try {
-                    const response = await fetch(POSTS_URL);
-                    if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                    }
-                    const rawText = await response.text();
-                    const cleanText = cleanJsonText(rawText);
-                    const data = JSON.parse(cleanText);
-                    return data.posts || [];
-                } catch (error) {
-                    console.warn(`加载文章失败 (剩余重试: ${attempt})`, error);
-                    if (attempt === 0) {
-                        // 最终失败，抛出详细错误
-                        let errorMsg = '';
-                        if (error.message.includes('404')) {
-                            errorMsg = '找不到文章列表文件 (posts.json)';
-                        } else if (error.message.includes('JSON')) {
-                            errorMsg = '文章列表格式错误，请检查 JSON 语法';
-                        } else {
-                            errorMsg = `网络错误: ${error.message}`;
-                        }
-                        throw new Error(errorMsg);
-                    }
-                    // 等待后重试
-                    await new Promise(resolve => setTimeout(resolve, 1000));
-                }
-            }
-            return [];
-        }
+        <!-- Article 3 -->
+        <a href="/blog/giscus-dark-mode" class="spotlight-card rounded-xl p-6 block reveal" style="transition-delay: 200ms;">
+            <div class="flex flex-col md:flex-row md:items-center justify-between mb-3 gap-4">
+                <div class="flex items-center space-x-3">
+                    <span class="px-2.5 py-1 rounded-full text-xs font-medium bg-pink-900/30 text-pink-400 border border-pink-800/50">Hack</span>
+                </div>
+                <span class="text-sm text-space-muted font-mono">2026-06-27</span>
+            </div>
+            <h2 class="text-2xl font-bold text-space-text mb-2 group-hover:text-glow-blue transition">强迫症福音：完美同步 Giscus 评论区与网站的暗黑模式</h2>
+            <p class="text-space-muted leading-relaxed mb-4">Giscus 默认的主题切换总是慢半拍？几十行 JS 代码配合 postMessage，教你实现丝滑的无闪烁主题同步方案...</p>
+            <div class="flex items-center text-sm text-glow-blue font-medium">
+                Read article 
+                <svg class="w-4 h-4 ml-2 transform group-hover:translate-x-1 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+            </div>
+        </a>
 
-        function renderPosts(posts) {
-            if (!posts || posts.length === 0) {
-                container.innerHTML = '<div class="loading-state">✨ 还没有文章，敬请期待。</div>';
-                return;
-            }
+    </main>
 
-            // 按日期倒序
-            const sorted = [...posts].sort((a, b) => new Date(b.date) - new Date(a.date));
+    <!-- Footer -->
+    <footer class="relative z-10 border-t border-space-border mt-12 py-8 text-center text-xs text-space-muted">
+        <p>&copy; 2026 lunarHope. Built with ❤️ and Tailwind CSS.</p>
+    </footer>
 
-            let html = '';
-            sorted.forEach(post => {
-                // 修正文章链接：移除可能的 "blog/" 前缀，使其相对于当前 blog/ 目录正确
-                let postUrl = post.url;
-                if (postUrl.startsWith('blog/')) {
-                    postUrl = postUrl.replace('blog/', '');
-                }
-                // 如果 post.url 是完整路径，提取最后部分
-                if (postUrl.includes('/')) {
-                    const parts = postUrl.split('/');
-                    postUrl = parts[parts.length - 1];
-                }
-                // 确保是相对路径
-                const href = `posts/${postUrl}`;
-
-                html += `
-                    <div class="post-item">
-                        <div class="post-title"><a href="${href}">${escapeHtml(post.title)}</a></div>
-                        <div class="post-meta">📅 ${escapeHtml(post.date) || '未知日期'}</div>
-                        <div class="post-excerpt">${escapeHtml(post.excerpt) || ''}</div>
-                    </div>
-                `;
+    <script>
+        // Spotlight
+        document.querySelectorAll('.spotlight-card').forEach(card => {
+            card.addEventListener('mousemove', (e) => {
+                const rect = card.getBoundingClientRect();
+                card.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
+                card.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
             });
-            container.innerHTML = html;
-        }
-
-        // 辅助函数：转义 HTML
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
-        // 主流程
-        try {
-            showLoading();
-            const posts = await loadPosts();
-            renderPosts(posts);
-        } catch (error) {
-            showError(error.message);
-        }
-    })();
-</script>
+        });
+        // Reveal
+        const obs = new IntersectionObserver((entries) => { entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('active'); }); }, { threshold: 0.1 });
+        document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
+    </script>
 </body>
 </html>
