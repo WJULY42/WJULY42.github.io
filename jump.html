@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>跳一跳 · 蓄力跳跃</title>
+    <style>
+        :root {
+            --bg: #f0f4f8;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            touch-action: manipulation;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            cursor: pointer;
+        }
+        .game-wrapper {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            max-width: 480px;
+            padding: 0 16px;
+        }
+        .score-display {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 10px 20px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        .score-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 50px;
+        }
+        .score-label {
+            font-size: 11px;
+            color: rgba(255,255,255,0.7);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        .score-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: #fff;
+            letter-spacing: 1px;
+            text-shadow: 0 0 20px rgba(255,255,255,0.4);
+            transition: all 0.2s ease;
+        }
+        .score-value.pulse {
+            animation: scorePulse 0.4s ease-out;
+        }
+        @keyframes scorePulse {
+            0% { transform: scale(1.4); color: #ffd700; }
+            100% { transform: scale(1); color: #fff; }
+        }
+        .best-score .score-value {
+            font-size: 22px;
+            color: #ffd700;
+        }
+        .combo-indicator {
+            font-size: 13px;
+            color: #ff6b6b;
+            font-weight: 600;
+            opacity: 0;
+            transition: all 0.3s ease;
+            letter-spacing: 1px;
+        }
+        .combo-indicator.active {
+            opacity: 1;
+            animation: comboBounce 0.5s ease-out;
+        }
+        @keyframes comboBounce {
+            0% { transform: translateY(-10px) scale(1.3); opacity: 0; }
+            60% { transform: translateY(2px) scale(1.05); opacity: 1; }
+            100% { transform: translateY(0) scale(1); opacity: 1; }
+        }
+        canvas {
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.1);
+            display: block;
+            max-width: 100vw;
+            max-height: 75vh;
+            background: #1a1a2e;
+        }
+        .hint-text {
+            color: rgba(255,255,255,0.6);
+            font-size: 13px;
+            letter-spacing: 2px;
+            text-align: center;
+            transition: opacity 0.5s ease;
+            pointer-events: none;
+        }
+        .game-over-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.55);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+        .game-over-overlay.show {
+            opacity: 1;
+            pointer-events: all;
+        }
+        .game-over-panel {
+            background: rgba(30,30,50,0.95);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border-radius: 24px;
+            padding: 32px 36px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.25);
+            box-shadow: 0 30px 80px rgba(0,0,0,0.6);
+            transform: translateY(20px);
+            transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1);
+        }
+        .game-over-overlay.show .game-over-panel {
+            transform: translateY(0);
+        }
+        .game-over-panel h2 {
+            font-size: 28px; color: #fff; margin-bottom: 8px; letter-spacing: 2px;
+        }
+        .game-over-panel .final-score {
+            font-size: 64px; font-weight: 800; color: #ffd700; letter-spacing: 2px;
+            text-shadow: 0 0 40px rgba(255,215,0,0.6); margin: 12px 0;
+        }
+        .game-over-panel .sub-info {
+            font-size: 15px; color: rgba(255,255,255,0.7); margin-bottom: 20px;
+        }
+        .game-over-panel .sub-info span { color: #ffd700; font-weight: 600; }
+        .btn-restart {
+            display: inline-block;
+            padding: 14px 40px;
+            font-size: 17px; font-weight: 600; letter-spacing: 2px;
+            color: #1a1a2e;
+            background: linear-gradient(135deg, #ffd700, #ffaa00);
+            border: none; border-radius: 30px; cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 30px rgba(255,170,0,0.4);
+            touch-action: manipulation;
+        }
+        .btn-restart:hover { transform: translateY(-2px); box-shadow: 0 12px 40px rgba(255,170,0,0.55); }
+        .btn-restart:active { transform: scale(0.95); }
+        @media (max-width: 480px) {
+            canvas { border-radius: 14px; max-height: 65vh; }
+            .score-value { font-size: 24px; }
+            .best-score .score-value { font-size: 18px; }
+            .game-over-panel { padding: 24px 20px; border-radius: 20px; }
+            .game-over-panel .final-score { font-size: 48px; }
+            .btn-restart { padding: 12px 30px; font-size: 15px; }
+        }
+    </style>
+</head>
+<body>
+<div class="game-wrapper" id="gameWrapper">
+    <div class="game-header">
+        <div class="score-display">
+            <div class="score-item"><span class="score-label">分数</span><span class="score-value" id="scoreDisplay">0</span></div>
+            <div class="score-item best-score"><span class="score-label">最佳</span><span class="score-value" id="bestScoreDisplay">0</span></div>
+            <div class="combo-indicator" id="comboIndicator"></div>
+        </div>
+    </div>
+    <canvas id="gameCanvas"></canvas>
+    <div class="hint-text" id="hintText">按住屏幕蓄力 · 松手跳跃</div>
+</div>
+<div class="game-over-overlay" id="gameOverOverlay">
+    <div class="game-over-panel">
+        <h2>🏆 游戏结束</h2>
+        <div class="final-score" id="finalScore">0</div>
+        <div class="sub-info">最佳记录：<span id="finalBestScore">0</span> 分</div>
+        <div class="sub-info" id="perfectInfo" style="display:none;">完美跳跃：<span id="perfectCount">0</span> 次</div>
+        <button class="btn-restart" id="btnRestart">🔄 再来一次</button>
+    </div>
+</div>
+
+<script>
+    (function() {
+        // ---------- DOM元素 ----------
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreDisplay = document.getElementById('scoreDisplay');
+        const bestScoreDisplay = document.getElementById('bestScoreDisplay');
+        const comboIndicator = document.getElementById('comboIndicator');
+        const hintText = document.getElementById('hintText');
+        const gameOverOverlay = document.getElementById('gameOverOverlay');
+        const finalScoreEl = document.getElementById('finalScore');
+        const finalBestScoreEl = document.getElementById('finalBestScore');
+        const perfectInfo = document.getElementById('perfectInfo');
+        const perfectCountEl = document.getElementById('perfectCount');
+        const btnRestart = document.getElementById('btnRestart');
+
+        // ---------- 辅助：绘制圆角矩形（兼容所有浏览器）----------
+        function drawRoundRect(ctx, x, y, w, h, r) {
+            if (w < 2 * r) r = w / 2;
+            if (h < 2 * r) r = h / 2;
+            ctx.beginPath();
+            ctx.moveTo(x + r, y);
+            ctx.lineTo(x + w - r, y);
+            ctx.arcTo(x + w, y, x + w, y + r, r);
+            ctx.lineTo(x + w, y + h - r);
+            ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+            ctx.lineTo(x + r, y + h);
+            ctx.arcTo(x, y + h, x, y + h - r, r);
+            ctx.lineTo(x, y + r);
+            ctx.arcTo(x, y, x + r, y, r);
+            ctx.closePath();
+        }
+
+        // ---------- Canvas 尺寸适配 ----------
+        function resizeCanvas() {
+            const maxWidth = Math.min(window.innerWidth - 20, 480);
+            const maxHeight = Math.min(window.innerHeight * 0.72, 700);
+            const ratio = maxWidth / maxHeight;
+            let w, h;
+            if (ratio > 0.65) {
+                h = maxHeight;
+                w = h * 0.65;
+            } else {
+                w = maxWidth;
+                h = w / 0.65;
+            }
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = Math.floor(w * dpr);
+            canvas.height = Math.floor(h * dpr);
+            canvas.style.width = w + 'px';
+            canvas.style.height = h + 'px';
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.scale(dpr, dpr);
+            return { w, h };
+        }
+
+        let screenSize = resizeCanvas();
+        const GROUND_Y_RATIO = 0.82;
+        function getGroundY() { return screenSize.h * GROUND_Y_RATIO; }
+
+        window.addEventListener('resize', () => {
+            screenSize = resizeCanvas();
+        });
+
+        // ---------- 游戏状态 ----------
+        let gameState = 'IDLE'; // IDLE | CHARGING | JUMPING | LANDING | GAME_OVER
+        let score = 0;
+        let bestScore = 0;
+        let comboCount = 0;
+        let perfectJumps = 0;
+        let chargePower = 0;
+        const MAX_POWER = 100;
+        const CHARGE_SPEED = 65;
+        let platforms = [];
+        let player = null;
+        let cameraX = 0;
+        let targetCameraX = 0;
+        let particles = [];
+        let landingEffect = null;
+
+        // ---------- 平台类 ----------
+        class Platform {
+            constructor(x, width, height) {
+                this.x = x;
+                this.width = width;
+                this.height = height;
+                this.topY = 0;
+                this.screenX = 0;
+                this.screenTopY = 0;
+                this.color = this.generateColor();
+                this.topColor = this.lightenColor(this.color, 0.3);
+                this.sideColor = this.darkenColor(this.color, 0.2);
+                this.bobOffset = 0;
+                this.bobVelocity = 0;
+            }
+            generateColor() {
+                const palettes = [
+                    { h: 195, s: 70, l: 55 },{ h: 340, s: 65, l: 58 },{ h: 45, s: 80, l: 55 },
+                    { h: 150, s: 55, l: 48 },{ h: 260, s: 50, l: 58 },{ h: 20, s: 75, l: 55 },
+                    { h: 280, s: 45, l: 50 },{ h: 170, s: 60, l: 45 }
+                ];
+                const p = palettes[Math.floor(Math.random() * palettes.length)];
+                return `hsl(${p.h}, ${p.s}%, ${p.l}%)`;
+            }
+            lightenColor(hslStr, amount) {
+                const match = hslStr.match(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/);
+                if (!match) return hslStr;
+                const l = Math.min(100, parseInt(match[3]) + amount * 100);
+                return `hsl(${match[1]}, ${match[2]}%, ${l}%)`;
+            }
+            darkenColor(hslStr, amount) {
+                const match = hslStr.match(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/);
+                if (!match) return hslStr;
+                const l = Math.max(0, parseInt(match[3]) - amount * 100);
+                return `hsl(${match[1]}, ${match[2]}%, ${l}%)`;
+            }
+            updateScreenPosition(groundY, camX) {
+                this.screenX = this.x - camX;
+                this.topY = groundY - this.height;
+                this.screenTopY = this.topY;
+            }
+            getCenterX() { return this.x + this.width / 2; }
+            getTopY() { return this.topY; }
+            updateBob(dt) {
+                if (Math.abs(this.bobVelocity) > 0.01 || Math.abs(this.bobOffset) > 0.1) {
+                    this.bobOffset += this.bobVelocity * dt;
+                    this.bobVelocity -= this.bobOffset * 18 * dt;
+                    this.bobVelocity *= 0.85;
+                    if (Math.abs(this.bobOffset) < 0.05 && Math.abs(this.bobVelocity) < 0.05) {
+                        this.bobOffset = 0;
+                        this.bobVelocity = 0;
+                    }
+                }
+            }
+            triggerBob() { this.bobVelocity = -60; this.bobOffset = 0; }
+        }
+
+        // ---------- 玩家类 ----------
+        class Player {
+            constructor() {
+                this.x = 0; this.y = 0;
+                this.width = 28; this.height = 34;
+                this.vx = 0; this.vy = 0;
+                this.onPlatform = null;
+                this.isAirborne = false;
+                this.squash = 0;
+                this.stretch = 0;
+                this.rotation = 0;
+            }
+            getBottomY() { return this.y + this.height; }
+            getCenterX() { return this.x + this.width / 2; }
+            setPositionOnPlatform(platform) {
+                this.x = platform.getCenterX() - this.width / 2;
+                this.y = platform.getTopY() - this.height;
+                this.onPlatform = platform;
+                this.isAirborne = false;
+                this.vx = 0; this.vy = 0;
+                this.squash = 0; this.stretch = 0; this.rotation = 0;
+            }
+        }
+
+        // ---------- 粒子类 ----------
+        class Particle {
+            constructor(x, y, color) {
+                this.x = x; this.y = y;
+                this.vx = (Math.random() - 0.5) * 180;
+                this.vy = -Math.random() * 250 - 80;
+                this.life = 1;
+                this.decay = Math.random() * 2.5 + 1.5;
+                this.size = Math.random() * 5 + 3;
+                this.color = color;
+                this.gravity = 500;
+            }
+            update(dt) {
+                this.x += this.vx * dt;
+                this.y += this.vy * dt;
+                this.vy += this.gravity * dt;
+                this.life -= this.decay * dt;
+            }
+            isDead() { return this.life <= 0; }
+            draw(ctx, camX) {
+                const alpha = Math.max(0, this.life);
+                const sx = this.x - camX;
+                ctx.save();
+                ctx.globalAlpha = alpha;
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(sx, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.globalAlpha = alpha * 0.5;
+                ctx.beginPath();
+                ctx.arc(sx, this.y, this.size * 2, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        // ---------- 初始化/重置 ----------
+        function initGame() {
+            score = 0; comboCount = 0; perfectJumps = 0;
+            chargePower = 0; particles = []; landingEffect = null;
+            gameState = 'IDLE';
+            const groundY = getGroundY();
+            platforms = [];
+            const firstPlatform = new Platform(150, 90, 140);
+            platforms.push(firstPlatform);
+            let lastPlatform = firstPlatform;
+            for (let i = 0; i < 5; i++) {
+                const nextPlatform = generateNextPlatform(lastPlatform, groundY);
+                platforms.push(nextPlatform);
+                lastPlatform = nextPlatform;
+            }
+            updatePlatformScreenPositions();
+            player = new Player();
+            player.setPositionOnPlatform(platforms[0]);
+            cameraX = platforms[0].getCenterX() - screenSize.w * 0.35;
+            targetCameraX = cameraX;
+            updateScoreDisplay();
+            comboIndicator.classList.remove('active');
+            comboIndicator.textContent = '';
+            hintText.style.opacity = '1';
+            gameOverOverlay.classList.remove('show');
+        }
+
+        function generateNextPlatform(lastPlatform, groundY) {
+            const distance = 55 + Math.random() * 175;
+            const newX = lastPlatform.x + lastPlatform.width + distance;
+            const width = 45 + Math.random() * 55;
+            let newHeight = lastPlatform.height + (Math.random() - 0.45) * 80;
+            newHeight = Math.max(70, Math.min(200, newHeight));
+            return new Platform(newX, width, Math.round(newHeight));
+        }
+
+        function updatePlatformScreenPositions() {
+            const groundY = getGroundY();
+            for (const p of platforms) p.updateScreenPosition(groundY, cameraX);
+        }
+
+        function ensurePlatformsAhead() {
+            const groundY = getGroundY();
+            while (platforms.length < 2 || platforms[platforms.length-1].x < cameraX + screenSize.w + 200) {
+                const lastPlatform = platforms[platforms.length-1];
+                platforms.push(generateNextPlatform(lastPlatform, groundY));
+            }
+            const idx = platforms.indexOf(player.onPlatform);
+            if (idx > 0) {
+                const keepFrom = Math.max(0, idx - 1);
+                if (keepFrom > 0) platforms.splice(0, keepFrom);
+            }
+        }
+
+        // ---------- 分数显示 ----------
+        function updateScoreDisplay() {
+            scoreDisplay.textContent = score;
+            bestScoreDisplay.textContent = bestScore;
+            scoreDisplay.classList.add('pulse');
+            setTimeout(() => scoreDisplay.classList.remove('pulse'), 400);
+        }
+        function updateComboDisplay() {
+            if (comboCount >= 2) {
+                comboIndicator.textContent = comboCount + '连击!';
+                comboIndicator.classList.add('active');
+                setTimeout(() => comboIndicator.classList.remove('active'), 1500);
+            } else {
+                comboIndicator.classList.remove('active');
+                comboIndicator.textContent = '';
+            }
+        }
+
+        // ---------- 输入处理 ----------
+        let isPressing = false;
+        function onPressStart(e) {
+            if (gameState === 'GAME_OVER' || gameState === 'JUMPING' || gameState === 'LANDING') return;
+            e.preventDefault();
+            isPressing = true;
+            chargePower = 0;
+            gameState = 'CHARGING';
+            hintText.style.opacity = '0.4';
+        }
+        function onPressEnd(e) {
+            if (!isPressing || gameState !== 'CHARGING') return;
+            e.preventDefault();
+            isPressing = false;
+            const power = chargePower;
+            chargePower = 0;
+            gameState = 'JUMPING';
+            hintText.style.opacity = '0.2';
+            launchJump(power);
+        }
+        function launchJump(power) {
+            const clampedPower = Math.max(5, Math.min(MAX_POWER, power));
+            const ratio = clampedPower / MAX_POWER;
+            player.vx = ratio * 380;
+            player.vy = -(420 + ratio * 60);
+            player.isAirborne = true;
+            player.onPlatform = null;
+            player.squash = -6;
+            player.stretch = 0;
+        }
+
+        canvas.addEventListener('mousedown', onPressStart);
+        canvas.addEventListener('mouseup', onPressEnd);
+        canvas.addEventListener('mouseleave', onPressEnd);
+        canvas.addEventListener('touchstart', onPressStart, { passive: false });
+        canvas.addEventListener('touchend', onPressEnd, { passive: false });
+        canvas.addEventListener('touchcancel', onPressEnd, { passive: false });
+        document.addEventListener('keydown', (e) => {
+            if ((e.code === 'Space' || e.code === 'KeyJ') && !isPressing && gameState === 'IDLE') onPressStart(e);
+        });
+        document.addEventListener('keyup', (e) => {
+            if ((e.code === 'Space' || e.code === 'KeyJ') && isPressing && gameState === 'CHARGING') onPressEnd(e);
+        });
+
+        btnRestart.addEventListener('click', (e) => { e.stopPropagation(); initGame(); });
+        btnRestart.addEventListener('touchend', (e) => { e.stopPropagation(); e.preventDefault(); initGame(); });
+        gameOverOverlay.addEventListener('click', (e) => { if (e.target === gameOverOverlay) initGame(); });
+
+        // ---------- 物理与逻辑更新 ----------
+        const GRAVITY = 1100;
+        let lastTime = performance.now();
+        let landingTimer = 0;
+
+        function update(dt) {
+            const clampedDt = Math.min(dt, 0.1);
+            for (const p of platforms) p.updateBob(clampedDt);
+
+            switch (gameState) {
+                case 'CHARGING':
+                    chargePower += CHARGE_SPEED * clampedDt;
+                    if (chargePower > MAX_POWER) chargePower = MAX_POWER;
+                    break;
+                case 'JUMPING':
+                    player.x += player.vx * clampedDt;
+                    player.y += player.vy * clampedDt;
+                    player.vy += GRAVITY * clampedDt;
+                    player.rotation += 300 * clampedDt * (player.vy < 0 ? 1.2 : 0.8);
+                    if (player.vy < -100) player.stretch = Math.min(8, player.stretch + 20 * clampedDt);
+                    else if (player.vy > 200) player.stretch = Math.max(-4, player.stretch - 18 * clampedDt);
+                    else player.stretch += (0 - player.stretch) * 8 * clampedDt;
+                    checkLanding();
+                    break;
+                case 'LANDING':
+                    landingTimer -= clampedDt;
+                    player.squash += (0 - player.squash) * 18 * clampedDt;
+                    if (landingTimer <= 0 && Math.abs(player.squash) < 0.3) {
+                        player.squash = 0; player.rotation = 0; player.stretch = 0;
+                        gameState = 'IDLE';
+                        hintText.style.opacity = '1';
+                        if (player.onPlatform) player.setPositionOnPlatform(player.onPlatform);
+                        ensurePlatformsAhead();
+                        updatePlatformScreenPositions();
+                    }
+                    break;
+                case 'GAME_OVER':
+                    if (player.isAirborne) {
+                        player.y += player.vy * clampedDt;
+                        player.vy += GRAVITY * clampedDt;
+                        player.rotation += 200 * clampedDt;
+                    }
+                    break;
+                case 'IDLE':
+                    if (player.onPlatform && !player.isAirborne) {
+                        const platTopY = player.onPlatform.getTopY() + player.onPlatform.bobOffset;
+                        player.y = platTopY - player.height;
+                        player.x = player.onPlatform.getCenterX() - player.width / 2;
+                    }
+                    break;
+            }
+
+            for (const p of particles) p.update(clampedDt);
+            particles = particles.filter(p => !p.isDead());
+            updateCamera(clampedDt);
+            updatePlatformScreenPositions();
+
+            if (gameState !== 'GAME_OVER' && player.y > getGroundY() + screenSize.h * 0.5) {
+                if (player.isAirborne && gameState === 'JUMPING') triggerGameOver();
+            }
+        }
+
+        function checkLanding() {
+            if (!player.isAirborne || player.vy < 0) return;
+            const playerBottom = player.getBottomY();
+            const playerCenterX = player.getCenterX();
+            for (const platform of platforms) {
+                const platTopY = platform.getTopY();
+                if (playerCenterX >= platform.x && playerCenterX <= platform.x + platform.width &&
+                    playerBottom >= platTopY - 8 && playerBottom <= platTopY + 25) {
+                    landOnPlatform(platform);
+                    return;
+                }
+            }
+            if (playerBottom >= getGroundY()) {
+                for (const platform of platforms) {
+                    const platTopY = platform.getTopY();
+                    if (playerCenterX >= platform.x && playerCenterX <= platform.x + platform.width &&
+                        playerBottom >= platTopY - 5 && playerBottom <= platTopY + 30) {
+                        landOnPlatform(platform);
+                        return;
+                    }
+                }
+                triggerGameOver();
+            }
+        }
+
+        function landOnPlatform(platform) {
+            player.y = platform.getTopY() - player.height;
+            player.vy = 0; player.vx = 0;
+            player.isAirborne = false;
+            player.onPlatform = platform;
+            player.squash = -5; player.stretch = 0; player.rotation = 0;
+            gameState = 'LANDING';
+            landingTimer = 0.2;
+            platform.triggerBob();
+
+            const playerCenterX = player.getCenterX();
+            const platCenterX = platform.getCenterX();
+            const dist = Math.abs(playerCenterX - platCenterX);
+            const perfectThreshold = platform.width * 0.18;
+            let pointsEarned = 1;
+            let isPerfect = false;
+
+            if (dist <= perfectThreshold) {
+                isPerfect = true;
+                perfectJumps++;
+                comboCount++;
+                pointsEarned = 2 + Math.min(comboCount - 1, 5);
+                if (comboCount >= 3) pointsEarned += Math.floor(comboCount / 3);
+            } else if (dist <= platform.width * 0.35) {
+                comboCount = 0;
+                pointsEarned = 1;
+            } else {
+                comboCount = 0;
+                pointsEarned = 1;
+            }
+            score += pointsEarned;
+            if (score > bestScore) {
+                bestScore = score;
+                localStorage.setItem('jumpJumpBestScore', bestScore);
+            }
+            updateScoreDisplay();
+            updateComboDisplay();
+            spawnLandingParticles(platform, isPerfect);
+            landingEffect = {
+                x: platform.getCenterX(),
+                y: platform.getTopY() - 30,
+                text: isPerfect ? (comboCount >= 3 ? `完美! x${pointsEarned}` : '完美!') : '+1',
+                life: isPerfect ? 1.2 : 0.7,
+                color: isPerfect ? '#ffd700' : '#ffffff'
+            };
+        }
+
+        function spawnLandingParticles(platform, isPerfect) {
+            const cx = platform.getCenterX();
+            const cy = platform.getTopY();
+            const count = isPerfect ? 22 : 8;
+            const color = isPerfect ? '#ffd700' : platform.color;
+            for (let i = 0; i < count; i++) particles.push(new Particle(cx, cy, color));
+            if (isPerfect) {
+                for (let i = 0; i < 10; i++) {
+                    const p = new Particle(cx, cy, '#ffffff');
+                    p.size = Math.random() * 3 + 2;
+                    p.decay = 3 + Math.random() * 2;
+                    particles.push(p);
+                }
+            }
+        }
+
+        function triggerGameOver() {
+            gameState = 'GAME_OVER';
+            player.isAirborne = true;
+            player.onPlatform = null;
+            player.vy = Math.max(player.vy, -50);
+            player.vx *= 0.5;
+            if (score > bestScore) {
+                bestScore = score;
+                localStorage.setItem('jumpJumpBestScore', bestScore);
+            }
+            updateScoreDisplay();
+            hintText.style.opacity = '0';
+            setTimeout(() => {
+                finalScoreEl.textContent = score;
+                finalBestScoreEl.textContent = bestScore;
+                if (perfectJumps > 0) {
+                    perfectInfo.style.display = 'block';
+                    perfectCountEl.textContent = perfectJumps;
+                } else {
+                    perfectInfo.style.display = 'none';
+                }
+                gameOverOverlay.classList.add('show');
+            }, 500);
+        }
+
+        function updateCamera(dt) {
+            if (gameState === 'GAME_OVER') return;
+            if (player.onPlatform && gameState === 'IDLE') {
+                targetCameraX = player.onPlatform.getCenterX() - screenSize.w * 0.38;
+            } else if (player.isAirborne && gameState === 'JUMPING') {
+                targetCameraX = player.getCenterX() - screenSize.w * 0.4;
+            }
+            targetCameraX = Math.max(0, targetCameraX);
+            const lerpSpeed = (gameState === 'JUMPING') ? 3.5 : 6;
+            cameraX += (targetCameraX - cameraX) * Math.min(1, lerpSpeed * dt);
+        }
+
+        // ---------- 渲染 ----------
+        function drawBackground() {
+            const w = screenSize.w, h = screenSize.h, groundY = getGroundY();
+            const skyGrad = ctx.createLinearGradient(0, 0, 0, groundY);
+            skyGrad.addColorStop(0, '#87CEEB'); skyGrad.addColorStop(0.5, '#c9e8f7');
+            skyGrad.addColorStop(0.85, '#e8f4f8'); skyGrad.addColorStop(1, '#f0f6f9');
+            ctx.fillStyle = skyGrad;
+            ctx.fillRect(0, 0, w, h);
+
+            const cloudPositions = [{x:0.15,y:0.18,s:1},{x:0.45,y:0.12,s:0.7},{x:0.7,y:0.22,s:1.2},{x:0.85,y:0.15,s:0.8},{x:0.3,y:0.28,s:0.6}];
+            for (const cp of cloudPositions) {
+                const cx = w * cp.x - (cameraX * 0.08 % (w * 1.5));
+                const cy = groundY * cp.y, s = cp.s;
+                ctx.fillStyle = 'rgba(255,255,255,0.7)';
+                ctx.beginPath();
+                ctx.arc(cx, cy, 25*s, 0, Math.PI*2); ctx.arc(cx+22*s, cy-8*s, 18*s, 0, Math.PI*2);
+                ctx.arc(cx+40*s, cy, 22*s, 0, Math.PI*2); ctx.arc(cx+18*s, cy+5*s, 16*s, 0, Math.PI*2);
+                ctx.fill();
+            }
+            const groundGrad = ctx.createLinearGradient(0, groundY, 0, h);
+            groundGrad.addColorStop(0, '#c8d6c0'); groundGrad.addColorStop(0.15, '#a0b090');
+            groundGrad.addColorStop(0.5, '#7a8a6a'); groundGrad.addColorStop(1, '#5a6a4a');
+            ctx.fillStyle = groundGrad;
+            ctx.fillRect(0, groundY, w, h - groundY);
+        }
+
+        function drawPlatform(platform) {
+            const sx = platform.screenX, sy = platform.screenTopY + platform.bobOffset;
+            const w = platform.width, h = platform.height;
+            ctx.fillStyle = 'rgba(0,0,0,0.15)';
+            ctx.fillRect(sx+3, sy-2, w, h+4);
+            const sideGrad = ctx.createLinearGradient(sx, 0, sx+w, 0);
+            sideGrad.addColorStop(0, platform.sideColor); sideGrad.addColorStop(0.5, platform.color); sideGrad.addColorStop(1, platform.sideColor);
+            ctx.fillStyle = sideGrad;
+            ctx.fillRect(sx, sy+4, w, h-4);
+            const topGrad = ctx.createLinearGradient(0, sy, 0, sy+12);
+            topGrad.addColorStop(0, platform.topColor); topGrad.addColorStop(1, platform.color);
+            ctx.fillStyle = topGrad;
+            ctx.fillRect(sx-2, sy, w+4, 10);
+            ctx.fillStyle = 'rgba(255,255,255,0.35)';
+            ctx.fillRect(sx+3, sy+1, w-6, 3);
+        }
+
+        function drawPlayer() {
+            const sx = player.x - cameraX, sy = player.y;
+            const w = player.width, h = player.height;
+            ctx.save();
+            ctx.translate(sx + w/2, sy + h/2);
+            if (player.rotation) ctx.rotate(player.rotation * Math.PI/180);
+            let scaleX = 1, scaleY = 1;
+            if (player.squash < 0) { scaleX = 1 + Math.abs(player.squash)/w*0.8; scaleY = 1 - Math.abs(player.squash)/h*0.6; }
+            else if (player.stretch !== 0) { scaleX = 1 - Math.abs(player.stretch)/w*0.5; scaleY = 1 + Math.abs(player.stretch)/h*0.7; }
+            ctx.scale(scaleX, scaleY);
+            const hw = w/2, hh = h/2;
+            ctx.fillStyle = 'rgba(0,0,0,0.2)';
+            drawRoundRect(ctx, -hw+2, -hh+2, w, h, 10);
+            ctx.fill();
+            const bodyGrad = ctx.createLinearGradient(-hw, -hh, -hw, hh);
+            bodyGrad.addColorStop(0, '#5c6bc0'); bodyGrad.addColorStop(0.35, '#3f51b5');
+            bodyGrad.addColorStop(0.7, '#303f9f'); bodyGrad.addColorStop(1, '#1a237e');
+            ctx.fillStyle = bodyGrad;
+            drawRoundRect(ctx, -hw, -hh, w, h, 10);
+            ctx.fill();
+            ctx.fillStyle = 'rgba(255,255,255,0.2)';
+            drawRoundRect(ctx, -hw+4, -hh+3, w*0.55, h*0.35, 6);
+            ctx.fill();
+            ctx.restore();
+        }
+
+        function drawChargeBar() {
+            if (gameState !== 'CHARGING' || !player.onPlatform) return;
+            const playerScreenX = player.x - cameraX;
+            const barWidth = 60, barHeight = 8;
+            const barX = playerScreenX + player.width/2 - barWidth/2;
+            const barY = player.y - 22;
+            ctx.fillStyle = 'rgba(0,0,0,0.5)';
+            drawRoundRect(ctx, barX-2, barY-2, barWidth+4, barHeight+4, 5);
+            ctx.fill();
+            ctx.fillStyle = 'rgba(255,255,255,0.25)';
+            drawRoundRect(ctx, barX, barY, barWidth, barHeight, 3);
+            ctx.fill();
+            const ratio = chargePower / MAX_POWER;
+            const fillWidth = barWidth * ratio;
+            let fillColor = ratio < 0.35 ? '#4caf50' : ratio < 0.7 ? '#ff9800' : ratio < 0.9 ? '#f44336' : '#ff1744';
+            ctx.fillStyle = fillColor;
+            drawRoundRect(ctx, barX, barY, fillWidth, barHeight, 3);
+            ctx.fill();
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 10px "PingFang SC","Microsoft YaHei",sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText(Math.round(ratio*100)+'%', barX+barWidth/2, barY-6);
+        }
+
+        function drawParticles() {
+            for (const p of particles) p.draw(ctx, cameraX);
+        }
+
+        function drawLandingEffect() {
+            if (!landingEffect || landingEffect.life <= 0) { landingEffect = null; return; }
+            const sx = landingEffect.x - cameraX;
+            const alpha = Math.min(1, landingEffect.life/0.3);
+            const floatY = (1.2 - landingEffect.life) * 40;
+            ctx.save();
+            ctx.globalAlpha = alpha;
+            ctx.fillStyle = landingEffect.color;
+            ctx.font = 'bold 18px "PingFang SC","Microsoft YaHei",sans-serif';
+            ctx.textAlign = 'center';
+            ctx.shadowColor = landingEffect.color;
+            ctx.shadowBlur = 12;
+            ctx.fillText(landingEffect.text, sx, landingEffect.y - floatY);
+            ctx.shadowBlur = 0;
+            ctx.restore();
+        }
+
+        function render() {
+            const w = screenSize.w, h = screenSize.h;
+            ctx.clearRect(0, 0, w, h);
+            drawBackground();
+            for (const p of platforms) {
+                if (p.screenX > -p.width && p.screenX < w + p.width) drawPlatform(p);
+            }
+            drawParticles();
+            drawPlayer();
+            drawChargeBar();
+            drawLandingEffect();
+        }
+
+        function gameLoop(timestamp) {
+            const dt = (timestamp - lastTime) / 1000;
+            lastTime = timestamp;
+            update(dt);
+            if (landingEffect) {
+                landingEffect.life -= dt;
+                if (landingEffect.life <= 0) landingEffect = null;
+            }
+            render();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function startGame() {
+            const saved = localStorage.getItem('jumpJumpBestScore');
+            if (saved) bestScore = parseInt(saved, 10) || 0;
+            screenSize = resizeCanvas();
+            initGame();
+            updateScoreDisplay();
+            lastTime = performance.now();
+            requestAnimationFrame(gameLoop);
+        }
+
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', startGame);
+        else startGame();
+
+        window.addEventListener('resize', () => {
+            screenSize = resizeCanvas();
+            updatePlatformScreenPositions();
+            if (player.onPlatform && (gameState === 'IDLE' || gameState === 'CHARGING')) {
+                targetCameraX = player.onPlatform.getCenterX() - screenSize.w * 0.38;
+                cameraX = targetCameraX;
+            }
+        });
+        document.addEventListener('touchmove', e => { if (e.target.closest('#gameCanvas')) e.preventDefault(); }, {passive: false});
+    })();
+</script>
+</body>
+</html>
