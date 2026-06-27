@@ -3,46 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>lunarHope | Developer & Tinkerer</title>
+    <title>lunarHope | Code. Tinker. Share.</title>
     
-    <!-- 引入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- 引入极客字体 -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
     <script>
         tailwind.config = {
-            darkMode: 'class',
             theme: {
                 extend: {
                     colors: {
-                        // GitHub Dark Theme 色板
-                        dark: {
-                            canvas: '#0d1117',
-                            surface: '#161b22',
+                        space: {
+                            900: '#010409', // 极深空黑
+                            800: '#0d1117',
+                            700: '#161b22',
+                            600: '#21262d',
                             border: '#30363d',
                             text: '#f0f6fc',
                             muted: '#8b949e',
-                            accent: '#58a6ff',
-                            green: '#3fb950',
                         },
-                        // GitHub Light Theme 色板
-                        light: {
-                            canvas: '#ffffff',
-                            surface: '#f6f8fa',
-                            border: '#d0d7de',
-                            text: '#24292f',
-                            muted: '#57606a',
-                            accent: '#0969da',
-                            green: '#1a7f37',
+                        glow: {
+                            purple: '#8957e5',
+                            blue: '#58a6ff',
+                            pink: '#da3633',
+                            green: '#3fb950',
                         }
                     },
                     fontFamily: {
-                        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
-                        mono: ['"JetBrains Mono"', 'SFMono-Regular', 'Consolas', 'monospace'],
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'monospace'],
+                    },
+                    animation: {
+                        'float': 'float 20s ease-in-out infinite',
+                        'float-delayed': 'float 25s ease-in-out infinite reverse',
+                        'fade-in-up': 'fadeInUp 0.8s ease-out forwards',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translate(0, 0) scale(1)' },
+                            '33%': { transform: 'translate(30px, -50px) scale(1.05)' },
+                            '66%': { transform: 'translate(-20px, 20px) scale(0.95)' },
+                        },
+                        fadeInUp: {
+                            '0%': { opacity: '0', transform: 'translateY(30px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        }
                     }
                 }
             }
@@ -51,315 +58,398 @@
 
     <style>
         body {
-            transition: background-color 0.3s ease, color 0.3s ease;
+            background-color: #010409;
+            color: #f0f6fc;
+            overflow-x: hidden;
         }
-        
-        /* 自定义滚动条 (Webkit) */
-        ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        .dark ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 4px; }
-        .light ::-webkit-scrollbar-thumb { background: #d0d7de; border-radius: 4px; }
 
-        /* 终端光标闪烁动画 */
+        /* 全局滚动条 */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #010409; }
+        ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 4px; }
+
+        /* 鼠标追光卡片效果 */
+        .spotlight-card {
+            position: relative;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            overflow: hidden;
+        }
+        .spotlight-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: radial-gradient(
+                800px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), 
+                rgba(137, 87, 229, 0.15), 
+                transparent 40%
+            );
+            z-index: 0;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .spotlight-card:hover::before {
+            opacity: 1;
+        }
+        .spotlight-card > * {
+            position: relative;
+            z-index: 1;
+        }
+
+        /* 终端光标 */
+        .cursor-blink::after {
+            content: '_';
+            animation: blink 1s step-end infinite;
+        }
         @keyframes blink {
             0%, 100% { opacity: 1; }
             50% { opacity: 0; }
         }
-        .cursor-blink {
-            animation: blink 1s step-end infinite;
+
+        /* 渐变文字 */
+        .text-gradient {
+            background: linear-gradient(135deg, #f0f6fc 0%, #8b949e 50%, #f0f6fc 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .text-gradient-glow {
+            background: linear-gradient(135deg, #58a6ff 0%, #8957e5 50%, #da3633 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 0 30px rgba(137, 87, 229, 0.3);
         }
 
-        /* 贡献图格子 Hover 效果 */
-        .contrib-cell {
-            transition: all 0.2s ease;
+        /* 隐藏默认滚动条但保留功能 (用于横向滚动区) */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* 滚动显示动画控制 */
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
         }
-        .contrib-cell:hover {
-            transform: scale(1.5);
-            outline: 1px solid currentColor;
-            z-index: 10;
+        .reveal.active {
+            opacity: 1;
+            transform: translateY(0);
         }
     </style>
 </head>
-<body class="bg-light-canvas text-light-text dark:bg-dark-canvas dark:text-dark-text font-sans min-h-screen">
+<body class="font-sans antialiased">
 
-    <!-- ================= 顶部导航栏 (Global Header) ================= -->
-    <header class="sticky top-0 z-50 bg-light-canvas/80 dark:bg-dark-canvas/80 backdrop-blur-md border-b border-light-border dark:border-dark-border px-4 md:px-8 py-3 flex justify-between items-center">
-        <div class="flex items-center space-x-6">
-            <!-- Logo -->
-            <a href="#" class="font-mono text-xl font-bold text-light-text dark:text-dark-text hover:opacity-80 transition">
-                &lt;<span class="text-light-accent dark:text-dark-accent">lunarHope</span> /&gt;
+    <!-- ================= 背景光影 (Aurora Glows) ================= -->
+    <div class="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+        <div class="absolute top-[-10%] left-[-5%] w-[500px] h-[500px] bg-glow-purple/20 rounded-full blur-[120px] animate-float"></div>
+        <div class="absolute bottom-[-10%] right-[-5%] w-[600px] h-[600px] bg-glow-blue/20 rounded-full blur-[120px] animate-float-delayed"></div>
+        <!-- 网格背景 -->
+        <div class="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000_70%,transparent_110%)]"></div>
+    </div>
+
+    <!-- ================= 顶部导航 (Nav) ================= -->
+    <header class="fixed top-0 w-full z-50 bg-space-900/60 backdrop-blur-md border-b border-white/5">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+            <a href="#" class="flex items-center space-x-2 font-mono font-bold text-lg text-space-text">
+                <svg class="w-6 h-6 text-glow-purple" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                <span>lunarHope</span>
             </a>
-            <!-- Nav Links -->
-            <nav class="hidden md:flex space-x-6 text-sm font-medium text-light-muted dark:text-dark-muted">
-                <a href="#" class="hover:text-light-text dark:hover:text-dark-text transition flex items-center">
-                    <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"></path></svg>
-                    Blog
-                </a>
-                <a href="#" class="hover:text-light-text dark:hover:text-dark-text transition flex items-center">
-                    <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                    Tools
-                </a>
-                <a href="#" class="hover:text-light-text dark:hover:text-dark-text transition flex items-center">
-                    <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
-                    Guestbook
-                </a>
+            <nav class="hidden md:flex items-center space-x-8 text-sm text-space-muted font-medium">
+                <a href="#tools" class="hover:text-space-text transition">Tools</a>
+                <a href="#blog" class="hover:text-space-text transition">Blog</a>
+                <a href="#guestbook" class="hover:text-space-text transition">Guestbook</a>
+                <button id="cmd-k-btn" class="flex items-center space-x-2 bg-space-800 border border-space-border rounded-md px-3 py-1.5 text-xs hover:border-space-muted transition">
+                    <span>Search...</span>
+                    <kbd class="font-mono text-[10px] bg-space-700 px-1.5 py-0.5 rounded border border-space-border">⌘K</kbd>
+                </button>
             </nav>
-        </div>
-        
-        <!-- 右侧操作区 -->
-        <div class="flex items-center space-x-4 text-light-muted dark:text-dark-muted">
-            <!-- 搜索框 UI -->
-            <div class="hidden md:flex items-center border border-light-border dark:border-dark-border rounded-md px-2 py-1 text-xs">
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                <span class="mr-4">Search...</span>
-                <kbd class="px-1.5 py-0.5 border border-light-border dark:border-dark-border rounded text-[10px] font-mono">Ctrl+K</kbd>
+            <div class="md:hidden flex items-center space-x-4">
+                 <button id="cmd-k-btn-mobile" class="p-2 text-space-muted"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg></button>
             </div>
-            
-            <!-- 主题切换按钮 -->
-            <button id="theme-toggle" class="p-2 rounded-md hover:bg-light-surface dark:hover:bg-dark-surface transition" aria-label="Toggle Theme">
-                <!-- Sun Icon (Light Mode) -->
-                <svg class="w-5 h-5 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-                <!-- Moon Icon (Dark Mode) -->
-                <svg class="w-5 h-5 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
-            </button>
-
-            <!-- GitHub Link -->
-            <a href="https://github.com/wjuly42" target="_blank" class="p-2 rounded-md hover:bg-light-surface dark:hover:bg-dark-surface transition">
-                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
-            </a>
         </div>
     </header>
 
-    <!-- ================= 主体内容区 (Main Workspace) ================= -->
-    <main class="max-w-7xl mx-auto px-4 md:px-8 py-8 grid grid-cols-1 md:grid-cols-12 gap-8">
-        
-        <!-- ================= 左侧 Sidebar (Profile) ================= -->
-        <aside class="md:col-span-4 lg:col-span-3 space-y-6">
-            <!-- 头像 -->
-            <div class="relative group">
-                <img src="https://avatars.githubusercontent.com/u/42730306?v=4" alt="lunarHope Avatar" class="w-full rounded-full border-2 border-light-border dark:border-dark-border shadow-sm group-hover:border-light-accent dark:group-hover:border-dark-accent transition">
-                <!-- 状态指示灯 -->
-                <span class="absolute bottom-4 right-4 md:bottom-6 md:right-6 w-5 h-5 bg-light-green dark:bg-dark-green rounded-full border-4 border-light-canvas dark:border-dark-canvas"></span>
+    <!-- ================= 首屏英雄区 (Hero Section) ================= -->
+    <section class="relative z-10 pt-32 md:pt-48 pb-24 px-6">
+        <div class="max-w-5xl mx-auto text-center space-y-8 reveal">
+            <div class="inline-flex items-center space-x-2 bg-space-800/50 border border-space-border rounded-full px-4 py-1.5 text-xs text-space-muted backdrop-blur-sm">
+                <span class="flex h-2 w-2 relative">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-glow-green opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-glow-green"></span>
+                </span>
+                <span>Building open-source tools & sharing tech notes</span>
             </div>
-
-            <!-- 名字与 ID -->
-            <div>
-                <h1 class="text-2xl font-bold text-light-text dark:text-dark-text">lunarHope</h1>
-                <p class="text-light-muted dark:text-dark-muted text-lg">@wjuly42</p>
-            </div>
-
-            <!-- Bio (代码风格) -->
-            <div class="font-mono text-sm bg-light-surface dark:bg-dark-surface p-4 rounded-md border border-light-border dark:border-dark-border overflow-x-auto">
-                <span class="text-purple-500 dark:text-purple-400">const</span> <span class="text-blue-600 dark:text-blue-400">lunarHope</span> = {<br>
-                &nbsp;&nbsp;<span class="text-light-text dark:text-dark-text">role</span>: <span class="text-orange-600 dark:text-orange-300">"Tinkerer"</span>,<br>
-                &nbsp;&nbsp;<span class="text-light-text dark:text-dark-text">focus</span>: [<span class="text-orange-600 dark:text-orange-300">"Web"</span>, <span class="text-orange-600 dark:text-orange-300">"Tools"</span>],<br>
-                &nbsp;&nbsp;<span class="text-light-text dark:text-dark-text">status</span>: <span class="text-light-green dark:text-dark-green">"Building..."</span><br>
-                };
-            </div>
-
-            <!-- 社交与联系 -->
-            <div class="flex flex-col space-y-2 text-sm text-light-muted dark:text-dark-muted">
-                <div class="flex items-center">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                    Earth, Solar System 🌍
-                </div>
-                <a href="https://wjuly42.github.io/" class="flex items-center hover:text-light-accent dark:hover:text-dark-accent transition">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
-                    wjuly42.github.io
+            
+            <h1 class="text-5xl md:text-7xl lg:text-8xl font-extrabold tracking-tight text-gradient leading-[1.1]">
+                Code. Tinker. Share.
+            </h1>
+            
+            <p class="text-xl md:text-2xl text-space-muted max-w-2xl mx-auto font-light leading-relaxed">
+                The future of building happens together. <br class="hidden md:block">
+                Welcome to <span class="text-space-text font-medium">lunarHope</span>'s digital garden.
+            </p>
+            
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
+                <a href="#tools" class="group relative px-8 py-3 bg-white text-space-900 rounded-md font-semibold text-sm overflow-hidden transition transform hover:scale-105">
+                    <span class="relative z-10">Explore Tools</span>
+                    <div class="absolute inset-0 bg-gradient-to-r from-glow-purple to-glow-blue opacity-0 group-hover:opacity-20 transition-opacity"></div>
+                </a>
+                <a href="#blog" class="px-8 py-3 bg-space-800 border border-space-border text-space-text rounded-md font-semibold text-sm hover:bg-space-700 hover:border-space-muted transition">
+                    Read the Blog
                 </a>
             </div>
+        </div>
+    </section>
 
-            <!-- 终端窗口 (Terminal UI) -->
-            <div class="border border-light-border dark:border-dark-border rounded-md overflow-hidden shadow-sm">
-                <!-- Terminal Header -->
-                <div class="bg-gray-100 dark:bg-dark-surface px-4 py-2 border-b border-light-border dark:border-dark-border flex items-center space-x-2">
-                    <div class="w-3 h-3 rounded-full bg-red-500"></div>
-                    <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
-                    <div class="w-3 h-3 rounded-full bg-green-500"></div>
-                    <span class="text-xs text-light-muted dark:text-dark-muted ml-2 font-mono">bash</span>
-                </div>
-                <!-- Terminal Body -->
-                <div class="bg-gray-50 dark:bg-[#0a0d14] p-4 font-mono text-xs md:text-sm text-gray-800 dark:text-gray-300 h-32 overflow-y-auto">
-                    <p><span class="text-green-600 dark:text-green-400">lunarHope@dev</span>:<span class="text-blue-600 dark:text-blue-400">~</span>$ cat welcome.txt</p>
-                    <p class="mt-1 text-light-text dark:text-dark-text">Hello! 欢迎来到我的数字自留地。</p>
-                    <p class="mt-2"><span class="text-green-600 dark:text-green-400">lunarHope@dev</span>:<span class="text-blue-600 dark:text-blue-400">~</span>$ <span class="cursor-blink">_</span></p>
-                </div>
-            </div>
-        </aside>
-
-        <!-- ================= 右侧 Main (Workspace) ================= -->
-        <section class="md:col-span-8 lg:col-span-9 space-y-10">
-            
-            <!-- Pinned Tools (置顶项目/工具) -->
-            <div>
-                <h3 class="text-sm font-medium text-light-muted dark:text-dark-muted mb-4 flex items-center">
-                    <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 16 16"><path d="M8 0a8 8 0 100 16A8 8 0 008 0zm0 14.5a6.5 6.5 0 110-13 6.5 6.5 0 010 13z"></path><path d="M8 4a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 018 4zm0 8a1 1 0 100-2 1 1 0 000 2z"></path></svg>
-                    Pinned Tools & Repos
-                </h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <!-- Tool Card 1 -->
-                    <div class="group bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-md p-4 hover:border-light-accent dark:hover:border-dark-accent transition cursor-pointer flex flex-col justify-between h-full">
-                        <div>
-                            <div class="flex items-center justify-between mb-2">
-                                <div class="flex items-center space-x-2">
-                                    <svg class="w-4 h-4 text-light-muted dark:text-dark-muted" fill="currentColor" viewBox="0 0 16 16"><path d="M2 2.5A2.5 2.5 0 014.5 0h8.75a.75.75 0 01.75.75v12.5a.75.75 0 01-.75.75h-2.5a.75.75 0 110-1.5h1.75v-2h-8a1 1 0 00-.714 1.7.75.75 0 01-1.072 1.05A2.495 2.495 0 012 11.5v-9zm10.5-1V9h-8c-.356 0-.694.056-1 .16V2.5a1 1 0 011-1h8z"></path></svg>
-                                    <span class="text-light-accent dark:text-dark-accent font-semibold group-hover:underline">awesome-web-tool</span>
-                                </div>
-                                <span class="text-[10px] border border-light-border dark:border-dark-border rounded-full px-2 py-0.5 text-light-muted dark:text-dark-muted uppercase">Public</span>
-                            </div>
-                            <p class="text-xs text-light-muted dark:text-dark-muted mb-4 line-clamp-2">A modern CLI & Web tool for developers to boost daily productivity.</p>
-                        </div>
-                        <div class="flex items-center space-x-4 text-xs text-light-muted dark:text-dark-muted">
-                            <span class="flex items-center"><span class="w-3 h-3 rounded-full bg-yellow-400 mr-1.5"></span> JavaScript</span>
-                            <span class="flex items-center">
-                                <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path></svg>
-                                128
-                            </span>
-                        </div>
-                    </div>
-
-                    <!-- Tool Card 2 -->
-                    <div class="group bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-md p-4 hover:border-light-accent dark:hover:border-dark-accent transition cursor-pointer flex flex-col justify-between h-full">
-                        <div>
-                            <div class="flex items-center justify-between mb-2">
-                                <div class="flex items-center space-x-2">
-                                    <svg class="w-4 h-4 text-light-muted dark:text-dark-muted" fill="currentColor" viewBox="0 0 16 16"><path d="M2 2.5A2.5 2.5 0 014.5 0h8.75a.75.75 0 01.75.75v12.5a.75.75 0 01-.75.75h-2.5a.75.75 0 110-1.5h1.75v-2h-8a1 1 0 00-.714 1.7.75.75 0 01-1.072 1.05A2.495 2.495 0 012 11.5v-9zm10.5-1V9h-8c-.356 0-.694.056-1 .16V2.5a1 1 0 011-1h8z"></path></svg>
-                                    <span class="text-light-accent dark:text-dark-accent font-semibold group-hover:underline">daily-scripts</span>
-                                </div>
-                                <span class="text-[10px] border border-light-border dark:border-dark-border rounded-full px-2 py-0.5 text-light-muted dark:text-dark-muted uppercase">Public</span>
-                            </div>
-                            <p class="text-xs text-light-muted dark:text-dark-muted mb-4 line-clamp-2">Collection of python/bash scripts for daily automation tasks.</p>
-                        </div>
-                        <div class="flex items-center space-x-4 text-xs text-light-muted dark:text-dark-muted">
-                            <span class="flex items-center"><span class="w-3 h-3 rounded-full bg-blue-500 mr-1.5"></span> Python</span>
-                            <span class="flex items-center">
-                                <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path></svg>
-                                45
-                            </span>
-                        </div>
-                    </div>
-                </div>
+    <!-- ================= 交互式终端展示 (Interactive Demo) ================= -->
+    <section class="relative z-10 py-20 px-6">
+        <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div class="space-y-6 reveal">
+                <h2 class="text-3xl md:text-4xl font-bold text-gradient-glow">Tools built for developers.</h2>
+                <p class="text-lg text-space-muted leading-relaxed">
+                    我不只是写博客，我更热衷于创造解决实际问题的小工具。从自动化脚本到提升生产力的 Web 应用，每一个工具都源于一次“折腾”。
+                </p>
+                <ul class="space-y-4 text-space-text">
+                    <li class="flex items-start space-x-3">
+                        <svg class="w-6 h-6 text-glow-green flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                        <span><strong>Open Source First:</strong> 所有工具代码均在 GitHub 开源，欢迎 PR。</span>
+                    </li>
+                    <li class="flex items-start space-x-3">
+                        <svg class="w-6 h-6 text-glow-blue flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                        <span><strong>Performance Matters:</strong> 极致轻量，拒绝臃肿，专注于核心功能。</span>
+                    </li>
+                </ul>
             </div>
 
-            <!-- Contribution Graph (贡献热力图 - CSS 模拟版) -->
-            <div>
-                <h3 class="text-sm font-medium text-light-muted dark:text-dark-muted mb-4 flex items-center justify-between">
-                    <span>142 contributions in the last year</span>
-                    <span class="text-xs flex items-center space-x-1 text-light-muted dark:text-dark-muted font-normal">
-                        <span>Less</span>
-                        <span class="w-2.5 h-2.5 rounded-sm bg-gray-200 dark:bg-gray-800"></span>
-                        <span class="w-2.5 h-2.5 rounded-sm bg-green-200 dark:bg-green-900"></span>
-                        <span class="w-2.5 h-2.5 rounded-sm bg-green-400 dark:bg-green-700"></span>
-                        <span class="w-2.5 h-2.5 rounded-sm bg-green-600 dark:bg-green-500"></span>
-                        <span>More</span>
-                    </span>
-                </h3>
-                <div class="bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-md p-4 overflow-x-auto">
-                    <!-- 使用 CSS Grid 模拟 GitHub 贡献图 -->
-                    <div class="grid grid-flow-col grid-rows-7 gap-1 min-w-[700px]" id="contrib-graph">
-                        <!-- JS will populate this -->
+            <!-- 交互式终端 UI -->
+            <div class="reveal bg-space-800 border border-space-border rounded-xl shadow-2xl overflow-hidden">
+                <div class="bg-space-700 px-4 py-3 border-b border-space-border flex items-center justify-between">
+                    <div class="flex space-x-2">
+                        <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                        <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+                        <div class="w-3 h-3 rounded-full bg-green-500"></div>
                     </div>
+                    <span class="text-xs text-space-muted font-mono">lunarHope ~ zsh</span>
+                    <div class="w-12"></div>
+                </div>
+                <div class="p-6 font-mono text-sm h-72 overflow-y-auto no-scrollbar" id="terminal-output">
+                    <p class="text-space-muted mb-2"># Try clicking the commands below to see the magic ✨</p>
+                    <p><span class="text-glow-green">➜</span> <span class="text-glow-blue">~</span> <span class="cursor-blink text-space-text"></span></p>
+                </div>
+                <div class="bg-space-900/50 border-t border-space-border p-3 flex flex-wrap gap-2">
+                    <button class="cmd-btn px-3 py-1 bg-space-700 hover:bg-space-600 border border-space-border rounded text-xs text-space-text transition" data-cmd="npm run build">npm run build</button>
+                    <button class="cmd-btn px-3 py-1 bg-space-700 hover:bg-space-600 border border-space-border rounded text-xs text-space-text transition" data-cmd="git push origin main">git push</button>
+                    <button class="cmd-btn px-3 py-1 bg-space-700 hover:bg-space-600 border border-space-border rounded text-xs text-space-text transition" data-cmd="deploy --prod">deploy --prod</button>
                 </div>
             </div>
+        </div>
+    </section>
 
-            <!-- Recent Activity (最近动态/文章流) -->
-            <div>
-                <h3 class="text-sm font-medium text-light-muted dark:text-dark-muted mb-4">Recent Activity</h3>
-                <div class="bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-md divide-y divide-light-border dark:divide-dark-border overflow-hidden">
-                    
-                    <!-- Activity Item 1 -->
-                    <div class="p-4 flex items-start space-x-3 hover:bg-gray-50 dark:hover:bg-black/20 transition cursor-pointer">
-                        <div class="mt-0.5 p-1 bg-purple-100 dark:bg-purple-900/40 rounded-full text-purple-600 dark:text-purple-400">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <a href="#" class="text-light-text dark:text-dark-text font-semibold hover:text-light-accent dark:hover:text-dark-accent transition block truncate">如何优雅地处理前端跨域问题与 CORS 配置</a>
-                            <div class="flex flex-wrap items-center gap-2 mt-1.5">
-                                <span class="text-[10px] bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400 px-2 py-0.5 rounded-full border border-blue-200 dark:border-blue-800">Frontend</span>
-                                <span class="text-[10px] bg-gray-100 dark:bg-gray-800 text-light-muted dark:text-dark-muted px-2 py-0.5 rounded-full border border-light-border dark:border-dark-border">Docs</span>
-                                <span class="text-xs text-light-muted dark:text-dark-muted">Opened 2 days ago</span>
-                            </div>
-                        </div>
-                        <div class="text-light-muted dark:text-dark-muted">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
-                            <span class="text-xs ml-1">12</span>
-                        </div>
+    <!-- ================= 工具展示网格 (Tools Grid with Spotlight) ================= -->
+    <section id="tools" class="relative z-10 py-24 px-6">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-16 reveal">
+                <h2 class="text-3xl md:text-5xl font-bold text-gradient mb-4">Featured Projects</h2>
+                <p class="text-space-muted text-lg">Hover over the cards to feel the energy.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Card 1 -->
+                <div class="spotlight-card rounded-xl p-6 transition-all duration-300 hover:border-glow-purple/50 reveal">
+                    <div class="w-12 h-12 bg-glow-purple/10 rounded-lg flex items-center justify-center mb-4 text-glow-purple">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
                     </div>
+                    <h3 class="text-xl font-bold text-space-text mb-2">JSON Formatter Pro</h3>
+                    <p class="text-space-muted text-sm mb-6">一个极致轻量、支持离线使用的 JSON 格式化与校验工具，专为开发者设计。</p>
+                    <div class="flex items-center justify-between text-xs text-space-muted">
+                        <span class="flex items-center"><span class="w-2 h-2 rounded-full bg-yellow-500 mr-2"></span> TypeScript</span>
+                        <a href="#" class="text-glow-blue hover:underline flex items-center">View Repo <svg class="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg></a>
+                    </div>
+                </div>
 
-                    <!-- Activity Item 2 -->
-                    <div class="p-4 flex items-start space-x-3 hover:bg-gray-50 dark:hover:bg-black/20 transition cursor-pointer">
-                        <div class="mt-0.5 p-1 bg-green-100 dark:bg-green-900/40 rounded-full text-green-600 dark:text-green-400">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <a href="#" class="text-light-text dark:text-dark-text font-semibold hover:text-light-accent dark:hover:text-dark-accent transition block truncate">Release v1.2.0: 新增暗黑模式与快捷键支持</a>
-                            <div class="flex flex-wrap items-center gap-2 mt-1.5">
-                                <span class="text-[10px] bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 px-2 py-0.5 rounded-full border border-green-200 dark:border-green-800">Release</span>
-                                <span class="text-xs text-light-muted dark:text-dark-muted">Merged 5 days ago</span>
-                            </div>
-                        </div>
+                <!-- Card 2 -->
+                <div class="spotlight-card rounded-xl p-6 transition-all duration-300 hover:border-glow-blue/50 reveal" style="transition-delay: 100ms;">
+                    <div class="w-12 h-12 bg-glow-blue/10 rounded-lg flex items-center justify-center mb-4 text-glow-blue">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-space-text mb-2">Auto-Deploy Script</h3>
+                    <p class="text-space-muted text-sm mb-6">一行命令实现前端项目的自动化打包、上传服务器并重启 Nginx 服务。</p>
+                    <div class="flex items-center justify-between text-xs text-space-muted">
+                        <span class="flex items-center"><span class="w-2 h-2 rounded-full bg-green-500 mr-2"></span> Shell</span>
+                        <a href="#" class="text-glow-blue hover:underline flex items-center">View Repo <svg class="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg></a>
+                    </div>
+                </div>
+
+                <!-- Card 3 -->
+                <div class="spotlight-card rounded-xl p-6 transition-all duration-300 hover:border-glow-pink/50 reveal" style="transition-delay: 200ms;">
+                    <div class="w-12 h-12 bg-glow-pink/10 rounded-lg flex items-center justify-center mb-4 text-glow-pink">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"></path></svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-space-text mb-2">Giscus Theme Sync</h3>
+                    <p class="text-space-muted text-sm mb-6">解决 GitHub Discussions 评论区主题与博客网站暗黑模式不同步的痛点。</p>
+                    <div class="flex items-center justify-between text-xs text-space-muted">
+                        <span class="flex items-center"><span class="w-2 h-2 rounded-full bg-blue-500 mr-2"></span> JavaScript</span>
+                        <a href="#" class="text-glow-blue hover:underline flex items-center">View Repo <svg class="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg></a>
                     </div>
                 </div>
             </div>
+        </div>
+    </section>
 
-        </section>
-    </main>
+    <!-- ================= 全局命令面板 (Command Palette Modal) ================= -->
+    <div id="cmd-palette" class="fixed inset-0 z-[100] hidden items-start justify-center pt-[20vh] bg-black/60 backdrop-blur-sm p-4">
+        <div class="w-full max-w-xl bg-space-800 border border-space-border rounded-xl shadow-2xl overflow-hidden transform scale-95 opacity-0 transition-all duration-200" id="cmd-panel">
+            <div class="flex items-center border-b border-space-border px-4">
+                <svg class="w-5 h-5 text-space-muted mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                <input type="text" id="cmd-input" placeholder="Search tools, blogs, or actions..." class="w-full bg-transparent py-4 text-space-text outline-none placeholder-space-muted">
+                <kbd class="hidden sm:block font-mono text-[10px] text-space-muted bg-space-700 px-1.5 py-0.5 rounded border border-space-border">ESC</kbd>
+            </div>
+            <div class="p-2 max-h-[300px] overflow-y-auto" id="cmd-results">
+                <p class="px-3 py-2 text-xs text-space-muted font-semibold uppercase tracking-wider">Navigation</p>
+                <a href="#tools" class="cmd-item flex items-center px-3 py-2 rounded-md text-space-text hover:bg-space-700 cursor-pointer transition">
+                    <svg class="w-4 h-4 mr-3 text-space-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                    Go to Tools
+                </a>
+                <a href="#blog" class="cmd-item flex items-center px-3 py-2 rounded-md text-space-text hover:bg-space-700 cursor-pointer transition">
+                    <svg class="w-4 h-4 mr-3 text-space-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"></path></svg>
+                    Read Blog
+                </a>
+            </div>
+        </div>
+    </div>
 
-    <!-- ================= 页脚 (Footer) ================= -->
-    <footer class="border-t border-light-border dark:border-dark-border mt-12 py-8 text-center text-xs text-light-muted dark:text-dark-muted">
-        <p>&copy; 2026 lunarHope. Built with ❤️ and Tailwind CSS.</p>
-    </footer>
-
-    <!-- ================= JavaScript 交互逻辑 ================= -->
     <script>
-        // 1. 主题切换逻辑
-        const themeToggleBtn = document.getElementById('theme-toggle');
-        const htmlEl = document.documentElement;
+        // 1. 鼠标追光效果 (Spotlight)
+        document.querySelectorAll('.spotlight-card').forEach(card => {
+            card.addEventListener('mousemove', (e) => {
+                const rect = card.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+                card.style.setProperty('--mouse-x', `${x}px`);
+                card.style.setProperty('--mouse-y', `${y}px`);
+            });
+        });
 
-        // 检查本地存储或系统偏好
-        if (localStorage.getItem('theme') === 'light' || 
-           (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: light)').matches)) {
-            htmlEl.classList.remove('dark');
-            htmlEl.classList.add('light');
-        } else {
-            htmlEl.classList.add('dark');
+        // 2. 滚动显示动画 (Intersection Observer)
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('active');
+                }
+            });
+        }, { threshold: 0.1 });
+
+        document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+        // 3. 交互式终端逻辑
+        const termOut = document.getElementById('terminal-output');
+        const cmdBtns = document.querySelectorAll('.cmd-btn');
+        
+        const responses = {
+            'npm run build': [
+                { text: '> lunarhope-tools@1.0.0 build', color: 'text-space-muted' },
+                { text: '> vite build', color: 'text-space-muted' },
+                { text: '✓ 12 modules transformed.', color: 'text-glow-green' },
+                { text: 'dist/index.html  1.42 kB │ gzip: 0.71 kB', color: 'text-space-text' },
+                { text: '✓ built in 420ms', color: 'text-glow-green' }
+            ],
+            'git push origin main': [
+                { text: 'Enumerating objects: 5, done.', color: 'text-space-text' },
+                { text: 'Counting objects: 100% (5/5), done.', color: 'text-space-text' },
+                { text: 'remote: Resolving deltas: 100% (2/2), completed with 1 local object.', color: 'text-space-muted' },
+                { text: 'To github.com:lunarHope/tools.git', color: 'text-space-text' },
+                { text: '   8a1b2c3..9d4e5f6  main -> main', color: 'text-glow-blue' }
+            ],
+            'deploy --prod': [
+                { text: 'Connecting to production server...', color: 'text-yellow-500' },
+                { text: 'Uploading assets... 100%', color: 'text-space-text' },
+                { text: 'Restarting PM2 instances...', color: 'text-space-text' },
+                { text: '✔ Deployment successful! Site is live.', color: 'text-glow-green' }
+            ]
+        };
+
+        cmdBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const cmd = btn.dataset.cmd;
+                // 移除光标
+                const cursorLine = termOut.querySelector('.cursor-blink');
+                if(cursorLine) cursorLine.classList.remove('cursor-blink');
+
+                // 打印命令
+                const cmdLine = document.createElement('p');
+                cmdLine.innerHTML = `<span class="text-glow-green">➜</span> <span class="text-glow-blue">~</span> ${cmd}`;
+                termOut.appendChild(cmdLine);
+
+                // 模拟延迟打印结果
+                let delay = 300;
+                responses[cmd].forEach(res => {
+                    setTimeout(() => {
+                        const resLine = document.createElement('p');
+                        resLine.className = res.color;
+                        resLine.textContent = res.text;
+                        termOut.appendChild(resLine);
+                        termOut.scrollTop = termOut.scrollHeight;
+                    }, delay);
+                    delay += 200 + Math.random() * 300;
+                });
+
+                // 重新添加光标
+                setTimeout(() => {
+                    const newCursor = document.createElement('p');
+                    newCursor.innerHTML = `<span class="text-glow-green">➜</span> <span class="text-glow-blue">~</span> <span class="cursor-blink text-space-text"></span>`;
+                    termOut.appendChild(newCursor);
+                    termOut.scrollTop = termOut.scrollHeight;
+                }, delay + 200);
+            });
+        });
+
+        // 4. Command Palette (Cmd+K) 逻辑
+        const palette = document.getElementById('cmd-palette');
+        const panel = document.getElementById('cmd-panel');
+        const input = document.getElementById('cmd-input');
+
+        function togglePalette() {
+            if (palette.classList.contains('hidden')) {
+                palette.classList.remove('hidden');
+                palette.classList.add('flex');
+                setTimeout(() => {
+                    panel.classList.remove('scale-95', 'opacity-0');
+                    input.focus();
+                }, 10);
+            } else {
+                panel.classList.add('scale-95', 'opacity-0');
+                setTimeout(() => {
+                    palette.classList.add('hidden');
+                    palette.classList.remove('flex');
+                }, 200);
+            }
         }
 
-        themeToggleBtn.addEventListener('click', () => {
-            if (htmlEl.classList.contains('dark')) {
-                htmlEl.classList.remove('dark');
-                htmlEl.classList.add('light');
-                localStorage.setItem('theme', 'light');
-            } else {
-                htmlEl.classList.remove('light');
-                htmlEl.classList.add('dark');
-                localStorage.setItem('theme', 'dark');
+        document.getElementById('cmd-k-btn').addEventListener('click', togglePalette);
+        document.getElementById('cmd-k-btn-mobile').addEventListener('click', togglePalette);
+
+        document.addEventListener('keydown', (e) => {
+            if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+                e.preventDefault();
+                togglePalette();
+            }
+            if (e.key === 'Escape' && !palette.classList.contains('hidden')) {
+                togglePalette();
             }
         });
 
-        // 2. 生成模拟的 GitHub 贡献热力图
-        const contribGraph = document.getElementById('contrib-graph');
-        const weeks = 52;
-        const colors = [
-            'bg-gray-200 dark:bg-gray-800', // 0 contribs
-            'bg-green-200 dark:bg-green-900', // 1-3
-            'bg-green-400 dark:bg-green-700', // 4-8
-            'bg-green-600 dark:bg-green-500'  // 9+
-        ];
+        // 点击背景关闭
+        palette.addEventListener('click', (e) => {
+            if (e.target === palette) togglePalette();
+        });
 
-        // 生成 52 周 * 7 天 = 364 个格子
-        for (let i = 0; i < weeks * 7; i++) {
-            const cell = document.createElement('div');
-            cell.className = `contrib-cell w-3 h-3 rounded-sm ${colors[Math.floor(Math.random() * colors.length)]}`;
-            
-            // 添加一些随机性，让它看起来更真实 (比如周末少一点)
-            const dayOfWeek = i % 7;
-            if (dayOfWeek === 0 || dayOfWeek === 6) {
-                if (Math.random() > 0.3) cell.className = `contrib-cell w-3 h-3 rounded-sm ${colors[0]}`;
-            }
-            
-            contribGraph.appendChild(cell);
-        }
+        // 点击选项后关闭
+        document.querySelectorAll('.cmd-item').forEach(item => {
+            item.addEventListener('click', () => {
+                togglePalette();
+            });
+        });
     </script>
 </body>
 </html>
