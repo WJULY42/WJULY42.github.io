@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tool | lunarHope</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        space: { 900: '#010409', 800: '#0d1117', 700: '#161b22', 600: '#21262d', border: '#30363d', text: '#f0f6fc', muted: '#8b949e' },
+                        glow: { purple: '#8957e5', blue: '#58a6ff', green: '#3fb950' }
+                    },
+                    fontFamily: { sans: ['Inter', 'sans-serif'], mono: ['"JetBrains Mono"', 'monospace'] }
+                }
+            }
+        }
+    </style>
+    <style>
+        body { background-color: #010409; color: #f0f6fc; overflow: hidden; } /* 防止出现双滚动条 */
+        ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: #010409; } ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
+        
+        /* 全屏时的样式 */
+        #iframe-container:fullscreen { padding: 0; border-radius: 0; border: none; }
+        #iframe-container:fullscreen .window-header { border-radius: 0; }
+    </style>
+</head>
+<body class="font-sans antialiased h-screen flex flex-col">
+
+    <!-- 顶部极简导航 -->
+    <header class="bg-space-900 border-b border-space-border px-6 py-3 flex justify-between items-center z-50 flex-shrink-0">
+        <a href="/tools/" class="flex items-center text-space-muted hover:text-space-text transition font-mono text-sm">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+            Back to Workbench
+        </a>
+        <span class="text-xs text-space-muted font-mono hidden md:block" id="header-path">app://...</span>
+    </header>
+
+    <!-- 主体区域 -->
+    <main class="flex-grow max-w-7xl mx-auto w-full p-4 md:p-6 grid grid-cols-1 lg:grid-cols-5 gap-6 min-h-0">
+        
+        <!-- 左侧：工具窗口 (占 4 份) -->
+        <div class="lg:col-span-4 flex flex-col min-h-0" id="iframe-container">
+            <!-- 模拟窗口标题栏 -->
+            <div class="window-header bg-space-700 px-4 py-2.5 border border-space-border rounded-t-xl flex items-center justify-between flex-shrink-0">
+                <div class="flex space-x-2">
+                    <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                    <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+                    <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                </div>
+                <span class="text-xs text-space-muted font-mono" id="window-title">loading...</span>
+                <button onclick="toggleFullscreen()" class="text-space-muted hover:text-space-text transition p-1" title="Toggle Fullscreen">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path></svg>
+                </button>
+            </div>
+            <!-- Iframe 容器 -->
+            <div class="flex-grow border border-t-0 border-space-border rounded-b-xl overflow-hidden bg-white relative">
+                <iframe id="tool-iframe" class="w-full h-full absolute inset-0" src="" frameborder="0"></iframe>
+            </div>
+        </div>
+
+        <!-- 右侧：信息面板 (占 1 份) -->
+        <aside class="lg:col-span-1 bg-space-800 border border-space-border rounded-xl p-6 flex flex-col space-y-6 overflow-y-auto">
+            <div class="text-center space-y-3">
+                <div id="tool-emoji" class="text-6xl mb-2">🛠️</div>
+                <h2 id="tool-name" class="text-2xl font-bold text-space-text">Tool Name</h2>
+                <p id="tool-desc" class="text-sm text-space-muted leading-relaxed">Description goes here.</p>
+            </div>
+            
+            <div class="border-t border-space-border pt-6 space-y-4">
+                <h4 class="text-xs font-bold text-space-muted uppercase tracking-wider">Actions</h4>
+                <a id="open-new-tab" href="#" target="_blank" class="block w-full text-center py-2 bg-space-700 hover:bg-space-600 border border-space-border rounded-md text-sm text-space-text transition">
+                    Open in New Tab
+                </a>
+                <button onclick="toggleFullscreen()" class="block w-full text-center py-2 bg-glow-blue/10 hover:bg-glow-blue/20 border border-glow-blue/50 rounded-md text-sm text-glow-blue transition">
+                    Enter Fullscreen
+                </button>
+            </div>
+
+            <div class="border-t border-space-border pt-6 mt-auto">
+                <p class="text-[10px] text-space-muted text-center font-mono">Powered by lunarHope OS</p>
+            </div>
+        </aside>
+    </main>
+
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const appUrl = params.get('app'); // e.g., 'calculator.html'
+
+        async function initTool() {
+            if (!appUrl) {
+                document.body.innerHTML = '<p class="text-glow-pink p-10 font-mono">Error: No app specified in URL.</p>';
+                return;
+            }
+
+            const iframe = document.getElementById('tool-iframe');
+            const windowTitle = document.getElementById('window-title');
+            const headerPath = document.getElementById('header-path');
+            const openNewTab = document.getElementById('open-new-tab');
+            
+            // 1. 立即加载 iframe (保证速度)
+            const fullUrl = `/tools/${appUrl}`;
+            iframe.src = fullUrl;
+            windowTitle.textContent = `app://${appUrl}`;
+            headerPath.textContent = `~/tools/${appUrl}`;
+            openNewTab.href = fullUrl;
+
+            // 2. 异步获取元数据 (填充侧边栏)
+            try {
+                const res = await fetch('/data/tools.json');
+                const data = await res.json();
+                const tools = Array.isArray(data) ? data : (data.tools || []);
+                const tool = tools.find(t => t.url === appUrl);
+                
+                if (tool) {
+                    document.getElementById('tool-emoji').textContent = tool.emoji || '🛠️';
+                    document.getElementById('tool-name').textContent = tool.name;
+                    document.getElementById('tool-desc').textContent = tool.desc;
+                    document.title = `${tool.name} | lunarHope Tools`;
+                }
+            } catch (e) {
+                console.error('Failed to load metadata', e);
+            }
+        }
+
+        // 全屏控制
+        function toggleFullscreen() {
+            const container = document.getElementById('iframe-container');
+            if (!document.fullscreenElement) {
+                container.requestFullscreen().catch(err => {
+                    console.log(`Fullscreen error: ${err.message}`);
+                });
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        initTool();
+    </script>
+</body>
+</html>
