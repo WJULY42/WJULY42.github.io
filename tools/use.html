@@ -18,14 +18,17 @@
                 }
             }
         }
-    </style>
+    </script>
     <style>
-        body { background-color: #010409; color: #f0f6fc; overflow: hidden; } /* 防止出现双滚动条 */
-        ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: #010409; } ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
+        body { background-color: #010409; color: #f0f6fc; overflow: hidden; }
+        ::-webkit-scrollbar { width: 6px; } 
+        ::-webkit-scrollbar-track { background: #010409; } 
+        ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
         
-        /* 全屏时的样式 */
-        #iframe-container:fullscreen { padding: 0; border-radius: 0; border: none; }
-        #iframe-container:fullscreen .window-header { border-radius: 0; }
+        /* 全屏时的样式优化 */
+        #iframe-container:fullscreen { padding: 0; border-radius: 0; border: none; height: 100vh; width: 100vw; }
+        #iframe-container:fullscreen .window-header { display: none; } /* 全屏时隐藏标题栏更沉浸 */
+        #iframe-container:fullscreen .iframe-wrapper { border-radius: 0; border: none; }
     </style>
 </head>
 <body class="font-sans antialiased h-screen flex flex-col">
@@ -43,9 +46,9 @@
     <main class="flex-grow max-w-7xl mx-auto w-full p-4 md:p-6 grid grid-cols-1 lg:grid-cols-5 gap-6 min-h-0">
         
         <!-- 左侧：工具窗口 (占 4 份) -->
-        <div class="lg:col-span-4 flex flex-col min-h-0" id="iframe-container">
+        <div class="lg:col-span-4 flex flex-col min-h-0 h-full" id="iframe-container">
             <!-- 模拟窗口标题栏 -->
-            <div class="window-header bg-space-700 px-4 py-2.5 border border-space-border rounded-t-xl flex items-center justify-between flex-shrink-0">
+            <div class="window-header bg-space-700 px-4 py-2.5 border border-space-border rounded-t-xl flex items-center justify-between flex-shrink-0 select-none">
                 <div class="flex space-x-2">
                     <div class="w-3 h-3 rounded-full bg-red-500"></div>
                     <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
@@ -56,16 +59,17 @@
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path></svg>
                 </button>
             </div>
-            <!-- Iframe 容器 -->
-            <div class="flex-grow border border-t-0 border-space-border rounded-b-xl overflow-hidden bg-white relative">
+            
+            <!-- Iframe 容器 (白色背景确保工具可见) -->
+            <div class="iframe-wrapper flex-grow border border-t-0 border-space-border rounded-b-xl overflow-hidden bg-white relative shadow-2xl">
                 <iframe id="tool-iframe" class="w-full h-full absolute inset-0" src="" frameborder="0"></iframe>
             </div>
         </div>
 
         <!-- 右侧：信息面板 (占 1 份) -->
-        <aside class="lg:col-span-1 bg-space-800 border border-space-border rounded-xl p-6 flex flex-col space-y-6 overflow-y-auto">
+        <aside class="lg:col-span-1 bg-space-800 border border-space-border rounded-xl p-6 flex flex-col space-y-6 overflow-y-auto h-full">
             <div class="text-center space-y-3">
-                <div id="tool-emoji" class="text-6xl mb-2">🛠️</div>
+                <div id="tool-emoji" class="text-6xl mb-2 animate-bounce">🛠️</div>
                 <h2 id="tool-name" class="text-2xl font-bold text-space-text">Tool Name</h2>
                 <p id="tool-desc" class="text-sm text-space-muted leading-relaxed">Description goes here.</p>
             </div>
@@ -88,11 +92,11 @@
 
     <script>
         const params = new URLSearchParams(window.location.search);
-        const appUrl = params.get('app'); // e.g., 'calculator.html'
+        const appUrl = params.get('app'); 
 
         async function initTool() {
             if (!appUrl) {
-                document.body.innerHTML = '<p class="text-glow-pink p-10 font-mono">Error: No app specified in URL.</p>';
+                document.body.innerHTML = '<div class="flex items-center justify-center h-screen text-glow-pink font-mono">Error: No app specified in URL.<br>Example: use.html?app=todo.html</div>';
                 return;
             }
 
@@ -101,18 +105,21 @@
             const headerPath = document.getElementById('header-path');
             const openNewTab = document.getElementById('open-new-tab');
             
-            // 1. 立即加载 iframe (保证速度)
+            // 1. 立即加载 iframe
             const fullUrl = `/tools/${appUrl}`;
             iframe.src = fullUrl;
             windowTitle.textContent = `app://${appUrl}`;
             headerPath.textContent = `~/tools/${appUrl}`;
             openNewTab.href = fullUrl;
 
-            // 2. 异步获取元数据 (填充侧边栏)
+            // 2. 异步获取元数据填充侧边栏
             try {
                 const res = await fetch('/data/tools.json');
+                if (!res.ok) throw new Error('JSON not found');
                 const data = await res.json();
                 const tools = Array.isArray(data) ? data : (data.tools || []);
+                
+                // 尝试匹配 url 字段
                 const tool = tools.find(t => t.url === appUrl);
                 
                 if (tool) {
@@ -120,9 +127,13 @@
                     document.getElementById('tool-name').textContent = tool.name;
                     document.getElementById('tool-desc').textContent = tool.desc;
                     document.title = `${tool.name} | lunarHope Tools`;
+                } else {
+                    // 如果没找到，显示文件名
+                    document.getElementById('tool-name').textContent = appUrl.replace('.html', '');
                 }
             } catch (e) {
                 console.error('Failed to load metadata', e);
+                document.getElementById('tool-desc').textContent = "Failed to load tool description.";
             }
         }
 
@@ -131,13 +142,14 @@
             const container = document.getElementById('iframe-container');
             if (!document.fullscreenElement) {
                 container.requestFullscreen().catch(err => {
-                    console.log(`Fullscreen error: ${err.message}`);
+                    alert(`Error attempting to enable fullscreen: ${err.message}`);
                 });
             } else {
                 document.exitFullscreen();
             }
         }
 
+        // 启动
         initTool();
     </script>
 </body>
