@@ -1,6 +1,15 @@
 {
   "tools": [
     {
+      "name": "cut",
+      "desc": "by wjuly42",
+      "url": "c-u-t.html",
+      "emoji": "C",
+      "status": "Live",
+      "lang": "HTML",
+      "langColor": "#e34c26"
+    },
+    {
       "name": "atest",
       "desc": "by wjuly42",
       "url": "a-t-e-s-t.html",
