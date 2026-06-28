@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Publish Post | lunarHope</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- 引入拼音转换库 (支持中文标题转 Slug) -->
+    <script src="https://unpkg.com/pinyin-pro"></script>
+    
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <script>
         tailwind.config = {
@@ -26,6 +30,8 @@
         @keyframes blink { 50% { opacity: 0; } }
         /* 滚动条美化 */
         ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: #010409; } ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
+        
+        /* UTF-8 Base64 辅助函数样式无关，但在 JS 中需要 */
     </style>
 </head>
 <body class="font-mono min-h-screen flex flex-col">
@@ -46,7 +52,7 @@
         <div class="lg:col-span-2 space-y-6">
             <div class="bg-space-800 border border-space-border rounded-lg p-6 shadow-lg">
                 <label class="block text-sm text-space-muted mb-2">Post Title</label>
-                <input type="text" id="post-title" class="w-full bg-space-900 border border-space-border rounded p-3 text-space-text focus:border-glow-blue outline-none transition font-sans font-bold text-lg" placeholder="e.g., How to optimize GitHub Pages">
+                <input type="text" id="post-title" class="w-full bg-space-900 border border-space-border rounded p-3 text-space-text focus:border-glow-blue outline-none transition font-sans font-bold text-lg" placeholder="e.g., 我的第一篇中文博客">
                 
                 <div class="grid grid-cols-2 gap-4 mt-4">
                     <div>
@@ -101,6 +107,14 @@
             tokenInput.value = localStorage.getItem('gh_token');
         }
 
+        // ✅ 修复：UTF-8 转 Base64 辅助函数 (解决中文乱码)
+        function utf8ToBase64(str) {
+            return btoa(unescape(encodeURIComponent(str)));
+        }
+        function base64ToUtf8(base64) {
+            return decodeURIComponent(escape(atob(base64)));
+        }
+
         function log(msg, type = 'info') {
             const term = document.getElementById('terminal-log');
             const p = document.createElement('p');
@@ -144,7 +158,20 @@
             btnText.textContent = 'Processing...';
             log('Starting publish sequence...', 'info');
 
-            const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+            // ✅ 修复：智能 Slug 生成 (支持中文转拼音)
+            let slug = "";
+            if (window.pinyinPro) {
+                // 使用拼音库将中文转为拼音，去掉声调，用连字符连接
+                slug = window.pinyinPro.pinyin(title, { toneType: 'none', type: 'array' }).join('-');
+            } else {
+                // 回退方案：保留非空字符
+                slug = title.toLowerCase().replace(/[^\w\u4e00-\u9fa5]+/g, '-').replace(/(^-|-$)/g, '');
+            }
+            // 清理多余连字符并转为小写
+            slug = slug.replace(/-+/g, '-').toLowerCase();
+            // 如果 slug 还是空的，给个默认值
+            if (!slug) slug = 'untitled-post-' + Date.now();
+
             const mdPath = `blog/posts/${slug}.md`;
             const jsonPath = `data/posts.json`;
             const tags = tagsStr.split(',').map(t => t.trim()).filter(t => t);
@@ -153,7 +180,9 @@
                 // 1. 准备 Markdown 内容
                 const frontmatter = `---\ntitle: "${title}"\ndate: ${date}\ntags: [${tags.join(', ')}]\n---\n\n`;
                 const fullMdContent = frontmatter + content;
-                const encodedMd = btoa(unescape(encodeURIComponent(fullMdContent)));
+                
+                // 使用修复后的编码函数
+                const encodedMd = utf8ToBase64(fullMdContent);
 
                 // 2. 处理 posts.json
                 log('Fetching current posts index...', 'info');
@@ -165,7 +194,9 @@
                         headers: { Authorization: `token ${token}` }
                     });
                     const jsonData = await jsonRes.json();
-                    const decodedJson = atob(jsonData.content);
+                    
+                    // 使用修复后的解码函数
+                    const decodedJson = base64ToUtf8(jsonData.content);
                     const parsed = JSON.parse(decodedJson);
                     posts = Array.isArray(parsed) ? parsed : (parsed.posts || []);
                     log(`Found ${posts.length} existing posts.`, 'info');
@@ -185,7 +216,9 @@
 
                 // 重新序列化 JSON (美化格式)
                 const newJsonContent = JSON.stringify({ posts: posts }, null, 2);
-                const encodedJson = btoa(unescape(encodeURIComponent(newJsonContent)));
+                
+                // 使用修复后的编码函数
+                const encodedJson = utf8ToBase64(newJsonContent);
 
                 // 3. 执行提交 (先提交 MD，再提交 JSON)
                 log('Pushing Markdown file...', 'info');
