@@ -1,6 +1,15 @@
 {
   "posts": [
     {
+      "title": "大东北～",
+      "date": "2026-06-28",
+      "tags": [
+        "doge"
+      ],
+      "slug": "da-dong-bei-～",
+      "url": "/blog/read.html?slug=da-dong-bei-～"
+    },
+    {
       "title": "next try",
       "date": "2026-06-27",
       "tags": [],
