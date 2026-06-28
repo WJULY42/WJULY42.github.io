@@ -3,494 +3,71 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>✅ 待办清单 · WJULY42 工具箱</title>
-    <!-- 统一全局样式 -->
-    <link rel="stylesheet" href="../style.css">
+    <title>Todo List</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap" rel="stylesheet">
     <style>
-        /* 工具专属微调 —— 完全基于全局变量 */
-        .todo-stats {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1.5rem;
-            font-size: 0.9rem;
-            color: var(--text-light);
-        }
-        .todo-input-group {
-            display: flex;
-            gap: 0.5rem;
-            margin-bottom: 1.5rem;
-        }
-        .todo-input-group input {
-            flex: 1;
-            padding: 0.75rem 1rem;
-            border: 1px solid var(--border);
-            border-radius: 2.5rem;
-            background: var(--card);
-            color: var(--text);
-            font-size: 1rem;
-            outline: none;
-            transition: border 0.2s, box-shadow 0.2s;
-        }
-        .todo-input-group input:focus {
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-        }
-        .todo-list {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-        .todo-item {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            padding: 0.9rem 0;
-            border-bottom: 1px solid var(--border);
-            animation: slideIn 0.2s ease;
-        }
-        @keyframes slideIn {
-            from { opacity: 0; transform: translateX(-4px); }
-            to { opacity: 1; transform: translateX(0); }
-        }
-        .todo-check {
-            width: 1.3rem;
-            height: 1.3rem;
-            cursor: pointer;
-            accent-color: var(--primary);
-            flex-shrink: 0;
-        }
-        .todo-content {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            min-width: 0; /* 防止溢出 */
-        }
-        .todo-text {
-            font-size: 1rem;
-            word-break: break-word;
-            transition: color 0.2s;
-            padding: 0.2rem 0;
-        }
-        .todo-text.completed {
-            text-decoration: line-through;
-            color: var(--text-light);
-        }
-        /* 内联编辑输入框 */
-        .todo-edit-input {
-            flex: 1;
-            padding: 0.4rem 0.6rem;
-            border: 1px solid var(--primary);
-            border-radius: 8px;
-            background: var(--card);
-            color: var(--text);
-            font-size: 1rem;
-            outline: none;
-        }
-        .todo-actions {
-            display: flex;
-            gap: 0.3rem;
-            flex-shrink: 0;
-        }
-        .todo-edit, .todo-delete, .todo-save, .todo-cancel {
-            background: none;
-            border: none;
-            cursor: pointer;
-            font-size: 1.2rem;
-            padding: 0.3rem 0.5rem;
-            border-radius: 8px;
-            transition: background 0.2s, transform 0.1s;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--text-light);
-        }
-        .todo-edit:hover, .todo-save:hover { background: var(--border); color: var(--primary); }
-        .todo-delete:hover, .todo-cancel:hover { background: #fee2e2; color: #ef4444; }
-        .clear-completed {
-            background: none;
-            border: 1px solid var(--border);
-            border-radius: 2rem;
-            padding: 0.4rem 1.2rem;
-            cursor: pointer;
-            font-size: 0.85rem;
-            font-weight: 500;
-            color: var(--text-light);
-            transition: all 0.2s;
-        }
-        .clear-completed:hover {
-            background: #ef4444;
-            color: white;
-            border-color: #ef4444;
-        }
-        .empty-state {
-            text-align: center;
-            padding: 2.5rem 1rem;
-            color: var(--text-light);
-        }
-        .empty-state p { margin: 0.5rem 0; }
-        .sample-tasks {
-            display: flex;
-            gap: 0.5rem;
-            justify-content: center;
-            flex-wrap: wrap;
-            margin-top: 1rem;
-        }
-        .sample-chip {
-            background: var(--ring-bg);
-            border: 1px solid var(--border);
-            border-radius: 20px;
-            padding: 0.3rem 1rem;
-            font-size: 0.9rem;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .sample-chip:hover {
-            background: var(--primary);
-            color: white;
-            border-color: var(--primary);
-        }
-        .footer-actions {
-            margin-top: 2rem;
-            text-align: center;
-        }
-        /* 响应式 */
-        @media (max-width: 480px) {
-            .todo-stats { flex-wrap: wrap; gap: 0.5rem; }
-            .clear-completed { margin-left: auto; }
-        }
+        body { background-color: #0d1117; color: #f0f6fc; font-family: 'Inter', sans-serif; padding: 2rem; }
+        .task-item { transition: all 0.2s; }
+        .task-item:hover { background-color: #161b22; }
+        .completed span { text-decoration: line-through; color: #8b949e; }
+        .completed .check-icon { color: #3fb950; }
     </style>
 </head>
-<body>
-<div class="container">
-    <!-- 导航栏（复用项目全局结构） -->
-    <nav>
-        <a href="../">🏠 首页</a>
-        <a href="../blog/">📝 博客</a>
-        <a href="index.html">🛠️ 工具</a>
-    </nav>
-
-    <div style="margin-bottom: 1.5rem;">
-        <h1>✅ 待办清单</h1>
-        <p style="color: var(--text-light);">任务自动保存，关闭页面不丢失。</p>
+<body class="max-w-md mx-auto">
+    <div class="flex gap-2 mb-6">
+        <input type="text" id="input" placeholder="Add a new task..." class="flex-grow bg-[#010409] border border-[#30363d] rounded-md px-3 py-2 outline-none focus:border-[#58a6ff] text-sm">
+        <button onclick="addTask()" class="bg-[#238636] text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-[#2ea043]">Add</button>
     </div>
+    <ul id="list" class="space-y-2">
+        <!-- Tasks will appear here -->
+    </ul>
 
-    <div class="card">
-        <!-- 统计与清除 -->
-        <div class="todo-stats">
-            <span>📋 总计 <strong id="totalCount">0</strong></span>
-            <span>✔️ 已完成 <strong id="completedCount">0</strong></span>
-            <button class="clear-completed" id="clearCompletedBtn" title="清除所有已完成任务">清除已完成</button>
-        </div>
+    <script>
+        const input = document.getElementById('input');
+        const list = document.getElementById('list');
+        
+        // Load from local storage
+        let tasks = JSON.parse(localStorage.getItem('lunar_tasks')) || [];
+        render();
 
-        <!-- 输入区域 -->
-        <div class="todo-input-group">
-            <input type="text" id="todoInput" placeholder="写一个新任务，按 Enter 添加…" autocomplete="off" aria-label="新任务">
-            <button class="btn" id="addBtn">添加</button>
-        </div>
+        function addTask() {
+            if(!input.value.trim()) return;
+            tasks.unshift({ text: input.value, done: false });
+            save();
+            input.value = '';
+        }
 
-        <!-- 任务列表容器 -->
-        <ul class="todo-list" id="todoList"></ul>
-    </div>
+        function toggle(index) {
+            tasks[index].done = !tasks[index].done;
+            save();
+        }
 
-    <!-- 返回按钮 -->
-    <div class="footer-actions">
-        <a href="index.html" class="btn">← 返回工具集</a>
-    </div>
-</div>
+        function remove(index) {
+            tasks.splice(index, 1);
+            save();
+        }
 
-<script>
-    (function(){
-        "use strict";
-
-        // ---------- 状态 ----------
-        let todos = [];
-        let currentEditId = null; // 正在编辑的任务 ID
-
-        // DOM 元素
-        const todoInput = document.getElementById('todoInput');
-        const addBtn = document.getElementById('addBtn');
-        const todoList = document.getElementById('todoList');
-        const totalSpan = document.getElementById('totalCount');
-        const completedSpan = document.getElementById('completedCount');
-        const clearBtn = document.getElementById('clearCompletedBtn');
-
-        // ---------- 初始化 ----------
-        function loadTodos() {
-            const stored = localStorage.getItem('wjuly_todos_v2');
-            if (stored) {
-                try {
-                    todos = JSON.parse(stored);
-                } catch(e) { todos = []; }
-            }
-            // 若无任务，提供友好示例（仅首次）
-            if (!todos || todos.length === 0) {
-                todos = [
-                    { id: Date.now() + 1, text: '✨ 点击左侧复选框完成任务', completed: false },
-                    { id: Date.now() + 2, text: '✏️ 点击编辑按钮修改任务', completed: false },
-                    { id: Date.now() + 3, text: '🗑️ 不需要的任务可以删除', completed: true }
-                ];
-            }
+        function save() {
+            localStorage.setItem('lunar_tasks', JSON.stringify(tasks));
             render();
         }
 
-        function saveTodos() {
-            localStorage.setItem('wjuly_todos_v2', JSON.stringify(todos));
-        }
-
-        // ---------- 渲染 ----------
         function render() {
-            updateStats();
-            if (todos.length === 0) {
-                renderEmptyState();
-                return;
-            }
-            renderList();
-        }
-
-        function updateStats() {
-            const total = todos.length;
-            const completed = todos.filter(t => t.completed).length;
-            totalSpan.textContent = total;
-            completedSpan.textContent = completed;
-        }
-
-        function renderEmptyState() {
-            todoList.innerHTML = `
-                <li class="empty-state">
-                    <div>✨ 暂无任务</div>
-                    <p>试试添加一条吧～</p>
-                    <div class="sample-tasks">
-                        <span class="sample-chip" data-sample="阅读30分钟">📖 阅读30分钟</span>
-                        <span class="sample-chip" data-sample="完成工作报告">📊 完成工作报告</span>
-                        <span class="sample-chip" data-sample="锻炼身体">🏃 锻炼身体</span>
+            list.innerHTML = tasks.map((t, i) => `
+                <li class="task-item flex items-center justify-between p-3 border border-[#30363d] rounded-md ${t.done ? 'completed' : ''}">
+                    <div class="flex items-center gap-3 cursor-pointer" onclick="toggle(${i})">
+                        <svg class="check-icon w-5 h-5 ${t.done ? 'text-[#3fb950]' : 'text-[#8b949e]'}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${t.done ? 'M5 13l4 4L19 7' : 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z'}"></path></svg>
+                        <span class="text-sm">${t.text}</span>
                     </div>
+                    <button onclick="remove(${i})" class="text-[#8b949e] hover:text-[#da3633] transition">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
                 </li>
-            `;
-            // 绑定示例点击事件
-            document.querySelectorAll('.sample-chip').forEach(chip => {
-                chip.addEventListener('click', () => {
-                    const text = chip.dataset.sample;
-                    addTodo(text);
-                });
-            });
-        }
-
-        function renderList() {
-            const html = todos.map(todo => {
-                const isEditing = (currentEditId === todo.id);
-                const checkedAttr = todo.completed ? 'checked' : '';
-                const textClass = todo.completed ? 'todo-text completed' : 'todo-text';
-                
-                // 编辑模式
-                if (isEditing) {
-                    return `
-                        <li class="todo-item" data-id="${todo.id}">
-                            <input type="checkbox" class="todo-check" ${checkedAttr} disabled>
-                            <div class="todo-content">
-                                <input type="text" class="todo-edit-input" value="${escapeHtml(todo.text)}" autofocus>
-                            </div>
-                            <div class="todo-actions">
-                                <button class="todo-save" data-action="save" title="保存 (Enter)">💾</button>
-                                <button class="todo-cancel" data-action="cancel" title="取消 (Esc)">✕</button>
-                            </div>
-                        </li>
-                    `;
-                }
-                
-                // 普通模式
-                return `
-                    <li class="todo-item" data-id="${todo.id}">
-                        <input type="checkbox" class="todo-check" ${checkedAttr} data-action="toggle">
-                        <div class="todo-content">
-                            <span class="${textClass}">${escapeHtml(todo.text)}</span>
-                        </div>
-                        <div class="todo-actions">
-                            <button class="todo-edit" data-action="edit" title="编辑">✏️</button>
-                            <button class="todo-delete" data-action="delete" title="删除">🗑️</button>
-                        </div>
-                    </li>
-                `;
-            }).join('');
-            
-            todoList.innerHTML = html;
-            
-            // 如果正在编辑，自动聚焦输入框
-            if (currentEditId) {
-                const editInput = todoList.querySelector('.todo-edit-input');
-                if (editInput) {
-                    editInput.focus();
-                    editInput.select();
-                }
-            }
-        }
-
-        // 简单的转义，防止 XSS
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
-        // ---------- 核心操作 ----------
-        function addTodo(text) {
-            const trimmed = text.trim();
-            if (!trimmed) return;
-            
-            const newTodo = {
-                id: Date.now() + Math.floor(Math.random() * 1000),
-                text: trimmed,
-                completed: false
-            };
-            todos.push(newTodo);
-            saveTodos();
-            currentEditId = null; // 退出编辑状态
-            render();
-        }
-
-        function toggleComplete(id) {
-            const todo = todos.find(t => t.id === id);
-            if (todo) {
-                todo.completed = !todo.completed;
-                saveTodos();
-                render();
-            }
-        }
-
-        function deleteTodo(id) {
-            if (!confirm('确定要删除这个任务吗？')) return;
-            todos = todos.filter(t => t.id !== id);
-            if (currentEditId === id) currentEditId = null;
-            saveTodos();
-            render();
-        }
-
-        function startEdit(id) {
-            // 如果已经有其他任务在编辑，先取消
-            currentEditId = id;
-            render();
-        }
-
-        function saveEdit(id, newText) {
-            const trimmed = newText.trim();
-            if (!trimmed) {
-                // 如果文本为空，询问是否删除
-                if (confirm('任务内容为空，要删除它吗？')) {
-                    deleteTodo(id);
-                } else {
-                    currentEditId = null;
-                    render();
-                }
-                return;
-            }
-            
-            const todo = todos.find(t => t.id === id);
-            if (todo) {
-                todo.text = trimmed;
-                saveTodos();
-            }
-            currentEditId = null;
-            render();
-        }
-
-        function cancelEdit() {
-            currentEditId = null;
-            render();
-        }
-
-        function clearCompleted() {
-            const hasCompleted = todos.some(t => t.completed);
-            if (!hasCompleted) return;
-            if (!confirm('清除所有已完成的任务？')) return;
-            todos = todos.filter(t => !t.completed);
-            saveTodos();
-            render();
-        }
-
-        // ---------- 事件处理（委托） ----------
-        todoList.addEventListener('click', (e) => {
-            const target = e.target.closest('button') || e.target;
-            const action = target.dataset.action;
-            const li = target.closest('.todo-item');
-            if (!li) return;
-            const id = Number(li.dataset.id);
-            
-            if (target.classList.contains('todo-check') || action === 'toggle') {
-                toggleComplete(id);
-            } else if (action === 'edit') {
-                startEdit(id);
-            } else if (action === 'delete') {
-                deleteTodo(id);
-            } else if (action === 'save') {
-                const input = li.querySelector('.todo-edit-input');
-                if (input) saveEdit(id, input.value);
-            } else if (action === 'cancel') {
-                cancelEdit();
-            }
-        });
-
-        // 键盘事件处理
-        todoList.addEventListener('keydown', (e) => {
-            if (!currentEditId) return;
-            const li = document.querySelector(`.todo-item[data-id="${currentEditId}"]`);
-            if (!li) return;
-            const input = li.querySelector('.todo-edit-input');
-            if (!input) return;
-            
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                saveEdit(currentEditId, input.value);
-            } else if (e.key === 'Escape') {
-                e.preventDefault();
-                cancelEdit();
-            }
-        });
-
-        // 输入框添加任务
-        function handleAdd() {
-            addTodo(todoInput.value);
-            todoInput.value = '';
-            todoInput.focus();
+            `).join('');
         }
         
-        addBtn.addEventListener('click', handleAdd);
-        todoInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                handleAdd();
-            }
-        });
-        // 按 Escape 清空输入框
-        todoInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                todoInput.value = '';
-            }
-        });
-
-        clearBtn.addEventListener('click', clearCompleted);
-
-        // 避免在编辑时点击外部意外丢失焦点？不需要，失焦时自动保存？
-        // 增加失焦保存功能（可选）
-        todoList.addEventListener('focusout', (e) => {
-            if (!currentEditId) return;
-            const input = e.target.closest('.todo-edit-input');
-            if (input) {
-                // 延迟执行，防止与按钮点击冲突
-                setTimeout(() => {
-                    if (currentEditId) {
-                        const li = document.querySelector(`.todo-item[data-id="${currentEditId}"]`);
-                        if (li) {
-                            const inp = li.querySelector('.todo-edit-input');
-                            if (inp) saveEdit(currentEditId, inp.value);
-                        }
-                    }
-                }, 150);
-            }
-        });
-
-        // 启动
-        loadTodos();
-    })();
-</script>
+        input.addEventListener('keypress', (e) => { if(e.key === 'Enter') addTask(); });
+    </script>
 </body>
 </html>
