@@ -1,479 +1,55 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <meta name="description" content="🧮 专注计算器 - 简洁高效的桌面级计算工具">
-  <title>🧮 专注计算器 | WJULY42 工具箱</title>
-  
-  <!-- ✅ 引入项目全局样式，保持视觉统一 -->
-  <link rel="stylesheet" href="../style.css">
-  
-  <!-- 计算器专属布局样式（仅保留必要的） -->
-  <style>
-    /* 全局卡片已有样式，这里只做布局调整 */
-    .calc-desktop {
-      max-width: 920px;
-      margin: 0 auto;
-    }
-    
-    .calc-header {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 1.2rem 2rem;
-      border-bottom: 1px solid var(--border);
-      background: var(--card);
-    }
-    
-    .header-title {
-      font-size: 1.4rem;
-      font-weight: 700;
-    }
-    
-    .calc-body {
-      display: grid;
-      grid-template-columns: 300px 1fr;
-      min-height: 500px;
-    }
-    
-    .history-panel {
-      background: var(--card);
-      padding: 1.5rem;
-      border-right: 1px solid var(--border);
-      display: flex;
-      flex-direction: column;
-    }
-    
-    .history-list {
-      flex: 1;
-      overflow-y: auto;
-      padding-right: 0.5rem;
-      margin-bottom: 1rem;
-      font-family: 'SF Mono', 'Fira Code', monospace;
-      font-size: 0.95rem;
-      color: var(--text-light);
-      max-height: 300px;
-    }
-    
-    .history-item {
-      padding: 0.6rem 0.5rem;
-      border-bottom: 1px dashed var(--border);
-      display: flex;
-      justify-content: space-between;
-      cursor: pointer;
-      transition: all 0.2s;
-      border-radius: 6px;
-    }
-    
-    .history-item:hover {
-      background: var(--border);
-      color: var(--text);
-      padding-inline: 0.8rem;
-    }
-    
-    .history-expr {
-      opacity: 0.8;
-    }
-    
-    .history-res {
-      font-weight: 700;
-      color: var(--primary);
-    }
-    
-    .current-display {
-      background: var(--card);
-      border-radius: 14px;
-      padding: 1.2rem;
-      border: 1px solid var(--border);
-      text-align: right;
-      min-height: 130px;
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-end;
-    }
-    
-    .expression {
-      font-size: 1.1rem;
-      color: var(--text-light);
-      min-height: 1.8rem;
-      font-family: 'SF Mono', 'Fira Code', monospace;
-      word-break: break-all;
-    }
-    
-    .result {
-      font-size: 2.8rem;
-      font-weight: 700;
-      font-family: 'SF Mono', 'Fira Code', monospace;
-      color: var(--text);
-      margin-top: 0.3rem;
-      line-height: 1.2;
-    }
-    
-    .keypad-panel {
-      padding: 1.5rem;
-    }
-    
-    .btn-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 0.8rem;
-      height: 100%;
-    }
-    
-    .calc-btn {
-      border: none;
-      border-radius: 14px;
-      font-size: 1.4rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-      background: var(--card);
-      color: var(--text);
-      box-shadow: var(--shadow);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      user-select: none;
-      min-height: 64px;
-      border: 1px solid var(--border);
-    }
-    
-    .calc-btn:hover {
-      background: var(--border);
-      transform: translateY(-2px);
-    }
-    
-    .calc-btn:active {
-      transform: translateY(0);
-      box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
-    }
-    
-    .calc-btn.op {
-      background: #e0e7ff;
-      color: #4338ca;
-    }
-    .dark-mode .calc-btn.op { background: #312e81; color: #c7d2fe; }
-    
-    .calc-btn.action {
-      background: #fee2e2;
-      color: #b91c1c;
-    }
-    .dark-mode .calc-btn.action { background: #7f1d1d; color: #fecaca; }
-    
-    .calc-btn.del {
-      background: #fef3c7;
-      color: #b45309;
-    }
-    .dark-mode .calc-btn.del { background: #78350f; color: #fde68a; }
-    
-    .calc-btn.equals {
-      background: var(--primary);
-      color: white;
-      border-color: var(--primary);
-    }
-    .calc-btn.equals:hover {
-      background: var(--primary-dark, #4f46e5);
-    }
-    
-    .calc-btn.zero {
-      grid-column: span 2;
-    }
-    
-    .footer-hint {
-      padding: 1rem 2rem;
-      font-size: 0.85rem;
-      color: var(--text-light);
-      background: var(--card);
-      border-top: 1px solid var(--border);
-      text-align: center;
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-    }
-    
-    .footer-hint kbd {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      padding: 0.15rem 0.5rem;
-      font-family: monospace;
-      font-size: 0.75rem;
-      margin: 0 0.2rem;
-    }
-    
-    /* 响应式 */
-    @media (max-width: 900px) {
-      .calc-body {
-        grid-template-columns: 1fr;
-      }
-      .history-panel {
-        border-right: none;
-        border-bottom: 1px solid var(--border);
-        max-height: 200px;
-      }
-      .calc-btn {
-        min-height: 56px;
-        font-size: 1.2rem;
-      }
-      .result {
-        font-size: 2.2rem;
-      }
-    }
-    
-    @media (max-width: 480px) {
-      .calc-btn {
-        min-height: 50px;
-        font-size: 1.1rem;
-      }
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        body { background-color: #0d1117; color: #f0f6fc; font-family: 'JetBrains Mono', monospace; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .calc-btn { transition: all 0.1s; }
+        .calc-btn:active { transform: scale(0.95); }
+        /* 隐藏滚动条 */
+        ::-webkit-scrollbar { display: none; }
+    </style>
 </head>
 <body>
-  <main class="calc-desktop card">
-    <!-- 顶部标题（移除返回按钮） -->
-    <header class="calc-header">
-      <h1 class="header-title">🧮 专注计算器</h1>
-    </header>
-    
-    <div class="calc-body">
-      <!-- 左侧历史面板 -->
-      <section class="history-panel">
-        <div class="history-list" id="historyList">
-          <div style="text-align:center; color:var(--text-light); padding:2rem 0; opacity:0.6;">暂无计算记录</div>
-        </div>
-        <div class="current-display" aria-live="polite">
-          <div class="expression" id="expression"></div>
-          <div class="result" id="result">0</div>
-        </div>
-      </section>
-
-      <!-- 右侧按键区 -->
-      <section class="keypad-panel">
-        <div class="btn-grid">
-          <button class="calc-btn action" data-action="clear">C</button>
-          <button class="calc-btn del" data-action="delete">⌫</button>
-          <button class="calc-btn op" data-action="op" data-value="%">%</button>
-          <button class="calc-btn op" data-action="op" data-value="÷">÷</button>
-
-          <button class="calc-btn" data-action="num" data-value="7">7</button>
-          <button class="calc-btn" data-action="num" data-value="8">8</button>
-          <button class="calc-btn" data-action="num" data-value="9">9</button>
-          <button class="calc-btn op" data-action="op" data-value="×">×</button>
-
-          <button class="calc-btn" data-action="num" data-value="4">4</button>
-          <button class="calc-btn" data-action="num" data-value="5">5</button>
-          <button class="calc-btn" data-action="num" data-value="6">6</button>
-          <button class="calc-btn op" data-action="op" data-value="−">−</button>
-
-          <button class="calc-btn" data-action="num" data-value="1">1</button>
-          <button class="calc-btn" data-action="num" data-value="2">2</button>
-          <button class="calc-btn" data-action="num" data-value="3">3</button>
-          <button class="calc-btn op" data-action="op" data-value="+">+</button>
-
-          <button class="calc-btn zero" data-action="num" data-value="0">0</button>
-          <button class="calc-btn" data-action="num" data-value=".">.</button>
-          <button class="calc-btn equals" data-action="compute">=</button>
-        </div>
-      </section>
-    </div>
-
-    <!-- 底部导航：返回链接修正为 tools 目录 -->
-    <div class="footer-hint">
-      <div>⌨️ 快捷键：<kbd>0-9</kbd> 输入 · <kbd>Esc</kbd> 清空 · <kbd>⌫</kbd> 退格 · <kbd>Enter</kbd> 计算 · <kbd>↑/↓</kbd> 浏览历史</div>
-      <div>
-        <a href="../tools/" style="color:var(--primary);">← 返回工具集</a> · 
-        <a href="https://github.com/WJULY42" target="_blank" rel="noopener" style="color:var(--primary);">GitHub</a>
-      </div>
-    </div>
-  </main>
-
-  <script>
-    (function() {
-      "use strict";
-
-      // ---------- 计算器核心逻辑 ----------
-      class Calculator {
-        constructor(prevEl, currEl, historyEl) {
-          this.prevEl = prevEl;
-          this.currEl = currEl;
-          this.historyEl = historyEl;
-          this.history = [];
-          this.historyIndex = -1;
-          this.clear();
-        }
-
-        clear() {
-          this.curr = '0';
-          this.prev = '';
-          this.operation = undefined;
-          this.updateDisplay();
-        }
-
-        delete() {
-          if (this.curr === '0' || this.curr === '') return;
-          this.curr = this.curr.slice(0, -1);
-          if (this.curr === '' || this.curr === '-') this.curr = '0';
-          this.updateDisplay();
-        }
-
-        append(num) {
-          if (num === '.' && this.curr.includes('.')) return;
-          if (this.curr === '0' && num !== '.') this.curr = num;
-          else this.curr += num;
-          this.updateDisplay();
-        }
-
-        chooseOp(op) {
-          if (this.curr === '') return;
-          if (this.prev !== '') this.compute();
-          this.operation = op;
-          this.prev = this.curr;
-          this.curr = '';
-          this.updateDisplay();
-        }
-
-        compute() {
-          let computation;
-          const prev = parseFloat(this.prev);
-          const curr = parseFloat(this.curr);
-          if (isNaN(prev) || isNaN(curr)) return;
-
-          switch (this.operation) {
-            case '+': computation = prev + curr; break;
-            case '−': computation = prev - curr; break;
-            case '×': computation = prev * curr; break;
-            case '÷': computation = curr === 0 ? '错误' : prev / curr; break;
-            case '%': computation = prev % curr; break;
-            default: return;
-          }
-
-          if (computation === '错误') {
-            this.curr = '错误';
-            this.prev = '';
-            this.operation = undefined;
-            this.updateDisplay();
-            return;
-          }
-
-          // 保留精度
-          this.curr = Math.round(computation * 1e10) / 1e10;
-          this.addToHistory(`${this.prev} ${this.operation} ${curr}`, this.curr);
-          this.operation = undefined;
-          this.prev = '';
-          this.updateDisplay();
-        }
-
-        addToHistory(expr, res) {
-          this.history.unshift({ expr, res });
-          if (this.history.length > 20) this.history.pop();
-          this.historyIndex = -1;
-          this.renderHistory();
-        }
-
-        renderHistory() {
-          if (this.history.length === 0) {
-            this.historyEl.innerHTML = '<div style="text-align:center;color:var(--text-light);padding:2rem 0;opacity:0.6;">暂无计算记录</div>';
-            return;
-          }
-          this.historyEl.innerHTML = this.history.map((h, i) => 
-            `<div class="history-item" data-index="${i}"><span class="history-expr">${h.expr} =</span><span class="history-res">${this.formatNum(h.res)}</span></div>`
-          ).join('');
-        }
-
-        loadHistory(index) {
-          if (index >= 0 && index < this.history.length) {
-            this.curr = String(this.history[index].res);
-            this.updateDisplay();
-          }
-        }
-
-        formatNum(num) {
-          if (num === '错误') return num;
-          return parseFloat(num).toLocaleString('zh-CN', { maximumFractionDigits: 8 });
-        }
-
-        updateDisplay() {
-          this.currEl.innerText = this.formatNum(this.curr);
-          this.prevEl.innerText = this.operation ? `${this.formatNum(this.prev)} ${this.operation}` : '';
-        }
-      }
-
-      // ---------- 初始化 ----------
-      const prevEl = document.getElementById('expression');
-      const currEl = document.getElementById('result');
-      const historyEl = document.getElementById('historyList');
-      const calc = new Calculator(prevEl, currEl, historyEl);
-
-      // 按钮点击事件
-      document.querySelectorAll('[data-action]').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const action = btn.dataset.action;
-          const value = btn.dataset.value;
-          switch(action) {
-            case 'num': calc.append(value); break;
-            case 'op': calc.chooseOp(value); break;
-            case 'compute': calc.compute(); break;
-            case 'clear': calc.clear(); break;
-            case 'delete': calc.delete(); break;
-          }
-        });
-      });
-
-      // 历史记录点击
-      historyEl.addEventListener('click', (e) => {
-        const item = e.target.closest('.history-item');
-        if (item) {
-          const index = parseInt(item.dataset.index);
-          calc.loadHistory(index);
-        }
-      });
-
-      // 键盘快捷键
-      document.addEventListener('keydown', (e) => {
-        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    <div class="w-full max-w-sm bg-[#161b22] border border-[#30363d] rounded-xl p-6 shadow-2xl">
+        <!-- 显示屏 -->
+        <input type="text" id="display" readonly class="w-full bg-[#010409] border border-[#30363d] rounded-lg p-4 text-right text-2xl mb-4 text-[#58a6ff] outline-none font-mono" value="0">
         
-        const key = e.key;
-        let handled = true;
+        <!-- 键盘区 -->
+        <div class="grid grid-cols-4 gap-3">
+            <button onclick="clearDisplay()" class="col-span-2 bg-[#da3633]/20 text-[#da3633] border border-[#da3633]/50 rounded-lg p-3 font-bold hover:bg-[#da3633]/30">C</button>
+            <button onclick="append('/')" class="bg-[#21262d] border border-[#30363d] rounded-lg p-3 hover:border-[#58a6ff]">÷</button>
+            <button onclick="append('*')" class="bg-[#21262d] border border-[#30363d] rounded-lg p-3 hover:border-[#58a6ff]">×</button>
+            
+            <button onclick="append('7')" class="bg-[#21262d] border border-[#30363d] rounded-lg p-3 hover:bg-[#30363d]">7</button>
+            <button onclick="append('8')" class="bg-[#21262d] border border-[#30363d] rounded-lg p-3 hover:bg-[#30363d]">8</button>
+            <button onclick="append('9')" class="bg-[#21262d] border border-[#30363d] rounded-lg p-3 hover:bg-[#30363d]">9</button>
+            <button onclick="append('-')" class="bg-[#21262d] border border-[#30363d] rounded-lg p-3 hover:border-[#58a6ff]">-</button>
+            
+            <button onclick="append('4')" class="bg-[#21262d] border border-[#30363d] rounded-lg p-3 hover:bg-[#30363d]">4</button>
+            <button onclick="append('5')" class="bg-[#21262d] border border-[#30363d] rounded-lg p-3 hover:bg-[#30363d]">5</button>
+            <button onclick="append('6')" class="bg-[#21262d] border border-[#30363d] rounded-lg p-3 hover:bg-[#30363d]">6</button>
+            <button onclick="append('+')" class="bg-[#21262d] border border-[#30363d] rounded-lg p-3 hover:border-[#58a6ff]">+</button>
+            
+            <button onclick="append('1')" class="bg-[#21262d] border border-[#30363d] rounded-lg p-3 hover:bg-[#30363d]">1</button>
+            <button onclick="append('2')" class="bg-[#21262d] border border-[#30363d] rounded-lg p-3 hover:bg-[#30363d]">2</button>
+            <button onclick="append('3')" class="bg-[#21262d] border border-[#30363d] rounded-lg p-3 hover:bg-[#30363d]">3</button>
+            <button onclick="calculate()" class="row-span-2 bg-[#238636] text-white border border-[#2ea043] rounded-lg p-3 font-bold hover:bg-[#2ea043]">=</button>
+            
+            <button onclick="append('0')" class="col-span-2 bg-[#21262d] border border-[#30363d] rounded-lg p-3 hover:bg-[#30363d]">0</button>
+            <button onclick="append('.')" class="bg-[#21262d] border border-[#30363d] rounded-lg p-3 hover:bg-[#30363d]">.</button>
+        </div>
+    </div>
 
-        if (key >= '0' && key <= '9' || key === '.') {
-          calc.append(key);
-        } else if (['+', '-', '*', '/'].includes(key)) {
-          const map = { '+': '+', '-': '−', '*': '×', '/': '÷' };
-          calc.chooseOp(map[key]);
-        } else if (key === 'Enter' || key === '=') {
-          calc.compute();
-        } else if (key === 'Backspace') {
-          calc.delete();
-        } else if (key === 'Escape') {
-          calc.clear();
-        } else if (key === 'ArrowUp') {
-          e.preventDefault();
-          if (calc.history.length > 0) {
-            calc.historyIndex = Math.max(0, calc.historyIndex - 1);
-            calc.loadHistory(calc.historyIndex);
-          }
-        } else if (key === 'ArrowDown') {
-          e.preventDefault();
-          if (calc.history.length > 0) {
-            calc.historyIndex = Math.min(calc.history.length - 1, calc.historyIndex + 1);
-            calc.loadHistory(calc.historyIndex);
-          }
-        } else {
-          handled = false;
-        }
-
-        if (handled) e.preventDefault();
-      });
-
-      // 针对 % 的快捷键处理（Shift+5）
-      document.addEventListener('keydown', (e) => {
-        if (e.key === '%') {
-          e.preventDefault();
-          calc.chooseOp('%');
-        }
-      });
-    })();
-  </script>
+    <script>
+        const display = document.getElementById('display');
+        function append(val) { if(display.value === '0') display.value = ''; display.value += val; }
+        function clearDisplay() { display.value = '0'; }
+        function calculate() { try { display.value = eval(display.value); } catch { display.value = 'Error'; } }
+    </script>
 </body>
 </html>
