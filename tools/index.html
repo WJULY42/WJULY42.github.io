@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tools | lunarHope</title>
-    <meta name="description" content="A collection of scripts, utilities, and web toys by lunarHope.">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <script>
@@ -23,16 +22,16 @@
     <style>
         body { background-color: #010409; color: #f0f6fc; overflow-x: hidden; }
         ::-webkit-scrollbar { width: 8px; } ::-webkit-scrollbar-track { background: #010409; } ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 4px; }
-        .spotlight-card { position: relative; background: #0d1117; border: 1px solid #30363d; overflow: hidden; transition: all 0.3s ease; height: 100%; display: flex; flex-direction: column; }
+        
+        .spotlight-card { position: relative; background: #0d1117; border: 1px solid #30363d; overflow: hidden; transition: all 0.3s ease; cursor: pointer; }
         .spotlight-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: radial-gradient(600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(88, 166, 255, 0.15), transparent 40%); z-index: 0; opacity: 0; transition: opacity 0.3s; }
         .spotlight-card:hover::before { opacity: 1; }
         .spotlight-card:hover { border-color: rgba(88, 166, 255, 0.5); transform: translateY(-4px); }
         .spotlight-card > * { position: relative; z-index: 1; }
+        
         .text-gradient { background: linear-gradient(135deg, #58a6ff 0%, #8957e5 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
         .reveal { opacity: 0; transform: translateY(20px); transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1); }
         .reveal.active { opacity: 1; transform: translateY(0); }
-        .loader { border: 2px solid #30363d; border-top: 2px solid #58a6ff; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body class="font-sans antialiased">
@@ -41,6 +40,15 @@
     <div class="fixed inset-0 z-0 overflow-hidden pointer-events-none">
         <div class="absolute bottom-[-10%] right-[-5%] w-[600px] h-[600px] bg-glow-blue/10 rounded-full blur-[120px]"></div>
         <div class="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000_70%,transparent_110%)]"></div>
+    </div>
+
+    <!-- 启动动画遮罩 -->
+    <div id="boot-overlay" class="fixed inset-0 z-[200] bg-space-900/95 backdrop-blur-md hidden flex-col items-center justify-center font-mono">
+        <div class="text-glow-green text-4xl mb-6 animate-pulse">></div>
+        <p id="boot-text" class="text-space-text text-xl mb-8">Initializing System...</p>
+        <div class="w-64 h-1.5 bg-space-700 rounded-full overflow-hidden">
+            <div id="boot-progress" class="h-full bg-glow-green w-0 transition-all duration-1000 ease-linear"></div>
+        </div>
     </div>
 
     <!-- Nav -->
@@ -62,113 +70,88 @@
     <section class="relative z-10 pt-32 pb-12 px-6 border-b border-space-border">
         <div class="max-w-7xl mx-auto reveal active">
             <h1 class="text-4xl md:text-5xl font-bold text-gradient mb-4">Tinkerer's Workbench</h1>
-            <p class="text-space-muted text-lg max-w-2xl">A collection of scripts, utilities, and web toys. Built to solve my own problems, open-sourced for everyone else.</p>
+            <p class="text-space-muted text-lg max-w-2xl">A collection of scripts, utilities, and web toys. Click an app to boot.</p>
         </div>
     </section>
 
     <!-- Tools Grid -->
     <main class="relative z-10 max-w-7xl mx-auto px-6 py-12">
         <div id="tools-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div class="col-span-full flex flex-col items-center justify-center py-20 space-y-4 text-space-muted">
-                <div class="loader"></div>
-                <p class="font-mono text-sm">Fetching /data/tools.json...</p>
-            </div>
+            <!-- 动态渲染 -->
         </div>
     </main>
 
-    <!-- Footer -->
     <footer class="relative z-10 border-t border-space-border mt-12 py-8 text-center text-xs text-space-muted">
         <p>&copy; 2026 lunarHope. Built with ❤️ and Tailwind CSS.</p>
     </footer>
 
     <script>
         const gridContainer = document.getElementById('tools-grid');
+        const obs = new IntersectionObserver((entries) => { entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('active'); }); }, { threshold: 0.1 });
 
-        const obs = new IntersectionObserver((entries) => {
-            entries.forEach(e => {
-                if (e.isIntersecting) e.target.classList.add('active');
-            });
-        }, { threshold: 0.1 });
-
-        const statusStyles = {
-            'Live':        { bg: 'bg-green-900/40',  text: 'text-green-400',  border: 'border-green-800',  iconColor: 'text-glow-green',  iconBg: 'bg-glow-green/10' },
-            'WIP':         { bg: 'bg-yellow-900/40', text: 'text-yellow-400', border: 'border-yellow-800', iconColor: 'text-glow-yellow', iconBg: 'bg-glow-yellow/10' },
-            'Archived':    { bg: 'bg-space-700',     text: 'text-space-muted', border: 'border-space-border', iconColor: 'text-space-muted', iconBg: 'bg-space-600/50' },
-            'Inspiration': { bg: 'bg-space-700',     text: 'text-space-muted', border: 'border-space-border', iconColor: 'text-glow-pink',   iconBg: 'bg-glow-pink/10' }
-        };
+        // 启动动画逻辑
+        function bootTool(tool) {
+            const overlay = document.getElementById('boot-overlay');
+            const text = document.getElementById('boot-text');
+            const progress = document.getElementById('boot-progress');
+            
+            overlay.classList.remove('hidden');
+            overlay.classList.add('flex');
+            
+            text.textContent = `Booting ${tool.name} ${tool.emoji}...`;
+            progress.style.width = '0%';
+            
+            setTimeout(() => { progress.style.width = '100%'; }, 100);
+            
+            setTimeout(() => {
+                window.location.href = `/tools/use.html?app=${tool.url}`;
+            }, 1200);
+        }
 
         async function loadTools() {
             try {
                 const response = await fetch('/data/tools.json');
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                if (!response.ok) throw new Error('Network response was not ok');
                 const data = await response.json();
-
-                // ★ 关键修复：兼容 { "tools": [...] } 和直接 [...] 两种结构
                 const tools = Array.isArray(data) ? data : (data.tools || []);
-
+                
                 gridContainer.innerHTML = '';
-
-                if (tools.length === 0) {
-                    gridContainer.innerHTML = '<p class="text-space-muted col-span-full text-center py-12 font-mono">// No tools found in database.</p>';
-                    return;
-                }
-
+                
                 tools.forEach((tool, index) => {
-                    const style = statusStyles[tool.status] || statusStyles['Live'];
-                    const isExternal = tool.url && tool.url.startsWith('http');
-
-                    const card = document.createElement(isExternal ? 'a' : 'a');
-                    card.href = tool.url || '#';
-                    if (isExternal) {
-                        card.target = '_blank';
-                        card.rel = 'noopener noreferrer';
-                    }
+                    const card = document.createElement('div');
                     card.className = 'spotlight-card rounded-xl p-6 reveal block';
                     card.style.transitionDelay = `${index * 80}ms`;
-
+                    
                     card.innerHTML = `
-                        <div class="flex items-center justify-between mb-4">
-                            <div class="w-10 h-10 ${style.iconBg} rounded-lg flex items-center justify-center ${style.iconColor}">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
-                            </div>
-                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${style.bg} ${style.text} border ${style.border} uppercase">${tool.status || 'Live'}</span>
-                        </div>
+                        <div class="text-5xl mb-4">${tool.emoji || '🛠️'}</div>
                         <h3 class="text-xl font-bold text-space-text mb-2">${tool.name}</h3>
                         <p class="text-space-muted text-sm flex-grow mb-6">${tool.desc}</p>
                         <div class="flex items-center justify-between text-xs text-space-muted pt-4 border-t border-space-border">
                             <span class="flex items-center">
-                                <span class="w-2.5 h-2.5 rounded-full mr-2" style="background-color: ${tool.langColor || '#8b949e'}"></span>
-                                ${tool.lang || 'Code'}
+                                <span class="w-2.5 h-2.5 rounded-full bg-green-500 mr-2"></span> Ready
                             </span>
-                            <span class="text-glow-blue flex items-center">
-                                ${isExternal ? 'View Repo' : 'Launch'}
+                            <span class="text-glow-blue flex items-center font-bold">
+                                Launch 
                                 <svg class="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
                             </span>
                         </div>
                     `;
-
-                    gridContainer.appendChild(card);
-
+                    
                     card.addEventListener('mousemove', (e) => {
                         const rect = card.getBoundingClientRect();
                         card.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
                         card.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
                     });
-
+                    
+                    card.onclick = () => bootTool(tool);
+                    
+                    gridContainer.appendChild(card);
                     obs.observe(card);
                 });
-
             } catch (error) {
-                console.error('Failed to load tools:', error);
-                gridContainer.innerHTML = `
-                    <div class="col-span-full bg-space-800 border border-glow-pink/50 rounded-xl p-8 text-center space-y-2">
-                        <p class="text-glow-pink font-mono font-bold">Error: Failed to fetch /data/tools.json</p>
-                        <p class="text-space-muted text-sm font-mono">${error.message}</p>
-                    </div>
-                `;
+                gridContainer.innerHTML = `<p class="text-glow-pink col-span-full text-center font-mono">Error loading tools.json</p>`;
             }
         }
-
         loadTools();
     </script>
 </body>
