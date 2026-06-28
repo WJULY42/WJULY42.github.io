@@ -1,0 +1,85 @@
+<!--
+Tool: cut
+Author: lunarHope
+Date: 2026-06-28
+-->
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Text Chunker</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+body { background-color: #0d1117; color: #f0f6fc; font-family: 'JetBrains Mono', monospace; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+.drop-zone { border: 2px dashed #30363d; transition: all 0.3s; }
+.drop-zone.dragover { border-color: #58a6ff; background: #161b22; }
+</style>
+</head>
+<body>
+<div class="w-full max-w-lg p-8 bg-[#161b22] border border-[#30363d] rounded-xl shadow-2xl">
+    <h1 class="text-2xl font-bold text-[#58a6ff] mb-2">⚡ Text Chunker</h1>
+    <p class="text-sm text-[#8b949e] mb-6">将长文本按 40,000 字符自动切割并下载。</p>
+    
+    <div id="drop-zone" class="drop-zone rounded-lg p-10 text-center cursor-pointer mb-6">
+        <p class="text-[#8b949e]">拖拽 .txt 文件到这里，或 <span class="text-[#58a6ff] underline">点击选择</span></p>
+        <input type="file" id="file-input" class="hidden" accept=".txt,.md,.json">
+    </div>
+
+    <div id="result" class="space-y-3 hidden">
+        <h3 class="text-sm font-bold text-[#3fb950] mb-2">🔪 切割完成！</h3>
+        <div id="download-list" class="space-y-2 max-h-60 overflow-y-auto"></div>
+    </div>
+</div>
+
+<script>
+const dropZone = document.getElementById('drop-zone');
+const fileInput = document.getElementById('file-input');
+const resultDiv = document.getElementById('result');
+const downloadList = document.getElementById('download-list');
+
+dropZone.addEventListener('click', () => fileInput.click());
+dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropZone.classList.remove('dragover');
+    if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', (e) => { if (e.target.files.length) handleFile(e.target.files[0]); });
+
+function handleFile(file) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        const text = e.target.result;
+        const chunkSize = 40000;
+        const chunks = [];
+        
+        // 核心切割逻辑
+        for (let i = 0; i < text.length; i += chunkSize) {
+            chunks.push(text.substring(i, i + chunkSize));
+        }
+
+        downloadList.innerHTML = '';
+        chunks.forEach((chunk, index) => {
+            const blob = new Blob([chunk], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${file.name.replace(/\.[^/.]+$/, "")}_part${index + 1}.txt`;
+            a.className = 'flex items-center justify-between p-3 bg-[#0d1117] border border-[#30363d] rounded-md hover:border-[#58a6ff] transition text-sm';
+            a.innerHTML = `
+                <span class="truncate text-[#f0f6fc]">${a.download}</span>
+                <span class="text-[#8b949e] ml-4 flex-shrink-0">${chunk.length} chars</span>
+            `;
+            downloadList.appendChild(a);
+        });
+        
+        resultDiv.classList.remove('hidden');
+        dropZone.innerHTML = `<p class="text-[#3fb950]">✅ 已加载: ${file.name} (${text.length} 字符)</p>`;
+    };
+    reader.readAsText(file, 'UTF-8');
+}
+</script>
+</body>
+</html>
