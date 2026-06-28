@@ -98,13 +98,18 @@
             overlay.classList.remove('hidden');
             overlay.classList.add('flex');
             
-            text.textContent = `Booting ${tool.name} ${tool.emoji}...`;
+            text.textContent = `Booting ${tool.name} ${tool.emoji || ''}...`;
             progress.style.width = '0%';
             
             setTimeout(() => { progress.style.width = '100%'; }, 100);
             
             setTimeout(() => {
-                window.location.href = `/tools/use.html?app=${tool.url}`;
+                // 如果是 maker，直接跳转；如果是其他工具，走 use.html
+                if (tool.url === 'maker.html') {
+                    window.location.href = `/tools/${tool.url}`;
+                } else {
+                    window.location.href = `/tools/use.html?app=${tool.url}`;
+                }
             }, 1200);
         }
 
@@ -113,8 +118,25 @@
                 const response = await fetch('/data/tools.json');
                 if (!response.ok) throw new Error('Network response was not ok');
                 const data = await response.json();
-                const tools = Array.isArray(data) ? data : (data.tools || []);
+                let tools = Array.isArray(data) ? data : (data.tools || []);
                 
+                // ✅ 核心修改：强制在列表最前面插入 "Tool Maker" 卡片
+                // 这样无论你的 JSON 里有没有写，它都会显示在第一个位置
+                const makerTool = {
+                    name: "Auto Tool Builder",
+                    desc: "Create and publish new tools directly from your browser. Fully automated.",
+                    url: "maker.html",
+                    emoji: "🛠️",
+                    status: "System",
+                    lang: "JS",
+                    langColor: "#f1e05a"
+                };
+                
+                // 检查是否已经存在，避免重复
+                if (!tools.some(t => t.url === 'maker.html')) {
+                    tools.unshift(makerTool);
+                }
+
                 gridContainer.innerHTML = '';
                 
                 tools.forEach((tool, index) => {
@@ -128,7 +150,8 @@
                         <p class="text-space-muted text-sm flex-grow mb-6">${tool.desc}</p>
                         <div class="flex items-center justify-between text-xs text-space-muted pt-4 border-t border-space-border">
                             <span class="flex items-center">
-                                <span class="w-2.5 h-2.5 rounded-full bg-green-500 mr-2"></span> Ready
+                                <span class="w-2.5 h-2.5 rounded-full ${tool.status === 'System' ? 'bg-glow-purple' : 'bg-green-500'} mr-2"></span> 
+                                ${tool.status || 'Ready'}
                             </span>
                             <span class="text-glow-blue flex items-center font-bold">
                                 Launch 
