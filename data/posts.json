@@ -1,6 +1,15 @@
 {
   "posts": [
     {
+      "title": "README",
+      "date": "2026-06-28",
+      "tags": [
+        "help，read，important"
+      ],
+      "slug": "r-e-a-d-m-e",
+      "url": "/blog/read.html?slug=r-e-a-d-m-e"
+    },
+    {
       "title": "大东北～",
       "date": "2026-06-28",
       "tags": [
