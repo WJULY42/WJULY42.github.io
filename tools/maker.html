@@ -1,367 +1,175 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" class="dark">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tool Maker | lunarHope</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/pinyin-pro@3.19.0/dist/index.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/style.css">
-  <style>
-    body { background-color: #010409; color: #c9d1d9; font-family: 'Inter', sans-serif; }
-    .font-mono { font-family: 'JetBrains Mono', monospace; }
-    .text-gradient {
-      background: linear-gradient(135deg, #bc8cff 0%, #58a6ff 100%);
-      -webkit-background-clip: text;
-      background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-    .terminal {
-      background: rgba(13, 17, 23, 0.95);
-      border: 1px solid #30363d;
-      border-radius: 12px;
-      overflow: hidden;
-    }
-    .terminal-header {
-      background: #161b22;
-      padding: 12px 16px;
-      border-bottom: 1px solid #30363d;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .terminal-dot {
-      width: 12px; height: 12px;
-      border-radius: 50%;
-    }
-    .terminal-body { padding: 20px; }
-    .input-field {
-      width: 100%;
-      background: #0d1117;
-      border: 1px solid #30363d;
-      border-radius: 8px;
-      padding: 10px 14px;
-      color: #c9d1d9;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 14px;
-      transition: border-color 0.2s;
-    }
-    .input-field:focus {
-      outline: none;
-      border-color: #bc8cff;
-      box-shadow: 0 0 0 3px rgba(188, 140, 255, 0.1);
-    }
-    textarea.input-field { min-height: 400px; resize: vertical; }
-    .btn-primary {
-      background: linear-gradient(135deg, #8957e5 0%, #bc8cff 100%);
-      color: white;
-      padding: 10px 20px;
-      border-radius: 8px;
-      font-weight: 600;
-      transition: all 0.2s;
-      border: none;
-      cursor: pointer;
-    }
-    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(137, 87, 229, 0.3); }
-    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-    .status-line {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 13px;
-      padding: 4px 0;
-    }
-    .status-ok { color: #3fb950; }
-    .status-err { color: #f85149; }
-    .status-info { color: #bc8cff; }
-    .status-warn { color: #d29922; }
-    .emoji-picker {
-      display: grid;
-      grid-template-columns: repeat(8, 1fr);
-      gap: 4px;
-      margin-top: 8px;
-    }
-    .emoji-btn {
-      padding: 6px;
-      background: #0d1117;
-      border: 1px solid #30363d;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 18px;
-      transition: all 0.2s;
-    }
-    .emoji-btn:hover {
-      background: #161b22;
-      border-color: #bc8cff;
-      transform: scale(1.1);
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tool Maker | lunarHope</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入拼音库 -->
+    <script src="https://unpkg.com/pinyin-pro"></script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        space: { 900: '#010409', 800: '#0d1117', 700: '#161b22', 600: '#21262d', border: '#30363d', text: '#f0f6fc', muted: '#8b949e' },
+                        glow: { green: '#3fb950', blue: '#58a6ff', pink: '#da3633' }
+                    },
+                    fontFamily: { mono: ['"JetBrains Mono"', 'monospace'] }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #010409; color: #f0f6fc; }
+        textarea { resize: none; }
+    </style>
 </head>
-<body class="min-h-screen">
-  <!-- Navigation -->
-  <nav class="fixed top-0 left-0 right-0 z-40 backdrop-blur-md bg-[#010409]/80 border-b border-[#30363d]">
-    <div class="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
-      <a href="/" class="text-xl font-bold text-gradient">lunarHope</a>
-      <div class="flex gap-6 text-sm">
-        <a href="/" class="text-space-muted hover:text-space-text transition">Home</a>
-        <a href="/blog" class="text-space-muted hover:text-space-text transition">Blog</a>
-        <a href="/tools" class="text-space-muted hover:text-space-text transition">Tools</a>
-      </div>
-    </div>
-  </nav>
+<body class="font-mono min-h-screen flex flex-col p-6">
+    <header class="border-b border-space-border pb-4 mb-8 flex justify-between items-center">
+        <h1 class="text-2xl font-bold text-glow-blue">⚡ Auto Tool Builder</h1>
+        <a href="/tools/" class="text-sm text-space-muted hover:text-space-text">Back to Workbench</a>
+    </header>
 
-  <!-- Main Content -->
-  <main class="max-w-4xl mx-auto px-6 pt-32 pb-20">
-    <div class="mb-8">
-      <h1 class="text-4xl font-bold mb-3 text-gradient">🛠️ Auto Tool Builder</h1>
-      <p class="text-space-muted font-mono">// craft a tool, publish it in seconds</p>
-    </div>
+    <main class="max-w-4xl mx-auto w-full grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- Left: Form -->
+        <div class="space-y-6">
+            <div class="bg-space-800 border border-space-border rounded-lg p-6">
+                <label class="block text-sm text-space-muted mb-2">Tool Name (Display Name)</label>
+                <input type="text" id="tool-name" class="w-full bg-space-900 border border-space-border rounded p-3 text-space-text focus:border-glow-blue outline-none" placeholder="e.g., 超级计算器">
+                
+                <label class="block text-sm text-space-muted mt-4 mb-2">Emoji Icon</label>
+                <input type="text" id="tool-emoji" class="w-full bg-space-900 border border-space-border rounded p-3 text-space-text focus:border-glow-blue outline-none" placeholder="e.g., 🧮">
 
-    <div class="terminal">
-      <div class="terminal-header">
-        <div class="terminal-dot" style="background:#ff5f56"></div>
-        <div class="terminal-dot" style="background:#ffbd2e"></div>
-        <div class="terminal-dot" style="background:#27c93f"></div>
-        <span class="ml-4 text-sm text-space-muted font-mono">maker.sh</span>
-      </div>
-      <div class="terminal-body space-y-5">
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm text-space-muted mb-2 font-mono">$ TOOL_NAME</label>
-            <input type="text" id="name" class="input-field" placeholder="My Awesome Tool">
-          </div>
-          <div>
-            <label class="block text-sm text-space-muted mb-2 font-mono">$ EMOJI</label>
-            <input type="text" id="emoji" class="input-field" placeholder="🚀" maxlength="4">
-            <div class="emoji-picker" id="emoji-picker"></div>
-          </div>
+                <label class="block text-sm text-space-muted mt-4 mb-2">Short Description</label>
+                <input type="text" id="tool-desc" class="w-full bg-space-900 border border-space-border rounded p-3 text-space-text focus:border-glow-blue outline-none" placeholder="e.g., A powerful calculator for devs.">
+
+                <label class="block text-sm text-space-muted mt-4 mb-2">HTML Content</label>
+                <textarea id="tool-content" rows="12" class="w-full bg-space-900 border border-space-border rounded p-4 text-space-text focus:border-glow-blue outline-none text-xs" placeholder="<div>Hello World</div>"></textarea>
+            </div>
         </div>
 
-        <div>
-          <label class="block text-sm text-space-muted mb-2 font-mono">$ DESCRIPTION</label>
-          <input type="text" id="desc" class="input-field" placeholder="A short description of what this tool does">
+        <!-- Right: Config & Terminal -->
+        <div class="space-y-6">
+            <div class="bg-space-800 border border-space-border rounded-lg p-6">
+                <label class="block text-xs text-space-muted mb-1">GitHub Token (repo scope)</label>
+                <input type="password" id="gh-token" class="w-full bg-space-900 border border-space-border rounded p-2 text-xs text-space-text focus:border-glow-green outline-none" placeholder="ghp_xxxxxxxxxxxx">
+                <button onclick="publishTool()" class="w-full mt-4 bg-glow-green/20 text-glow-green border border-glow-green/50 hover:bg-glow-green/30 py-3 rounded font-bold transition">
+                    Auto Publish
+                </button>
+            </div>
+            <div class="bg-black border border-space-border rounded-lg p-4 h-80 overflow-y-auto font-mono text-xs text-gray-400" id="terminal-log">
+                <p class="text-glow-green">➜ ~ System ready.</p>
+            </div>
         </div>
+    </main>
 
-        <div>
-          <label class="block text-sm text-space-muted mb-2 font-mono">$ HTML_CONTENT (complete HTML document)</label>
-          <textarea id="html-content" class="input-field" placeholder="<!DOCTYPE html>
-<html>
-<head>
-  <title>My Tool</title>
-  <style>
-    body { font-family: sans-serif; padding: 20px; }
-  </style>
-</head>
-<body>
-  <h1>Hello World!</h1>
-  <p>Your tool content here...</p>
-</body>
-</html>"></textarea>
-        </div>
+    <script>
+        // UTF-8 Base64 辅助函数
+        function utf8ToBase64(str) { return btoa(unescape(encodeURIComponent(str))); }
+        function base64ToUtf8(base64) { return decodeURIComponent(escape(atob(base64))); }
 
-        <div>
-          <label class="block text-sm text-space-muted mb-2 font-mono">$ GITHUB_TOKEN</label>
-          <input type="password" id="token" class="input-field" placeholder="ghp_xxxxxxxxxxxx">
-          <p class="text-xs text-space-muted mt-2 font-mono">Requires repo scope. Stored only in memory.</p>
-        </div>
-
-        <div class="flex items-center gap-4 pt-4">
-          <button id="publish-btn" class="btn-primary">🚀 Build & Publish</button>
-          <a href="/tools" class="text-space-muted hover:text-space-text text-sm font-mono">← Back to tools</a>
-        </div>
-
-        <div id="status-log" class="mt-6 pt-6 border-t border-[#30363d] hidden">
-          <div class="text-xs text-space-muted mb-3 font-mono">--- Output ---</div>
-          <div id="log-content" class="space-y-1"></div>
-        </div>
-      </div>
-    </div>
-  </main>
-
-  <script src="/assets/js/lunar-cache.js"></script>
-  <script>
-    const REPO_OWNER = 'WJULY42';
-    const REPO_NAME = 'WJULY42.github.io';
-    const BRANCH = 'main';
-
-    const EMOJIS = ['🚀','⚡','🎨','🎯','🔥','💡','🎮','🎵','📊','🔧','🛠️','⚙️','🧮','✅','📝','🔍','🌟','💎','🎁','🏆','🎪','🎭','🎨','🎬','📸','🎤','🎧','🎼','🎹','🥁','🎺','🎸'];
-
-    // Populate emoji picker
-    const emojiPicker = document.getElementById('emoji-picker');
-    EMOJIS.forEach(e => {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'emoji-btn';
-      btn.textContent = e;
-      btn.onclick = () => {
-        document.getElementById('emoji').value = e;
-      };
-      emojiPicker.appendChild(btn);
-    });
-
-    function log(msg, type = 'info') {
-      const logEl = document.getElementById('log-content');
-      const statusEl = document.getElementById('status-log');
-      statusEl.classList.remove('hidden');
-      const line = document.createElement('div');
-      line.className = `status-line status-${type}`;
-      line.textContent = `> ${msg}`;
-      logEl.appendChild(line);
-      logEl.scrollTop = logEl.scrollHeight;
-    }
-
-    function toSlug(name) {
-      const pinyin = window.pinyinPro.pinyin(name, { toneType: 'none', type: 'array' }).join('-').toLowerCase();
-      return pinyin.replace(/[^a-z0-9-]/g, '').replace(/-+/g, '-').replace(/^-|-$/g, '');
-    }
-
-    function utf8ToBase64(str) {
-      return btoa(unescape(encodeURIComponent(str)));
-    }
-
-    async function getFileSha(path, token) {
-      try {
-        const res = await LunarCache.safeGitHubRequest(
-          `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${path}?ref=${BRANCH}`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        if (res.status === 404) return null;
-        if (!res.ok) throw new Error(`Failed to get file: ${res.status}`);
-        const data = await res.json();
-        return data.sha;
-      } catch (err) {
-        if (err.message.includes('404')) return null;
-        throw err;
-      }
-    }
-
-    async function publish() {
-      const name = document.getElementById('name').value.trim();
-      const emoji = document.getElementById('emoji').value.trim() || '🛠️';
-      const desc = document.getElementById('desc').value.trim();
-      const htmlContent = document.getElementById('html-content').value;
-      const token = document.getElementById('token').value.trim();
-      const btn = document.getElementById('publish-btn');
-
-      if (!name || !desc || !htmlContent || !token) {
-        log('Missing required fields', 'err');
-        return;
-      }
-
-      btn.disabled = true;
-      btn.textContent = '⏳ Building...';
-
-      try {
-        log('Starting tool build process...', 'info');
-
-        if (LunarCache.isRateLimited()) {
-          const info = LunarCache.getRateLimitInfo();
-          const resetMin = Math.ceil((info.reset - Date.now()) / 60000);
-          throw new Error(`GitHub API 配额已用尽，请 ${resetMin} 分钟后重试`);
+        function log(msg, type = 'info') {
+            const term = document.getElementById('terminal-log');
+            const p = document.createElement('p');
+            p.className = type === 'error' ? 'text-glow-pink' : (type === 'success' ? 'text-glow-green' : 'text-gray-400');
+            p.textContent = `> ${msg}`;
+            term.appendChild(p);
+            term.scrollTop = term.scrollHeight;
         }
 
-        const slug = toSlug(name);
-        log(`Generated slug: ${slug}`, 'info');
-
-        const htmlPath = `tools/${slug}.html`;
-
-        // Add author comment to HTML
-        const finalHtml = `<!-- Tool: ${name} | Built with Auto Tool Builder | Author: lunarHope -->\n${htmlContent}`;
-
-        // Step 1: Create HTML file
-        log('Creating HTML file...', 'info');
-        const htmlSha = await getFileSha(htmlPath, token);
-        const htmlBody = {
-          message: `tools: add tool "${name}"`,
-          content: utf8ToBase64(finalHtml),
-          branch: BRANCH
-        };
-        if (htmlSha) htmlBody.sha = htmlSha;
-
-        const htmlRes = await LunarCache.safeGitHubRequest(
-          `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${htmlPath}`,
-          {
-            method: 'PUT',
-            headers: {
-              Authorization: `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(htmlBody)
-          }
-        );
-        if (!htmlRes.ok) {
-          const errData = await htmlRes.json();
-          throw new Error(`Failed to create HTML: ${errData.message}`);
-        }
-        log('✓ HTML file created', 'ok');
-
-        // Step 2: Update tools.json
-        log('Updating tools index...', 'info');
-        const jsonPath = 'data/tools.json';
-        const jsonSha = await getFileSha(jsonPath, token);
-
-        let tools = [];
-        if (jsonSha) {
-          const jsonRes = await LunarCache.safeGitHubRequest(
-            `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${jsonPath}?ref=${BRANCH}`,
-            { headers: { Authorization: `Bearer ${token}` } }
-          );
-          const jsonData = await jsonRes.json();
-          tools = JSON.parse(atob(jsonData.content));
+        async function getFileSha(path, token) {
+            try {
+                const res = await fetch(`https://api.github.com/repos/WJULY42/WJULY42.github.io/contents/${path}`, { headers: { Authorization: `token ${token}` } });
+                if (res.ok) return (await res.json()).sha;
+            } catch (e) { return null; }
+            return null;
         }
 
-        const newTool = {
-          name,
-          emoji,
-          desc,
-          url: `${slug}.html`,
-          status: 'Ready',
-          lang: 'HTML',
-          langColor: '#e34c26'
-        };
+        async function publishTool() {
+            const token = document.getElementById('gh-token').value.trim();
+            const name = document.getElementById('tool-name').value.trim();
+            const emoji = document.getElementById('tool-emoji').value.trim() || '🛠️';
+            const desc = document.getElementById('tool-desc').value.trim();
+            const content = document.getElementById('tool-content').value;
 
-        tools = tools.filter(t => t.url !== `${slug}.html`);
-        tools.push(newTool);
+            if (!token || !name || !content) { log('Error: Missing fields.', 'error'); return; }
 
-        const jsonBody = {
-          message: `tools: update tools index`,
-          content: utf8ToBase64(JSON.stringify(tools, null, 2)),
-          sha: jsonSha,
-          branch: BRANCH
-        };
+            // 1. 生成 Slug (支持中文转拼音)
+            let slug = "";
+            if (window.pinyinPro) {
+                slug = window.pinyinPro.pinyin(name, { toneType: 'none', type: 'array' }).join('-');
+            } else {
+                slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+            }
+            slug = slug.replace(/-+/g, '-').toLowerCase();
+            if (!slug) slug = 'tool-' + Date.now();
 
-        const jsonRes = await LunarCache.safeGitHubRequest(
-          `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${jsonPath}`,
-          {
-            method: 'PUT',
-            headers: {
-              Authorization: `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(jsonBody)
-          }
-        );
-        if (!jsonRes.ok) {
-          const errData = await jsonRes.json();
-          throw new Error(`Failed to update index: ${errData.message}`);
+            const fileName = `${slug}.html`;
+            const path = `tools/${fileName}`;
+            const jsonPath = `data/tools.json`;
+
+            try {
+                // 2. 准备 HTML 内容 (带出版人注释)
+                const author = "lunarHope"; // 或者从输入框获取
+                const fullContent = `<!--\nTool: ${name}\nAuthor: ${author}\nDate: ${new Date().toISOString().split('T')[0]}\n-->\n${content}`;
+                const encodedHtml = utf8ToBase64(fullContent);
+
+                // 3. 处理 tools.json
+                log('Fetching tools index...', 'info');
+                let tools = [];
+                const currentJsonSha = await getFileSha(jsonPath, token);
+                
+                if (currentJsonSha) {
+                    const jsonRes = await fetch(`https://api.github.com/repos/WJULY42/WJULY42.github.io/contents/${jsonPath}`, { headers: { Authorization: `token ${token}` } });
+                    const jsonData = await jsonRes.json();
+                    const decoded = base64ToUtf8(jsonData.content);
+                    const parsed = JSON.parse(decoded);
+                    tools = Array.isArray(parsed) ? parsed : (parsed.tools || []);
+                }
+
+                // 添加新工具到头部
+                tools.unshift({
+                    name: name,
+                    desc: desc,
+                    url: fileName, // 注意：这里只存文件名，因为都在 /tools/ 下
+                    emoji: emoji,
+                    status: "Live",
+                    lang: "HTML",
+                    langColor: "#e34c26"
+                });
+
+                const newJsonContent = JSON.stringify({ tools: tools }, null, 2);
+                const encodedJson = utf8ToBase64(newJsonContent);
+
+                // 4. 执行双重提交
+                log('Pushing HTML file...', 'info');
+                const htmlSha = await getFileSha(path, token);
+                const htmlPayload = { message: `feat: create tool ${name}`, content: encodedHtml, branch: 'main' };
+                if (htmlSha) htmlPayload.sha = htmlSha;
+
+                const htmlRes = await fetch(`https://api.github.com/repos/WJULY42/WJULY42.github.io/contents/${path}`, {
+                    method: 'PUT', headers: { 'Authorization': `token ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(htmlPayload)
+                });
+                if (!htmlRes.ok) throw new Error(`HTML Push Failed: ${await htmlRes.text()}`);
+                log('HTML published.', 'success');
+
+                log('Updating tools.json...', 'info');
+                const jsonPayload = { message: `chore: add ${name} to index`, content: encodedJson, branch: 'main' };
+                if (currentJsonSha) jsonPayload.sha = currentJsonSha;
+
+                const jsonRes = await fetch(`https://api.github.com/repos/WJULY42/WJULY42.github.io/contents/${jsonPath}`, {
+                    method: 'PUT', headers: { 'Authorization': `token ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(jsonPayload)
+                });
+                if (!jsonRes.ok) throw new Error(`JSON Update Failed: ${await jsonRes.text()}`);
+                
+                log('🎉 All done! Tool is live in the workbench.', 'success');
+
+            } catch (err) {
+                log(`Critical Error: ${err.message}`, 'error');
+            }
         }
-        log('✓ Tools index updated', 'ok');
-
-        // Clear cache to force refresh on next visit
-        LunarCache.clear('tools_list');
-
-        log('🎉 Tool published successfully!', 'ok');
-        setTimeout(() => {
-          window.location.href = `/tools/use.html?app=${slug}.html`;
-        }, 1500);
-
-      } catch (err) {
-        log(`Error: ${err.message}`, 'err');
-        btn.disabled = false;
-        btn.textContent = '🚀 Build & Publish';
-      }
-    }
-
-    document.getElementById('publish-btn').addEventListener('click', publish);
-  </script>
+    </script>
 </body>
 </html>
