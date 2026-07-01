@@ -1,194 +1,150 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" class="dark">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Blog | lunarHope</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/style.css">
-  <style>
-    body { background-color: #010409; color: #c9d1d9; font-family: 'Inter', sans-serif; }
-    .font-mono { font-family: 'JetBrains Mono', monospace; }
-    .text-gradient {
-      background: linear-gradient(135deg, #58a6ff 0%, #bc8cff 100%);
-      -webkit-background-clip: text;
-      background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-    .spotlight-card {
-      position: relative;
-      background: rgba(22, 27, 34, 0.6);
-      border: 1px solid rgba(48, 54, 61, 0.6);
-      transition: all 0.3s ease;
-      overflow: hidden;
-    }
-    .spotlight-card::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: radial-gradient(
-        600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
-        rgba(88, 166, 255, 0.06),
-        transparent 40%
-      );
-      opacity: 0;
-      transition: opacity 0.3s;
-      pointer-events: none;
-    }
-    .spotlight-card:hover::before { opacity: 1; }
-    .spotlight-card:hover {
-      border-color: rgba(88, 166, 255, 0.3);
-      transform: translateY(-2px);
-    }
-    .reveal {
-      opacity: 0;
-      transform: translateY(20px);
-      transition: opacity 0.6s ease, transform 0.6s ease;
-    }
-    .reveal.active { opacity: 1; transform: translateY(0); }
-    .glow-blue { color: #58a6ff; }
-    .text-space-muted { color: #8b949e; }
-    .text-space-text { color: #c9d1d9; }
-    .border-space-border { border-color: #30363d; }
-  </style>
-</head>
-<body class="min-h-screen">
-  <!-- Navigation - 与主 index 统一 -->
-  <nav class="fixed top-0 w-full z-50 backdrop-blur-md bg-[#010409]/80 border-b border-[#30363d]">
-    <div class="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
-      <a href="/" class="text-2xl font-bold text-gradient tracking-tight">lunarHope</a>
-      <div class="flex items-center gap-8">
-        <a href="/" class="text-sm text-space-muted hover:text-space-text transition-colors">Home</a>
-        <a href="/blog" class="text-sm text-glow-blue font-medium">Blog</a>
-        <a href="/tools" class="text-sm text-space-muted hover:text-space-text transition-colors">Tools</a>
-        <a href="https://github.com/WJULY42" target="_blank" class="text-space-muted hover:text-space-text transition-colors">
-          <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
-        </a>
-      </div>
-    </div>
-  </nav>
-
-  <!-- Main Content -->
-  <main class="max-w-4xl mx-auto px-6 pt-32 pb-20">
-    <div class="flex justify-between items-center mb-12">
-      <div>
-        <h1 class="text-4xl md:text-5xl font-bold mb-3 text-gradient">Blog</h1>
-        <p class="text-space-muted font-mono">// thoughts, notes, and experiments</p>
-      </div>
-      <a href="/blog/publish.html" class="px-4 py-2 rounded-lg bg-blue-600/20 border border-blue-500/50 text-blue-400 font-mono text-sm hover:bg-blue-600/30 transition flex items-center gap-2">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-        New Post
-      </a>
-    </div>
-
-    <div id="blog-list" class="space-y-6">
-      <p class="text-center text-space-muted font-mono">// Loading...</p>
-    </div>
-  </main>
-
-  <!-- Update Toast -->
-  <div id="update-toast" class="fixed top-20 right-4 z-50 hidden">
-    <div class="bg-blue-900/30 border border-blue-500/50 text-blue-400 px-4 py-2 rounded-lg font-mono text-sm backdrop-blur flex items-center gap-2 shadow-lg">
-      <span class="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></span>
-      <span id="toast-text">内容已更新</span>
-      <button onclick="location.reload()" class="ml-2 underline text-xs hover:text-blue-300">刷新</button>
-    </div>
-  </div>
-
-  <script src="/assets/js/lunar-cache.js"></script>
-  <script>
-    const container = document.getElementById('blog-list');
-    const CACHE_KEY = 'blog_posts';
-    const DATA_URL = '/data/posts.json';
-
-    function renderPosts(posts) {
-      container.innerHTML = '';
-      if (!posts || posts.length === 0) {
-        container.innerHTML = '<p class="text-center text-space-muted font-mono">// No posts found.</p>';
-        return;
-      }
-      posts.forEach((post, index) => {
-        const card = document.createElement('a');
-        card.href = post.url || `/blog/posts/${post.slug}.html`;
-        card.className = 'spotlight-card rounded-xl p-6 block reveal active';
-        card.style.transitionDelay = `${index * 80}ms`;
-
-        let tagsHtml = '';
-        if (post.tags && Array.isArray(post.tags)) {
-          tagsHtml = post.tags.map(t =>
-            `<span class="px-2.5 py-1 rounded-full text-xs font-medium bg-blue-900/30 text-blue-400 border border-blue-800/50 mr-2">#${t}</span>`
-          ).join('');
-        }
-
-        card.innerHTML = `
-          <div class="flex flex-col md:flex-row md:items-center justify-between mb-3 gap-4">
-            <div class="flex items-center flex-wrap">${tagsHtml}</div>
-            <span class="text-sm text-space-muted font-mono">${post.date || 'Unknown Date'}</span>
-          </div>
-          <h2 class="text-2xl font-bold text-space-text mb-2">${post.title}</h2>
-          <p class="text-space-muted leading-relaxed mb-4 line-clamp-2">${post.desc || post.excerpt || 'No description available.'}</p>
-          <div class="flex items-center text-sm glow-blue font-medium">
-            Read article
-            <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
-          </div>
-        `;
-        card.addEventListener('mousemove', (e) => {
-          const rect = card.getBoundingClientRect();
-          card.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
-          card.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
-        });
-        container.appendChild(card);
-      });
-    }
-
-    function showToast(text, autoHide = 4000) {
-      const toast = document.getElementById('update-toast');
-      document.getElementById('toast-text').textContent = text;
-      toast.classList.remove('hidden');
-      if (autoHide) setTimeout(() => toast.classList.add('hidden'), autoHide);
-    }
-
-    async function loadPosts() {
-      try {
-        const result = await LunarCache.fetchWithSWR(DATA_URL, CACHE_KEY, {
-          staleTime: 60000,
-          revalidateTime: 300000
-        });
-
-        // 修复：处理 posts.json 可能是对象或数组的情况
-        let posts = [];
-        if (Array.isArray(result.data)) {
-          posts = result.data;
-        } else if (result.data && Array.isArray(result.data.posts)) {
-          posts = result.data.posts;
-        }
-
-        renderPosts(posts);
-
-        if (result.fromCache && !result.fresh) {
-          console.log('[Blog] 已使用缓存秒开，后台正在检查更新...');
-        }
-
-        window.addEventListener('lunar-data-updated', (e) => {
-          if (e.detail.key === CACHE_KEY) {
-            let freshPosts = [];
-            if (Array.isArray(e.detail.data)) {
-              freshPosts = e.detail.data;
-            } else if (e.detail.data && Array.isArray(e.detail.data.posts)) {
-              freshPosts = e.detail.data.posts;
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blog | lunarHope</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        space: { 900: '#010409', 800: '#0d1117', 700: '#161b22', 600: '#21262d', border: '#30363d', text: '#f0f6fc', muted: '#8b949e' },
+                        glow: { purple: '#8957e5', blue: '#58a6ff', pink: '#da3633', green: '#3fb950' }
+                    },
+                    fontFamily: { sans: ['Inter', 'sans-serif'], mono: ['"JetBrains Mono"', 'monospace'] }
+                }
             }
-            renderPosts(freshPosts);
-            showToast('✨ 博客列表已更新');
-          }
-        });
+        }
+    </script>
+    <style>
+        body { background-color: #010409; color: #f0f6fc; overflow-x: hidden; }
+        ::-webkit-scrollbar { width: 8px; } ::-webkit-scrollbar-track { background: #010409; } ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 4px; }
+        .spotlight-card { position: relative; background: #0d1117; border: 1px solid #30363d; overflow: hidden; transition: all 0.3s ease; }
+        .spotlight-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: radial-gradient(600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(137, 87, 229, 0.15), transparent 40%); z-index: 0; opacity: 0; transition: opacity 0.3s; }
+        .spotlight-card:hover::before { opacity: 1; }
+        .spotlight-card:hover { border-color: rgba(137, 87, 229, 0.5); transform: translateY(-2px); }
+        .spotlight-card > * { position: relative; z-index: 1; }
+        .text-gradient { background: linear-gradient(135deg, #f0f6fc 0%, #8b949e 50%, #f0f6fc 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        .reveal { opacity: 0; transform: translateY(20px); transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1); }
+        .reveal.active { opacity: 1; transform: translateY(0); }
+        .loader { border: 2px solid #30363d; border-top: 2px solid #58a6ff; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="font-sans antialiased">
+    <div class="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+        <div class="absolute top-[-10%] left-[-5%] w-[500px] h-[500px] bg-glow-purple/10 rounded-full blur-[120px]"></div>
+        <div class="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000_70%,transparent_110%)]"></div>
+    </div>
 
-      } catch (err) {
-        container.innerHTML = `<div class="text-center text-pink-400 font-mono">Error loading posts: ${err.message}</div>`;
-      }
-    }
+    <header class="fixed top-0 w-full z-50 bg-space-900/80 backdrop-blur-md border-b border-white/5">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+            <a href="/" class="flex items-center space-x-2 font-mono font-bold text-lg text-space-text">
+                <svg class="w-6 h-6 text-glow-purple" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                <span>lunarHope</span>
+            </a>
+            <nav class="hidden md:flex items-center space-x-8 text-sm font-medium">
+                <a href="/tools/" class="text-space-muted hover:text-space-text transition">Tools</a>
+                <a href="/blog/" class="text-space-text border-b-2 border-glow-purple pb-1 transition">Blog</a>
+                <a href="/#guestbook" class="text-space-muted hover:text-space-text transition">Guestbook</a>
+            </nav>
+        </div>
+    </header>
 
-    loadPosts();
-  </script>
+    <section class="relative z-10 pt-32 pb-12 px-6 border-b border-space-border">
+        <div class="max-w-4xl mx-auto reveal active flex justify-between items-end">
+            <div>
+                <h1 class="text-4xl md:text-5xl font-bold text-gradient mb-4">Tech Notes & Ramblings</h1>
+                <p class="text-space-muted text-lg">Documenting the journey of building, breaking, and fixing things.</p>
+            </div>
+            <a href="/blog/publish.html" class="hidden md:flex items-center space-x-2 px-4 py-2 bg-space-800 border border-space-border rounded-md text-sm text-glow-green hover:border-glow-green transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                <span>New Post</span>
+            </a>
+        </div>
+    </section>
+
+    <main class="relative z-10 max-w-4xl mx-auto px-6 py-12 space-y-6" id="blog-list">
+        <div class="flex flex-col items-center justify-center py-20 space-y-4 text-space-muted">
+            <div class="loader"></div>
+            <p class="font-mono text-sm">Loading posts from /data/posts.json...</p>
+        </div>
+    </main>
+
+    <footer class="relative z-10 border-t border-space-border mt-12 py-8 text-center text-xs text-space-muted">
+        <p>&copy; 2026 lunarHope. Built with ❤️ and Tailwind CSS.</p>
+    </footer>
+
+    <script>
+        const container = document.getElementById('blog-list');
+        const obs = new IntersectionObserver((entries) => { entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('active'); }); }, { threshold: 0.1 });
+
+        async function loadPosts() {
+            try {
+                const res = await fetch('/data/posts.json');
+                if (!res.ok) throw new Error('Failed to fetch');
+                const data = await res.json();
+                const posts = Array.isArray(data) ? data : (data.posts || []);
+                
+                container.innerHTML = '';
+                if (posts.length === 0) {
+                    container.innerHTML = '<p class="text-center text-space-muted font-mono">// No posts found.</p>';
+                    return;
+                }
+
+                posts.forEach((post, index) => {
+                    // ✅ 防呆兜底：自动修复 URL
+                    let targetUrl = post.url || `/blog/read.html?slug=${post.slug}`;
+                    if (targetUrl.includes('read.html') && !targetUrl.includes('slug=')) {
+                        targetUrl = `/blog/read.html?slug=${post.slug}`;
+                    }
+                    if (targetUrl.includes('/blog/posts/') && targetUrl.endsWith('.html')) {
+                        const oldSlug = targetUrl.split('/').pop().replace('.html', '');
+                        targetUrl = `/blog/read.html?slug=${oldSlug}`;
+                    }
+
+                    const card = document.createElement('a');
+                    card.href = targetUrl;
+                    card.className = 'spotlight-card rounded-xl p-6 block reveal';
+                    card.style.transitionDelay = `${index * 80}ms`;
+
+                    let tagsHtml = '';
+                    if (post.tags && Array.isArray(post.tags)) {
+                        tagsHtml = post.tags.map(t => 
+                            `<span class="px-2.5 py-1 rounded-full text-xs font-medium bg-blue-900/30 text-blue-400 border border-blue-800/50 mr-2">${t}</span>`
+                        ).join('');
+                    }
+
+                    card.innerHTML = `
+                        <div class="flex flex-col md:flex-row md:items-center justify-between mb-3 gap-4">
+                            <div class="flex items-center flex-wrap">${tagsHtml}</div>
+                            <span class="text-sm text-space-muted font-mono">${post.date || 'Unknown Date'}</span>
+                        </div>
+                        <h2 class="text-2xl font-bold text-space-text mb-2 group-hover:text-glow-blue transition">${post.title}</h2>
+                        <p class="text-space-muted leading-relaxed mb-4 line-clamp-2">${post.desc || post.excerpt || 'No description available.'}</p>
+                        <div class="flex items-center text-sm text-glow-blue font-medium">
+                            Read article 
+                            <svg class="w-4 h-4 ml-2 transform group-hover:translate-x-1 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                        </div>
+                    `;
+                    
+                    card.addEventListener('mousemove', (e) => {
+                        const rect = card.getBoundingClientRect();
+                        card.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
+                        card.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
+                    });
+                    
+                    container.appendChild(card);
+                    obs.observe(card);
+                });
+            } catch (err) {
+                container.innerHTML = `<div class="text-center text-glow-pink font-mono">Error loading posts: ${err.message}</div>`;
+            }
+        }
+        loadPosts();
+    </script>
 </body>
 </html>
