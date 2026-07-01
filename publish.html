@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Creator Studio | lunarHope</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/pinyin-pro"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        space: { 900: '#010409', 800: '#0d1117', 700: '#161b22', 600: '#21262d', border: '#30363d', text: '#f0f6fc', muted: '#8b949e' },
+                        glow: { green: '#3fb950', blue: '#58a6ff', pink: '#da3633', purple: '#8957e5' }
+                    },
+                    fontFamily: { sans: ['Inter', 'sans-serif'], mono: ['"JetBrains Mono"', 'monospace'] }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #010409; color: #f0f6fc; }
+        textarea { resize: none; }
+        .tab-active { border-bottom: 2px solid #58a6ff; color: #f0f6fc; }
+        .tab-inactive { border-bottom: 2px solid transparent; color: #8b949e; }
+        .tab-inactive:hover { color: #f0f6fc; }
+    </style>
+</head>
+<body class="font-sans min-h-screen flex flex-col">
+
+    <header class="border-b border-space-border bg-space-900/80 backdrop-blur px-6 py-4 flex justify-between items-center sticky top-0 z-50">
+        <a href="/" class="text-space-text hover:text-glow-blue transition font-mono flex items-center">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+            Back to Home
+        </a>
+        <h1 class="text-glow-green font-bold flex items-center">
+            <span class="mr-2">⚡</span> Creator Studio
+        </h1>
+    </header>
+
+    <main class="flex-grow max-w-6xl mx-auto w-full p-6 grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Left: Form -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Type Tabs -->
+            <div class="bg-space-800 border border-space-border rounded-lg p-2 flex space-x-4">
+                <button id="tab-post" onclick="switchType('post')" class="flex-1 py-2 px-4 font-medium transition tab-active">📝 Blog Post</button>
+                <button id="tab-tool" onclick="switchType('tool')" class="flex-1 py-2 px-4 font-medium transition tab-inactive">🛠️ Web Tool</button>
+            </div>
+
+            <div class="bg-space-800 border border-space-border rounded-lg p-6 shadow-lg">
+                <label class="block text-sm text-space-muted mb-2">Title / Name</label>
+                <input type="text" id="item-title" class="w-full bg-space-900 border border-space-border rounded p-3 text-space-text focus:border-glow-blue outline-none transition font-bold text-lg" placeholder="e.g., My First Post">
+                
+                <div class="grid grid-cols-2 gap-4 mt-4">
+                    <div>
+                        <label class="block text-sm text-space-muted mb-2">Author</label>
+                        <input type="text" id="item-author" class="w-full bg-space-900 border border-space-border rounded p-3 text-space-text focus:border-glow-blue outline-none" value="lunarHope">
+                    </div>
+                    <div id="field-date">
+                        <label class="block text-sm text-space-muted mb-2">Publish Date</label>
+                        <input type="date" id="item-date" class="w-full bg-space-900 border border-space-border rounded p-3 text-space-text focus:border-glow-blue outline-none">
+                    </div>
+                </div>
+
+                <div id="tool-fields" class="hidden grid grid-cols-2 gap-4 mt-4">
+                    <div>
+                        <label class="block text-sm text-space-muted mb-2">Emoji Icon</label>
+                        <input type="text" id="item-emoji" class="w-full bg-space-900 border border-space-border rounded p-3 text-space-text focus:border-glow-blue outline-none" placeholder="🛠️">
+                    </div>
+                    <div>
+                        <label class="block text-sm text-space-muted mb-2">Short Description</label>
+                        <input type="text" id="item-desc" class="w-full bg-space-900 border border-space-border rounded p-3 text-space-text focus:border-glow-blue outline-none" placeholder="A quick utility...">
+                    </div>
+                </div>
+
+                <div id="post-tags-field" class="mt-4">
+                    <label class="block text-sm text-space-muted mb-2">Tags (comma separated)</label>
+                    <input type="text" id="item-tags" class="w-full bg-space-900 border border-space-border rounded p-3 text-space-text focus:border-glow-blue outline-none" placeholder="tech, life, code">
+                </div>
+
+                <label class="block text-sm text-space-muted mt-4 mb-2">Content (<span id="content-type-label">Markdown</span>)</label>
+                <textarea id="item-content" rows="16" class="w-full bg-space-900 border border-space-border rounded p-4 text-space-text focus:border-glow-blue outline-none transition font-mono text-sm leading-relaxed" placeholder="Start writing..."></textarea>
+            </div>
+        </div>
+
+        <!-- Right: Config & Terminal -->
+        <div class="space-y-6">
+            <div class="bg-space-800 border border-space-border rounded-lg p-6 shadow-lg">
+                <h3 class="text-glow-blue font-bold mb-4 flex items-center">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                    Publish Settings
+                </h3>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-xs text-space-muted mb-1">GitHub Token (repo scope)</label>
+                        <input type="password" id="gh-token" class="w-full bg-space-900 border border-space-border rounded p-2 text-xs text-space-text focus:border-glow-green outline-none" placeholder="ghp_xxxxxxxxxxxx">
+                        <p class="text-[10px] text-space-muted mt-1">Stored in localStorage securely.</p>
+                    </div>
+                    <button onclick="publishItem()" id="publish-btn" class="w-full bg-glow-green/20 text-glow-green border border-glow-green/50 hover:bg-glow-green/30 py-3 rounded font-bold transition flex items-center justify-center">
+                        <span id="btn-text">Push to Repository</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-black border border-space-border rounded-lg p-4 h-80 overflow-y-auto font-mono text-xs text-gray-400 shadow-inner" id="terminal-log">
+                <p class="text-glow-green">➜  ~  System ready. Select a type and start creating.</p>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // 初始化
+        document.getElementById('item-date').valueAsDate = new Date();
+        if (localStorage.getItem('gh_token')) document.getElementById('gh-token').value = localStorage.getItem('gh_token');
+        
+        let currentType = 'post';
+
+        // URL 参数自动切换 (例如 /publish.html?type=tool)
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('type') === 'tool') switchType('tool');
+
+        function switchType(type) {
+            currentType = type;
+            const tabPost = document.getElementById('tab-post');
+            const tabTool = document.getElementById('tab-tool');
+            const postFields = ['field-date', 'post-tags-field'];
+            const toolFields = ['tool-fields'];
+            const contentLabel = document.getElementById('content-type-label');
+
+            if (type === 'post') {
+                tabPost.className = tabPost.className.replace('tab-inactive', 'tab-active');
+                tabTool.className = tabTool.className.replace('tab-active', 'tab-inactive');
+                postFields.forEach(id => document.getElementById(id).classList.remove('hidden'));
+                toolFields.forEach(id => document.getElementById(id).classList.add('hidden'));
+                contentLabel.textContent = 'Markdown';
+            } else {
+                tabTool.className = tabTool.className.replace('tab-inactive', 'tab-active');
+                tabPost.className = tabPost.className.replace('tab-active', 'tab-inactive');
+                postFields.forEach(id => document.getElementById(id).classList.add('hidden'));
+                toolFields.forEach(id => document.getElementById(id).classList.remove('hidden'));
+                contentLabel.textContent = 'HTML';
+            }
+        }
+
+        function log(msg, type = 'info') {
+            const term = document.getElementById('terminal-log');
+            const p = document.createElement('p');
+            p.className = type === 'error' ? 'text-glow-pink' : (type === 'success' ? 'text-glow-green' : (type === 'warn' ? 'text-glow-yellow' : 'text-gray-400'));
+            p.textContent = `> ${msg}`;
+            term.appendChild(p);
+            term.scrollTop = term.scrollHeight;
+        }
+
+        function utf8ToBase64(str) { return btoa(unescape(encodeURIComponent(str))); }
+        function base64ToUtf8(base64) { return decodeURIComponent(escape(atob(base64))); }
+
+        async function getFileSha(path, token) {
+            try {
+                const res = await fetch(`https://api.github.com/repos/WJULY42/WJULY42.github.io/contents/${path}`, { headers: { Authorization: `token ${token}` } });
+                if (res.ok) return (await res.json()).sha;
+            } catch (e) { return null; }
+            return null;
+        }
+
+        async function publishItem() {
+            const token = document.getElementById('gh-token').value.trim();
+            const title = document.getElementById('item-title').value.trim();
+            const author = document.getElementById('item-author').value.trim() || 'lunarHope';
+            const content = document.getElementById('item-content').value;
+            const btn = document.getElementById('publish-btn');
+            const btnText = document.getElementById('btn-text');
+
+            if (!token || !title || !content) { log('Error: Title, Content and Token are required.', 'error'); return; }
+            localStorage.setItem('gh_token', token);
+
+            // 安全检查
+            if (content.includes(token) || /ghp_[a-zA-Z0-9]{36}/.test(content)) {
+                log('⚠️ Security Alert: Content contains potential token!', 'error');
+                return;
+            }
+
+            btn.disabled = true; btnText.textContent = 'Processing...';
+            log(`Preparing ${currentType === 'post' ? 'Blog Post' : 'Web Tool'}...`, 'info');
+
+            // Slug 生成
+            let slug = "";
+            if (window.pinyinPro) slug = window.pinyinPro.pinyin(title, { toneType: 'none', type: 'array' }).join('-');
+            else slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+            slug = slug.replace(/-+/g, '-').toLowerCase().replace(/(^-|-$)/g, '');
+            if (!slug) slug = `item-${Date.now()}`;
+
+            let path, jsonPath, encodedContent, jsonKey, newMeta;
+
+            if (currentType === 'post') {
+                const date = document.getElementById('item-date').value;
+                const tags = document.getElementById('item-tags').value.split(',').map(t => t.trim()).filter(t => t);
+                const frontmatter = `---\ntitle: "${title}"\nauthor: "${author}"\ndate: ${date}\ntags: [${tags.join(', ')}]\n---\n\n`;
+                
+                path = `blog/posts/${slug}.md`;
+                jsonPath = `data/posts.json`;
+                encodedContent = utf8ToBase64(frontmatter + content);
+                jsonKey = 'posts';
+                newMeta = { title, author, date, tags, slug, url: `/blog/read.html?slug=${slug}` };
+            } else {
+                const emoji = document.getElementById('item-emoji').value.trim() || '🛠️';
+                const desc = document.getElementById('item-desc').value.trim();
+                const comment = `<!--\nTool: ${title}\nAuthor: ${author}\nDate: ${new Date().toISOString().split('T')[0]}\n-->\n`;
+                
+                path = `tools/${slug}.html`;
+                jsonPath = `data/tools.json`;
+                encodedContent = utf8ToBase64(comment + content);
+                jsonKey = 'tools';
+                newMeta = { name: title, desc, author, url: `${slug}.html`, emoji, status: "Live", lang: "HTML", langColor: "#e34c26" };
+            }
+
+            try {
+                // 1. 更新 JSON 索引
+                log(`Fetching /${jsonPath}...`, 'info');
+                let items = [];
+                const currentJsonSha = await getFileSha(jsonPath, token);
+                
+                if (currentJsonSha) {
+                    const jsonRes = await fetch(`https://api.github.com/repos/WJULY42/WJULY42.github.io/contents/${jsonPath}`, { headers: { Authorization: `token ${token}` } });
+                    const parsed = JSON.parse(base64ToUtf8((await jsonRes.json()).content));
+                    items = Array.isArray(parsed) ? parsed : (parsed[jsonKey] || []);
+                }
+                
+                items.unshift(newMeta);
+                const newJsonContent = JSON.stringify({ [jsonKey]: items }, null, 2);
+                const jsonPayload = { message: `chore: add ${currentType} "${title}"`, content: utf8ToBase64(newJsonContent), branch: 'main' };
+                if (currentJsonSha) jsonPayload.sha = currentJsonSha;
+
+                log(`Updating index...`, 'info');
+                const jsonRes = await fetch(`https://api.github.com/repos/WJULY42/WJULY42.github.io/contents/${jsonPath}`, {
+                    method: 'PUT', headers: { 'Authorization': `token ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(jsonPayload)
+                });
+                if (!jsonRes.ok) throw new Error(`Index update failed: ${await jsonRes.text()}`);
+                log('Index updated.', 'success');
+
+                // 2. 推送内容文件
+                log(`Pushing ${path}...`, 'info');
+                const fileSha = await getFileSha(path, token);
+                const filePayload = { message: `feat: create ${currentType} "${title}"`, content: encodedContent, branch: 'main' };
+                if (fileSha) filePayload.sha = fileSha;
+
+                const fileRes = await fetch(`https://api.github.com/repos/WJULY42/WJULY42.github.io/contents/${path}`, {
+                    method: 'PUT', headers: { 'Authorization': `token ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(filePayload)
+                });
+                if (!fileRes.ok) throw new Error(`File push failed: ${await fileRes.text()}`);
+                log('File published successfully.', 'success');
+                log('🎉 Done! Redirecting...', 'success');
+
+                setTimeout(() => window.location.href = currentType === 'post' ? '/blog/' : '/tools/', 1500);
+
+            } catch (err) {
+                log(`Critical Error: ${err.message}`, 'error');
+            } finally {
+                btn.disabled = false; btnText.textContent = 'Push to Repository';
+            }
+        }
+    </script>
+</body>
+</html>
