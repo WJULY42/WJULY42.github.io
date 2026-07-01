@@ -33,11 +33,14 @@
     </style>
 </head>
 <body class="font-sans antialiased">
+
+    <!-- 背景光影 -->
     <div class="fixed inset-0 z-0 overflow-hidden pointer-events-none">
         <div class="absolute bottom-[-10%] right-[-5%] w-[600px] h-[600px] bg-glow-blue/10 rounded-full blur-[120px]"></div>
         <div class="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000_70%,transparent_110%)]"></div>
     </div>
 
+    <!-- 启动动画遮罩 -->
     <div id="boot-overlay" class="fixed inset-0 z-[200] bg-space-900/95 backdrop-blur-md hidden flex-col items-center justify-center font-mono">
         <div class="text-glow-green text-4xl mb-6 animate-pulse">></div>
         <p id="boot-text" class="text-space-text text-xl mb-8">Initializing System...</p>
@@ -46,6 +49,7 @@
         </div>
     </div>
 
+    <!-- Nav -->
     <header class="fixed top-0 w-full z-50 bg-space-900/80 backdrop-blur-md border-b border-white/5">
         <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
             <a href="/" class="flex items-center space-x-2 font-mono font-bold text-lg text-space-text">
@@ -56,10 +60,16 @@
                 <a href="/tools/" class="text-space-text border-b-2 border-glow-blue pb-1 transition">Tools</a>
                 <a href="/blog/" class="text-space-muted hover:text-space-text transition">Blog</a>
                 <a href="/#guestbook" class="text-space-muted hover:text-space-text transition">Guestbook</a>
+                <!-- 新增：快捷创建工具入口 -->
+                <a href="/publish.html?type=tool" class="text-glow-green hover:text-green-300 transition flex items-center">
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                    Create
+                </a>
             </nav>
         </div>
     </header>
 
+    <!-- Hero -->
     <section class="relative z-10 pt-32 pb-12 px-6 border-b border-space-border">
         <div class="max-w-7xl mx-auto reveal active">
             <h1 class="text-4xl md:text-5xl font-bold text-gradient mb-4">Tinkerer's Workbench</h1>
@@ -67,6 +77,7 @@
         </div>
     </section>
 
+    <!-- Tools Grid -->
     <main class="relative z-10 max-w-7xl mx-auto px-6 py-12">
         <div id="tools-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
     </main>
@@ -88,9 +99,11 @@
             text.textContent = `Booting ${tool.name} ${tool.emoji || ''}...`;
             progress.style.width = '0%';
             setTimeout(() => { progress.style.width = '100%'; }, 100);
+            
             setTimeout(() => {
-                if (tool.url === 'maker.html') {
-                    window.location.href = `/tools/${tool.url}`;
+                // 核心路由逻辑
+                if (tool.url === 'maker.html' || tool.isCreator) {
+                    window.location.href = `/publish.html?type=tool`;
                 } else {
                     window.location.href = `/tools/use.html?app=${tool.url}`;
                 }
@@ -104,16 +117,19 @@
                 const data = await response.json();
                 let tools = Array.isArray(data) ? data : (data.tools || []);
                 
+                // 强制置顶 "Auto Tool Builder" (指向新的统一发布器)
                 const makerTool = {
                     name: "Auto Tool Builder",
                     desc: "Create and publish new tools directly from your browser. Fully automated.",
-                    url: "maker.html",
+                    url: "maker.html", // 保留标识符
+                    isCreator: true,   // 新增标识
                     emoji: "🛠️",
                     status: "System",
                     lang: "JS",
                     langColor: "#f1e05a"
                 };
-                if (!tools.some(t => t.url === 'maker.html')) {
+                
+                if (!tools.some(t => t.url === 'maker.html' || t.isCreator)) {
                     tools.unshift(makerTool);
                 }
 
