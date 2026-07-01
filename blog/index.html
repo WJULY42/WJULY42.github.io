@@ -35,11 +35,14 @@
     </style>
 </head>
 <body class="font-sans antialiased">
+
+    <!-- 背景光影 -->
     <div class="fixed inset-0 z-0 overflow-hidden pointer-events-none">
         <div class="absolute top-[-10%] left-[-5%] w-[500px] h-[500px] bg-glow-purple/10 rounded-full blur-[120px]"></div>
         <div class="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000_70%,transparent_110%)]"></div>
     </div>
 
+    <!-- Nav -->
     <header class="fixed top-0 w-full z-50 bg-space-900/80 backdrop-blur-md border-b border-white/5">
         <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
             <a href="/" class="flex items-center space-x-2 font-mono font-bold text-lg text-space-text">
@@ -54,19 +57,22 @@
         </div>
     </header>
 
+    <!-- Hero -->
     <section class="relative z-10 pt-32 pb-12 px-6 border-b border-space-border">
         <div class="max-w-4xl mx-auto reveal active flex justify-between items-end">
             <div>
                 <h1 class="text-4xl md:text-5xl font-bold text-gradient mb-4">Tech Notes & Ramblings</h1>
                 <p class="text-space-muted text-lg">Documenting the journey of building, breaking, and fixing things.</p>
             </div>
-            <a href="/blog/publish.html" class="hidden md:flex items-center space-x-2 px-4 py-2 bg-space-800 border border-space-border rounded-md text-sm text-glow-green hover:border-glow-green transition">
+            <!-- ✅ 核心修改：指向新的统一发布器 -->
+            <a href="/publish.html?type=post" class="hidden md:flex items-center space-x-2 px-4 py-2 bg-space-800 border border-space-border rounded-md text-sm text-glow-green hover:border-glow-green transition">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                 <span>New Post</span>
             </a>
         </div>
     </section>
 
+    <!-- Blog List -->
     <main class="relative z-10 max-w-4xl mx-auto px-6 py-12 space-y-6" id="blog-list">
         <div class="flex flex-col items-center justify-center py-20 space-y-4 text-space-muted">
             <div class="loader"></div>
@@ -96,7 +102,7 @@
                 }
 
                 posts.forEach((post, index) => {
-                    // ✅ 防呆兜底：自动修复 URL
+                    // 防呆兜底：自动修复 URL
                     let targetUrl = post.url || `/blog/read.html?slug=${post.slug}`;
                     if (targetUrl.includes('read.html') && !targetUrl.includes('slug=')) {
                         targetUrl = `/blog/read.html?slug=${post.slug}`;
