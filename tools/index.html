@@ -22,27 +22,22 @@
     <style>
         body { background-color: #010409; color: #f0f6fc; overflow-x: hidden; }
         ::-webkit-scrollbar { width: 8px; } ::-webkit-scrollbar-track { background: #010409; } ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 4px; }
-        
         .spotlight-card { position: relative; background: #0d1117; border: 1px solid #30363d; overflow: hidden; transition: all 0.3s ease; cursor: pointer; }
         .spotlight-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: radial-gradient(600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(88, 166, 255, 0.15), transparent 40%); z-index: 0; opacity: 0; transition: opacity 0.3s; }
         .spotlight-card:hover::before { opacity: 1; }
         .spotlight-card:hover { border-color: rgba(88, 166, 255, 0.5); transform: translateY(-4px); }
         .spotlight-card > * { position: relative; z-index: 1; }
-        
         .text-gradient { background: linear-gradient(135deg, #58a6ff 0%, #8957e5 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
         .reveal { opacity: 0; transform: translateY(20px); transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1); }
         .reveal.active { opacity: 1; transform: translateY(0); }
     </style>
 </head>
 <body class="font-sans antialiased">
-
-    <!-- 背景光影 -->
     <div class="fixed inset-0 z-0 overflow-hidden pointer-events-none">
         <div class="absolute bottom-[-10%] right-[-5%] w-[600px] h-[600px] bg-glow-blue/10 rounded-full blur-[120px]"></div>
         <div class="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000_70%,transparent_110%)]"></div>
     </div>
 
-    <!-- 启动动画遮罩 -->
     <div id="boot-overlay" class="fixed inset-0 z-[200] bg-space-900/95 backdrop-blur-md hidden flex-col items-center justify-center font-mono">
         <div class="text-glow-green text-4xl mb-6 animate-pulse">></div>
         <p id="boot-text" class="text-space-text text-xl mb-8">Initializing System...</p>
@@ -51,7 +46,6 @@
         </div>
     </div>
 
-    <!-- Nav -->
     <header class="fixed top-0 w-full z-50 bg-space-900/80 backdrop-blur-md border-b border-white/5">
         <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
             <a href="/" class="flex items-center space-x-2 font-mono font-bold text-lg text-space-text">
@@ -66,7 +60,6 @@
         </div>
     </header>
 
-    <!-- Hero -->
     <section class="relative z-10 pt-32 pb-12 px-6 border-b border-space-border">
         <div class="max-w-7xl mx-auto reveal active">
             <h1 class="text-4xl md:text-5xl font-bold text-gradient mb-4">Tinkerer's Workbench</h1>
@@ -74,11 +67,8 @@
         </div>
     </section>
 
-    <!-- Tools Grid -->
     <main class="relative z-10 max-w-7xl mx-auto px-6 py-12">
-        <div id="tools-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <!-- 动态渲染 -->
-        </div>
+        <div id="tools-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
     </main>
 
     <footer class="relative z-10 border-t border-space-border mt-12 py-8 text-center text-xs text-space-muted">
@@ -89,22 +79,16 @@
         const gridContainer = document.getElementById('tools-grid');
         const obs = new IntersectionObserver((entries) => { entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('active'); }); }, { threshold: 0.1 });
 
-        // 启动动画逻辑
         function bootTool(tool) {
             const overlay = document.getElementById('boot-overlay');
             const text = document.getElementById('boot-text');
             const progress = document.getElementById('boot-progress');
-            
             overlay.classList.remove('hidden');
             overlay.classList.add('flex');
-            
             text.textContent = `Booting ${tool.name} ${tool.emoji || ''}...`;
             progress.style.width = '0%';
-            
             setTimeout(() => { progress.style.width = '100%'; }, 100);
-            
             setTimeout(() => {
-                // 如果是 maker，直接跳转；如果是其他工具，走 use.html
                 if (tool.url === 'maker.html') {
                     window.location.href = `/tools/${tool.url}`;
                 } else {
@@ -120,8 +104,6 @@
                 const data = await response.json();
                 let tools = Array.isArray(data) ? data : (data.tools || []);
                 
-                // ✅ 核心修改：强制在列表最前面插入 "Tool Maker" 卡片
-                // 这样无论你的 JSON 里有没有写，它都会显示在第一个位置
                 const makerTool = {
                     name: "Auto Tool Builder",
                     desc: "Create and publish new tools directly from your browser. Fully automated.",
@@ -131,19 +113,15 @@
                     lang: "JS",
                     langColor: "#f1e05a"
                 };
-                
-                // 检查是否已经存在，避免重复
                 if (!tools.some(t => t.url === 'maker.html')) {
                     tools.unshift(makerTool);
                 }
 
                 gridContainer.innerHTML = '';
-                
                 tools.forEach((tool, index) => {
                     const card = document.createElement('div');
                     card.className = 'spotlight-card rounded-xl p-6 reveal block';
                     card.style.transitionDelay = `${index * 80}ms`;
-                    
                     card.innerHTML = `
                         <div class="text-5xl mb-4">${tool.emoji || '🛠️'}</div>
                         <h3 class="text-xl font-bold text-space-text mb-2">${tool.name}</h3>
@@ -154,20 +132,16 @@
                                 ${tool.status || 'Ready'}
                             </span>
                             <span class="text-glow-blue flex items-center font-bold">
-                                Launch 
-                                <svg class="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                                Launch <svg class="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
                             </span>
                         </div>
                     `;
-                    
                     card.addEventListener('mousemove', (e) => {
                         const rect = card.getBoundingClientRect();
                         card.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
                         card.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
                     });
-                    
                     card.onclick = () => bootTool(tool);
-                    
                     gridContainer.appendChild(card);
                     obs.observe(card);
                 });
