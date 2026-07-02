@@ -22,14 +22,17 @@
     <style>
         body { background-color: #010409; color: #f0f6fc; overflow-x: hidden; }
         ::-webkit-scrollbar { width: 8px; } ::-webkit-scrollbar-track { background: #010409; } ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 4px; }
+        
         .spotlight-card { position: relative; background: #0d1117; border: 1px solid #30363d; overflow: hidden; transition: all 0.3s ease; }
         .spotlight-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: radial-gradient(600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(137, 87, 229, 0.15), transparent 40%); z-index: 0; opacity: 0; transition: opacity 0.3s; }
         .spotlight-card:hover::before { opacity: 1; }
         .spotlight-card:hover { border-color: rgba(137, 87, 229, 0.5); transform: translateY(-2px); }
         .spotlight-card > * { position: relative; z-index: 1; }
+        
         .text-gradient { background: linear-gradient(135deg, #f0f6fc 0%, #8b949e 50%, #f0f6fc 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
         .reveal { opacity: 0; transform: translateY(20px); transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1); }
         .reveal.active { opacity: 1; transform: translateY(0); }
+        
         .loader { border: 2px solid #30363d; border-top: 2px solid #58a6ff; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         
@@ -44,6 +47,15 @@
             to { opacity: 1; transform: translateY(0); }
         }
         .card-enter { animation: slideIn 0.4s ease-out forwards; }
+        
+        .create-btn {
+            display: inline-flex; align-items: center; gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: rgba(63, 185, 80, 0.1); border: 1px solid rgba(63, 185, 80, 0.4);
+            color: #3fb950; border-radius: 0.375rem;
+            font-size: 0.875rem; font-weight: 500; transition: all 0.2s;
+        }
+        .create-btn:hover { background: rgba(63, 185, 80, 0.2); border-color: #3fb950; box-shadow: 0 0 20px rgba(63, 185, 80, 0.2); }
     </style>
 </head>
 <body class="font-sans antialiased">
@@ -55,6 +67,7 @@
 
     <div id="swr-indicator" class="swr-indicator"></div>
 
+    <!-- Nav（无 Create 按钮） -->
     <header class="fixed top-0 w-full z-50 bg-space-900/80 backdrop-blur-md border-b border-white/5">
         <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
             <a href="/" class="flex items-center space-x-2 font-mono font-bold text-lg text-space-text">
@@ -69,22 +82,21 @@
         </div>
     </header>
 
+    <!-- Hero（保留 Create 按钮） -->
     <section class="relative z-10 pt-32 pb-12 px-6 border-b border-space-border">
-        <div class="max-w-4xl mx-auto reveal active flex justify-between items-end">
+        <div class="max-w-4xl mx-auto reveal active flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
             <div>
                 <h1 class="text-4xl md:text-5xl font-bold text-gradient mb-4">Tech Notes & Ramblings</h1>
                 <p class="text-space-muted text-lg">Documenting the journey of building, breaking, and fixing things.</p>
             </div>
-            <div class="flex items-center gap-4">
-                <span id="cache-status" class="text-xs text-space-muted font-mono hidden md:flex items-center">
-                    <span class="w-2 h-2 rounded-full bg-glow-green mr-1 animate-pulse"></span>
-                    <span id="cache-status-text">Loading...</span>
-                </span>
-                <a href="/publish.html?type=post" class="hidden md:flex items-center space-x-2 px-4 py-2 bg-space-800 border border-space-border rounded-md text-sm text-glow-green hover:border-glow-green transition">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                    <span>New Post</span>
-                </a>
-            </div>
+            <a href="/publish.html?type=post" class="create-btn flex-shrink-0">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                <span>New Post</span>
+            </a>
+        </div>
+        <div class="max-w-4xl mx-auto mt-4 flex items-center gap-2 text-xs text-space-muted font-mono">
+            <span class="w-2 h-2 rounded-full bg-glow-green animate-pulse"></span>
+            <span id="cache-status-text">Loading...</span>
         </div>
     </section>
 
@@ -102,26 +114,10 @@
     <script>
         // ==================== SWR 缓存引擎 ====================
         class SWRCache {
-            constructor(key, ttl = 30000) {
-                this.key = `swr_${key}`;
-                this.ttl = ttl;
-            }
-            read() {
-                try {
-                    const raw = localStorage.getItem(this.key);
-                    if (!raw) return null;
-                    return JSON.parse(raw);
-                } catch { return null; }
-            }
-            write(data, etag) {
-                try {
-                    localStorage.setItem(this.key, JSON.stringify({ data, etag, timestamp: Date.now() }));
-                } catch (e) { console.warn('SWR write failed', e); }
-            }
-            isFresh() {
-                const cached = this.read();
-                return cached && (Date.now() - cached.timestamp) < this.ttl;
-            }
+            constructor(key, ttl = 30000) { this.key = `swr_${key}`; this.ttl = ttl; }
+            read() { try { const raw = localStorage.getItem(this.key); return raw ? JSON.parse(raw) : null; } catch { return null; } }
+            write(data, etag) { try { localStorage.setItem(this.key, JSON.stringify({ data, etag, timestamp: Date.now() })); } catch {} }
+            isFresh() { const c = this.read(); return c && (Date.now() - c.timestamp) < this.ttl; }
         }
 
         const indicator = document.getElementById('swr-indicator');
@@ -135,35 +131,20 @@
         async function swrFetch(url, cacheKey, options = {}) {
             const cache = new SWRCache(cacheKey, options.ttl || 30000);
             const cached = cache.read();
-
             if (cached) options.onCache?.(cached.data, cached.timestamp);
-            if (cached && cache.isFresh() && !options.force) {
-                options.onFresh?.();
-                return { data: cached.data, fromCache: true };
-            }
-
+            if (cached && cache.isFresh() && !options.force) { options.onFresh?.(); return { data: cached.data, fromCache: true }; }
             try {
                 options.onRevalidating?.();
                 const headers = { 'Accept': 'application/json' };
                 if (cached?.etag) headers['If-None-Match'] = cached.etag;
-
                 const res = await fetch(url, { headers, cache: 'no-store' });
-
-                if (res.status === 304) {
-                    cache.write(cached.data, cached.etag);
-                    options.onNotModified?.();
-                    return { data: cached.data, fromCache: true };
-                }
-
+                if (res.status === 304) { cache.write(cached.data, cached.etag); options.onNotModified?.(); return { data: cached.data, fromCache: true }; }
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
                 const newData = await res.json();
                 const newEtag = res.headers.get('ETag');
                 const hasChanged = !cached || JSON.stringify(cached.data) !== JSON.stringify(newData);
-                
                 cache.write(newData, newEtag);
                 if (hasChanged) options.onUpdate?.(newData, cached?.data);
-
                 return { data: newData, fromCache: false, changed: hasChanged };
             } catch (err) {
                 options.onError?.(err);
@@ -175,20 +156,12 @@
         // ==================== 页面逻辑 ====================
         const container = document.getElementById('blog-list');
         const cacheStatusText = document.getElementById('cache-status-text');
-        const obs = new IntersectionObserver((entries) => { 
-            entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('active'); }); 
-        }, { threshold: 0.1 });
+        const obs = new IntersectionObserver((entries) => { entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('active'); }); }, { threshold: 0.1 });
 
         function resolveUrl(post) {
-            let targetUrl = post.url || `/blog/read.html?slug=${post.slug}`;
-            if (targetUrl.includes('read.html') && !targetUrl.includes('slug=')) {
-                targetUrl = `/blog/read.html?slug=${post.slug}`;
-            }
-            if (targetUrl.includes('/blog/posts/') && targetUrl.endsWith('.html')) {
-                const oldSlug = targetUrl.split('/').pop().replace('.html', '');
-                targetUrl = `/blog/read.html?slug=${oldSlug}`;
-            }
-            return targetUrl;
+            const slug = post.slug;
+            if (!slug) return '#';
+            return `/view.html?type=post&slug=${slug}`;
         }
 
         function createPostCard(post, index) {
@@ -230,7 +203,7 @@
         function renderAll(posts) {
             container.innerHTML = '';
             if (posts.length === 0) {
-                container.innerHTML = '<p class="text-center text-space-muted font-mono">// No posts found.</p>';
+                container.innerHTML = '<p class="text-center text-space-muted font-mono py-8">// No posts yet. Click "New Post" to write your first one!</p>';
                 return;
             }
             posts.forEach((post, index) => {
@@ -243,20 +216,17 @@
         function diffUpdate(newPosts, oldPosts) {
             const oldMap = new Map((oldPosts || []).map(p => [p.slug || p.title, p]));
             const newMap = new Map(newPosts.map(p => [p.slug || p.title, p]));
-            
             let added = 0, removed = 0, updated = 0;
 
             newPosts.forEach((post, index) => {
                 const id = post.slug || post.title;
                 const oldCard = container.querySelector(`[data-post-id="${CSS.escape(id)}"]`);
-                
                 if (!oldCard) {
                     const card = createPostCard(post, index);
                     card.classList.add('card-enter');
-                    // 插入到正确位置（新文章通常在顶部）
-                    const firstCard = container.querySelector('.spotlight-card');
-                    if (firstCard && index === 0) {
-                        container.insertBefore(card, firstCard);
+                    const firstPost = container.querySelector('[data-post-id]');
+                    if (firstPost && index === 0) {
+                        container.insertBefore(card, firstPost);
                     } else {
                         container.appendChild(card);
                     }
@@ -283,7 +253,6 @@
                     }
                 }
             });
-
             return { added, removed, updated };
         }
 
@@ -314,12 +283,10 @@
                     const stats = diffUpdate(newPosts, previousPosts);
                     previousPosts = newPosts;
                     cacheStatusText.textContent = 'Updated just now';
-                    
                     const msg = [];
                     if (stats.added) msg.push(`${stats.added} new post${stats.added > 1 ? 's' : ''}`);
                     if (stats.updated) msg.push(`${stats.updated} updated`);
                     if (stats.removed) msg.push(`${stats.removed} removed`);
-                    
                     showIndicator(`✨ ${msg.join(', ') || 'Refreshed'}`, 'updated');
                 },
                 onError: (err) => {
@@ -330,10 +297,7 @@
         }
 
         initPosts();
-
-        document.addEventListener('visibilitychange', () => {
-            if (!document.hidden) initPosts();
-        });
+        document.addEventListener('visibilitychange', () => { if (!document.hidden) initPosts(); });
     </script>
 </body>
 </html>
