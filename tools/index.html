@@ -22,28 +22,37 @@
     <style>
         body { background-color: #010409; color: #f0f6fc; overflow-x: hidden; }
         ::-webkit-scrollbar { width: 8px; } ::-webkit-scrollbar-track { background: #010409; } ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 4px; }
+        
         .spotlight-card { position: relative; background: #0d1117; border: 1px solid #30363d; overflow: hidden; transition: all 0.3s ease; cursor: pointer; }
         .spotlight-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: radial-gradient(600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(88, 166, 255, 0.15), transparent 40%); z-index: 0; opacity: 0; transition: opacity 0.3s; }
         .spotlight-card:hover::before { opacity: 1; }
         .spotlight-card:hover { border-color: rgba(88, 166, 255, 0.5); transform: translateY(-4px); }
         .spotlight-card > * { position: relative; z-index: 1; }
+        
         .text-gradient { background: linear-gradient(135deg, #58a6ff 0%, #8957e5 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
         .reveal { opacity: 0; transform: translateY(20px); transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1); }
         .reveal.active { opacity: 1; transform: translateY(0); }
         
-        /* SWR 状态指示器 */
-        .swr-indicator { position: fixed; bottom: 20px; right: 20px; z-index: 100; padding: 8px 16px; border-radius: 8px; font-size: 12px; font-family: 'JetBrains Mono', monospace; backdrop-filter: blur(8px); transition: all 0.3s ease; opacity: 0; transform: translateY(10px); }
+        .swr-indicator { position: fixed; bottom: 20px; right: 20px; z-index: 100; padding: 8px 16px; border-radius: 8px; font-size: 12px; font-family: 'JetBrains Mono', monospace; backdrop-filter: blur(8px); transition: all 0.3s ease; opacity: 0; transform: translateY(10px); pointer-events: none; }
         .swr-indicator.show { opacity: 1; transform: translateY(0); }
         .swr-loading { background: rgba(88, 166, 255, 0.2); border: 1px solid rgba(88, 166, 255, 0.5); color: #58a6ff; }
         .swr-updated { background: rgba(63, 185, 80, 0.2); border: 1px solid rgba(63, 185, 80, 0.5); color: #3fb950; }
         .swr-cached { background: rgba(139, 148, 158, 0.2); border: 1px solid rgba(139, 148, 158, 0.3); color: #8b949e; }
         
-        /* 新卡片入场动画 */
         @keyframes slideIn {
             from { opacity: 0; transform: translateY(20px) scale(0.95); }
             to { opacity: 1; transform: translateY(0) scale(1); }
         }
         .card-enter { animation: slideIn 0.4s ease-out forwards; }
+        
+        .create-btn {
+            display: inline-flex; align-items: center; gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: rgba(63, 185, 80, 0.1); border: 1px solid rgba(63, 185, 80, 0.4);
+            color: #3fb950; border-radius: 0.375rem;
+            font-size: 0.875rem; font-weight: 500; transition: all 0.2s;
+        }
+        .create-btn:hover { background: rgba(63, 185, 80, 0.2); border-color: #3fb950; box-shadow: 0 0 20px rgba(63, 185, 80, 0.2); }
     </style>
 </head>
 <body class="font-sans antialiased">
@@ -61,9 +70,9 @@
         </div>
     </div>
 
-    <!-- SWR 状态指示器 -->
     <div id="swr-indicator" class="swr-indicator"></div>
 
+    <!-- Nav（无 Create 按钮） -->
     <header class="fixed top-0 w-full z-50 bg-space-900/80 backdrop-blur-md border-b border-white/5">
         <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
             <a href="/" class="flex items-center space-x-2 font-mono font-bold text-lg text-space-text">
@@ -74,26 +83,25 @@
                 <a href="/tools/" class="text-space-text border-b-2 border-glow-blue pb-1 transition">Tools</a>
                 <a href="/blog/" class="text-space-muted hover:text-space-text transition">Blog</a>
                 <a href="/#guestbook" class="text-space-muted hover:text-space-text transition">Guestbook</a>
-                <a href="/publish.html?type=tool" class="text-glow-green hover:text-green-300 transition flex items-center">
-                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                    Create
-                </a>
             </nav>
         </div>
     </header>
 
+    <!-- Hero（保留 Create 按钮） -->
     <section class="relative z-10 pt-32 pb-12 px-6 border-b border-space-border">
-        <div class="max-w-7xl mx-auto reveal active flex justify-between items-end">
+        <div class="max-w-7xl mx-auto reveal active flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
             <div>
                 <h1 class="text-4xl md:text-5xl font-bold text-gradient mb-4">Tinkerer's Workbench</h1>
                 <p class="text-space-muted text-lg max-w-2xl">A collection of scripts, utilities, and web toys. Click an app to boot.</p>
             </div>
-            <div class="text-xs text-space-muted font-mono hidden md:flex items-center gap-2">
-                <span id="cache-status" class="flex items-center">
-                    <span class="w-2 h-2 rounded-full bg-glow-green mr-1 animate-pulse"></span>
-                    <span id="cache-status-text">Loading...</span>
-                </span>
-            </div>
+            <a href="/publish.html?type=tool" class="create-btn flex-shrink-0">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                <span>New Tool</span>
+            </a>
+        </div>
+        <div class="max-w-7xl mx-auto mt-4 flex items-center gap-2 text-xs text-space-muted font-mono">
+            <span class="w-2 h-2 rounded-full bg-glow-green animate-pulse"></span>
+            <span id="cache-status-text">Loading...</span>
         </div>
     </section>
 
@@ -108,40 +116,12 @@
     <script>
         // ==================== SWR 缓存引擎 ====================
         class SWRCache {
-            constructor(key, ttl = 30000) {
-                this.key = `swr_${key}`;
-                this.ttl = ttl; // 默认 30 秒内认为是新鲜的
-            }
-
-            read() {
-                try {
-                    const raw = localStorage.getItem(this.key);
-                    if (!raw) return null;
-                    return JSON.parse(raw);
-                } catch { return null; }
-            }
-
-            write(data, etag) {
-                const payload = {
-                    data,
-                    etag,
-                    timestamp: Date.now()
-                };
-                try {
-                    localStorage.setItem(this.key, JSON.stringify(payload));
-                } catch (e) {
-                    console.warn('SWR: localStorage write failed', e);
-                }
-            }
-
-            isFresh() {
-                const cached = this.read();
-                if (!cached) return false;
-                return (Date.now() - cached.timestamp) < this.ttl;
-            }
+            constructor(key, ttl = 30000) { this.key = `swr_${key}`; this.ttl = ttl; }
+            read() { try { const raw = localStorage.getItem(this.key); return raw ? JSON.parse(raw) : null; } catch { return null; } }
+            write(data, etag) { try { localStorage.setItem(this.key, JSON.stringify({ data, etag, timestamp: Date.now() })); } catch {} }
+            isFresh() { const c = this.read(); return c && (Date.now() - c.timestamp) < this.ttl; }
         }
 
-        // ==================== SWR 状态指示器 ====================
         const indicator = document.getElementById('swr-indicator');
         function showIndicator(msg, type = 'cached') {
             indicator.textContent = msg;
@@ -150,58 +130,26 @@
             indicator._timer = setTimeout(() => indicator.classList.remove('show'), 2500);
         }
 
-        // ==================== 核心 SWR Fetch ====================
         async function swrFetch(url, cacheKey, options = {}) {
             const cache = new SWRCache(cacheKey, options.ttl || 30000);
             const cached = cache.read();
-
-            // 1. 立即返回缓存（秒开）
-            if (cached) {
-                options.onCache?.(cached.data, cached.timestamp);
-            }
-
-            // 2. 如果缓存新鲜，跳过网络请求
-            if (cached && cache.isFresh() && !options.force) {
-                options.onFresh?.();
-                return { data: cached.data, fromCache: true };
-            }
-
-            // 3. 后台发起请求，带 ETag
+            if (cached) options.onCache?.(cached.data, cached.timestamp);
+            if (cached && cache.isFresh() && !options.force) { options.onFresh?.(); return { data: cached.data, fromCache: true }; }
             try {
                 options.onRevalidating?.();
-                const headers = { 'Accept': 'application/vnd.github.v3+json' };
+                const headers = { 'Accept': 'application/json' };
                 if (cached?.etag) headers['If-None-Match'] = cached.etag;
-                if (options.token) headers['Authorization'] = `token ${options.token}`;
-
-                const res = await fetch(url, { headers });
-
-                // 304 Not Modified - 数据没变，零配额消耗！
-                if (res.status === 304) {
-                    // 刷新时间戳，延长缓存寿命
-                    cache.write(cached.data, cached.etag);
-                    options.onNotModified?.();
-                    return { data: cached.data, fromCache: true };
-                }
-
+                const res = await fetch(url, { headers, cache: 'no-store' });
+                if (res.status === 304) { cache.write(cached.data, cached.etag); options.onNotModified?.(); return { data: cached.data, fromCache: true }; }
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
                 const newData = await res.json();
                 const newEtag = res.headers.get('ETag');
-                
-                // 对比数据是否真的变化
                 const hasChanged = !cached || JSON.stringify(cached.data) !== JSON.stringify(newData);
-                
-                // 写入新缓存
                 cache.write(newData, newEtag);
-
-                if (hasChanged) {
-                    options.onUpdate?.(newData, cached?.data);
-                }
-
+                if (hasChanged) options.onUpdate?.(newData, cached?.data);
                 return { data: newData, fromCache: false, changed: hasChanged };
             } catch (err) {
                 options.onError?.(err);
-                // 降级：即使请求失败，如果有缓存也返回
                 if (cached) return { data: cached.data, fromCache: true, stale: true };
                 throw err;
             }
@@ -210,33 +158,25 @@
         // ==================== 页面逻辑 ====================
         const gridContainer = document.getElementById('tools-grid');
         const cacheStatusText = document.getElementById('cache-status-text');
-        const obs = new IntersectionObserver((entries) => { 
-            entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('active'); }); 
-        }, { threshold: 0.1 });
+        const obs = new IntersectionObserver((entries) => { entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('active'); }); }, { threshold: 0.1 });
 
         function bootTool(tool) {
             const overlay = document.getElementById('boot-overlay');
             const text = document.getElementById('boot-text');
             const progress = document.getElementById('boot-progress');
-            overlay.classList.remove('hidden');
-            overlay.classList.add('flex');
+            overlay.classList.remove('hidden'); overlay.classList.add('flex');
             text.textContent = `Booting ${tool.name} ${tool.emoji || ''}...`;
             progress.style.width = '0%';
             setTimeout(() => { progress.style.width = '100%'; }, 100);
             setTimeout(() => {
-                if (tool.url === 'maker.html' || tool.isCreator) {
-                    window.location.href = `/publish.html?type=tool`;
-                } else {
-                    window.location.href = `/tools/use.html?app=${tool.url}`;
-                }
+                window.location.href = `/view.html?type=tool&app=${tool.url}`;
             }, 1200);
         }
 
-        // 创建单个卡片 DOM
-        function createCard(tool, index) {
+        function createToolCard(tool, index) {
             const card = document.createElement('div');
             card.className = 'spotlight-card rounded-xl p-6 reveal block';
-            card.dataset.toolId = tool.url || tool.name; // 用于 diff
+            card.dataset.toolId = tool.url || tool.name;
             card.style.transitionDelay = `${index * 80}ms`;
             card.innerHTML = `
                 <div class="text-5xl mb-4">${tool.emoji || '🛠️'}</div>
@@ -244,7 +184,7 @@
                 <p class="text-space-muted text-sm flex-grow mb-6">${tool.desc}</p>
                 <div class="flex items-center justify-between text-xs text-space-muted pt-4 border-t border-space-border">
                     <span class="flex items-center">
-                        <span class="w-2.5 h-2.5 rounded-full ${tool.status === 'System' ? 'bg-glow-purple' : 'bg-green-500'} mr-2"></span> 
+                        <span class="w-2.5 h-2.5 rounded-full bg-green-500 mr-2"></span> 
                         ${tool.status || 'Ready'}
                     </span>
                     <span class="text-glow-blue flex items-center font-bold">
@@ -261,45 +201,37 @@
             return card;
         }
 
-        // 完整渲染
         function renderAll(tools) {
             gridContainer.innerHTML = '';
             tools.forEach((tool, index) => {
-                const card = createCard(tool, index);
+                const card = createToolCard(tool, index);
                 gridContainer.appendChild(card);
                 obs.observe(card);
             });
         }
 
-        // 局部 diff 更新（只更新变化的卡片）
         function diffUpdate(newTools, oldTools) {
             const oldMap = new Map((oldTools || []).map(t => [t.url || t.name, t]));
             const newMap = new Map(newTools.map(t => [t.url || t.name, t]));
-            
             let added = 0, removed = 0, updated = 0;
 
-            // 找出新增和更新的
             newTools.forEach((tool, index) => {
                 const id = tool.url || tool.name;
                 const oldCard = gridContainer.querySelector(`[data-tool-id="${CSS.escape(id)}"]`);
-                
                 if (!oldCard) {
-                    // 新增卡片
-                    const card = createCard(tool, index);
+                    const card = createToolCard(tool, index);
                     card.classList.add('card-enter');
                     gridContainer.appendChild(card);
                     obs.observe(card);
                     added++;
                 } else if (JSON.stringify(oldMap.get(id)) !== JSON.stringify(tool)) {
-                    // 更新卡片
-                    const newCard = createCard(tool, index);
+                    const newCard = createToolCard(tool, index);
                     oldCard.replaceWith(newCard);
                     obs.observe(newCard);
                     updated++;
                 }
             });
 
-            // 找出删除的
             (oldTools || []).forEach(tool => {
                 const id = tool.url || tool.name;
                 if (!newMap.has(id)) {
@@ -313,46 +245,23 @@
                     }
                 }
             });
-
             return { added, removed, updated };
         }
 
-        // 初始化工具列表（强制插入 Maker）
-        function prepareTools(data) {
-            let tools = Array.isArray(data) ? data : (data.tools || []);
-            const makerTool = {
-                name: "Auto Tool Builder",
-                desc: "Create and publish new tools directly from your browser. Fully automated.",
-                url: "maker.html",
-                isCreator: true,
-                emoji: "🛠️",
-                status: "System",
-                lang: "JS",
-                langColor: "#f1e05a"
-            };
-            if (!tools.some(t => t.url === 'maker.html' || t.isCreator)) {
-                tools.unshift(makerTool);
-            }
-            return tools;
-        }
-
-        // ==================== 启动 SWR 流程 ====================
         let previousTools = null;
 
         async function initTools() {
             await swrFetch('/data/tools.json', 'tools_index', {
-                ttl: 60000, // 60 秒内认为是新鲜的
+                ttl: 60000,
                 onCache: (data, timestamp) => {
-                    const tools = prepareTools(data);
+                    const tools = Array.isArray(data) ? data : (data.tools || []);
                     previousTools = tools;
                     renderAll(tools);
                     const age = Math.round((Date.now() - timestamp) / 1000);
                     cacheStatusText.textContent = `Cached ${age}s ago`;
                     showIndicator(`⚡ Loaded from cache (${age}s ago)`, 'cached');
                 },
-                onFresh: () => {
-                    // 缓存新鲜，不做任何事
-                },
+                onFresh: () => {},
                 onRevalidating: () => {
                     cacheStatusText.textContent = 'Syncing...';
                     showIndicator('🔄 Checking for updates...', 'loading');
@@ -362,16 +271,14 @@
                     showIndicator('✓ Already up to date', 'cached');
                 },
                 onUpdate: (newData, oldData) => {
-                    const newTools = prepareTools(newData);
+                    const newTools = Array.isArray(newData) ? newData : (newData.tools || []);
                     const stats = diffUpdate(newTools, previousTools);
                     previousTools = newTools;
                     cacheStatusText.textContent = 'Updated just now';
-                    
                     const msg = [];
                     if (stats.added) msg.push(`${stats.added} added`);
                     if (stats.updated) msg.push(`${stats.updated} updated`);
                     if (stats.removed) msg.push(`${stats.removed} removed`);
-                    
                     showIndicator(`✨ ${msg.join(', ') || 'Refreshed'}`, 'updated');
                 },
                 onError: (err) => {
@@ -382,11 +289,7 @@
         }
 
         initTools();
-
-        // 页面可见性变化时重新验证（用户切回 tab 时）
-        document.addEventListener('visibilitychange', () => {
-            if (!document.hidden) initTools();
-        });
+        document.addEventListener('visibilitychange', () => { if (!document.hidden) initTools(); });
     </script>
 </body>
 </html>
