@@ -32,17 +32,29 @@
         .reveal.active { opacity: 1; transform: translateY(0); }
         .loader { border: 2px solid #30363d; border-top: 2px solid #58a6ff; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        .swr-indicator { position: fixed; bottom: 20px; right: 20px; z-index: 100; padding: 8px 16px; border-radius: 8px; font-size: 12px; font-family: 'JetBrains Mono', monospace; backdrop-filter: blur(8px); transition: all 0.3s ease; opacity: 0; transform: translateY(10px); pointer-events: none; }
+        .swr-indicator.show { opacity: 1; transform: translateY(0); }
+        .swr-loading { background: rgba(88, 166, 255, 0.2); border: 1px solid rgba(88, 166, 255, 0.5); color: #58a6ff; }
+        .swr-updated { background: rgba(63, 185, 80, 0.2); border: 1px solid rgba(63, 185, 80, 0.5); color: #3fb950; }
+        .swr-cached { background: rgba(139, 148, 158, 0.2); border: 1px solid rgba(139, 148, 158, 0.3); color: #8b949e; }
+        
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .card-enter { animation: slideIn 0.4s ease-out forwards; }
     </style>
 </head>
 <body class="font-sans antialiased">
 
-    <!-- 背景光影 -->
     <div class="fixed inset-0 z-0 overflow-hidden pointer-events-none">
         <div class="absolute top-[-10%] left-[-5%] w-[500px] h-[500px] bg-glow-purple/10 rounded-full blur-[120px]"></div>
         <div class="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000_70%,transparent_110%)]"></div>
     </div>
 
-    <!-- Nav -->
+    <div id="swr-indicator" class="swr-indicator"></div>
+
     <header class="fixed top-0 w-full z-50 bg-space-900/80 backdrop-blur-md border-b border-white/5">
         <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
             <a href="/" class="flex items-center space-x-2 font-mono font-bold text-lg text-space-text">
@@ -57,100 +69,271 @@
         </div>
     </header>
 
-    <!-- Hero -->
     <section class="relative z-10 pt-32 pb-12 px-6 border-b border-space-border">
         <div class="max-w-4xl mx-auto reveal active flex justify-between items-end">
             <div>
                 <h1 class="text-4xl md:text-5xl font-bold text-gradient mb-4">Tech Notes & Ramblings</h1>
                 <p class="text-space-muted text-lg">Documenting the journey of building, breaking, and fixing things.</p>
             </div>
-            <!-- ✅ 核心修改：指向新的统一发布器 -->
-            <a href="/publish.html?type=post" class="hidden md:flex items-center space-x-2 px-4 py-2 bg-space-800 border border-space-border rounded-md text-sm text-glow-green hover:border-glow-green transition">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                <span>New Post</span>
-            </a>
+            <div class="flex items-center gap-4">
+                <span id="cache-status" class="text-xs text-space-muted font-mono hidden md:flex items-center">
+                    <span class="w-2 h-2 rounded-full bg-glow-green mr-1 animate-pulse"></span>
+                    <span id="cache-status-text">Loading...</span>
+                </span>
+                <a href="/publish.html?type=post" class="hidden md:flex items-center space-x-2 px-4 py-2 bg-space-800 border border-space-border rounded-md text-sm text-glow-green hover:border-glow-green transition">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                    <span>New Post</span>
+                </a>
+            </div>
         </div>
     </section>
 
-    <!-- Blog List -->
     <main class="relative z-10 max-w-4xl mx-auto px-6 py-12 space-y-6" id="blog-list">
         <div class="flex flex-col items-center justify-center py-20 space-y-4 text-space-muted">
             <div class="loader"></div>
-            <p class="font-mono text-sm">Loading posts from /data/posts.json...</p>
+            <p class="font-mono text-sm">Loading posts...</p>
         </div>
     </main>
 
     <footer class="relative z-10 border-t border-space-border mt-12 py-8 text-center text-xs text-space-muted">
-        <p>&copy; 2026 lunarHope. Built with ❤️ and Tailwind CSS.</p>
+        <p>&copy; 2026 lunarHope. Built with ❤️ and Tailwind CSS. <span class="text-space-muted/50">Powered by SWR</span></p>
     </footer>
 
     <script>
-        const container = document.getElementById('blog-list');
-        const obs = new IntersectionObserver((entries) => { entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('active'); }); }, { threshold: 0.1 });
-
-        async function loadPosts() {
-            try {
-                const res = await fetch('/data/posts.json');
-                if (!res.ok) throw new Error('Failed to fetch');
-                const data = await res.json();
-                const posts = Array.isArray(data) ? data : (data.posts || []);
-                
-                container.innerHTML = '';
-                if (posts.length === 0) {
-                    container.innerHTML = '<p class="text-center text-space-muted font-mono">// No posts found.</p>';
-                    return;
-                }
-
-                posts.forEach((post, index) => {
-                    // 防呆兜底：自动修复 URL
-                    let targetUrl = post.url || `/blog/read.html?slug=${post.slug}`;
-                    if (targetUrl.includes('read.html') && !targetUrl.includes('slug=')) {
-                        targetUrl = `/blog/read.html?slug=${post.slug}`;
-                    }
-                    if (targetUrl.includes('/blog/posts/') && targetUrl.endsWith('.html')) {
-                        const oldSlug = targetUrl.split('/').pop().replace('.html', '');
-                        targetUrl = `/blog/read.html?slug=${oldSlug}`;
-                    }
-
-                    const card = document.createElement('a');
-                    card.href = targetUrl;
-                    card.className = 'spotlight-card rounded-xl p-6 block reveal';
-                    card.style.transitionDelay = `${index * 80}ms`;
-
-                    let tagsHtml = '';
-                    if (post.tags && Array.isArray(post.tags)) {
-                        tagsHtml = post.tags.map(t => 
-                            `<span class="px-2.5 py-1 rounded-full text-xs font-medium bg-blue-900/30 text-blue-400 border border-blue-800/50 mr-2">${t}</span>`
-                        ).join('');
-                    }
-
-                    card.innerHTML = `
-                        <div class="flex flex-col md:flex-row md:items-center justify-between mb-3 gap-4">
-                            <div class="flex items-center flex-wrap">${tagsHtml}</div>
-                            <span class="text-sm text-space-muted font-mono">${post.date || 'Unknown Date'}</span>
-                        </div>
-                        <h2 class="text-2xl font-bold text-space-text mb-2 group-hover:text-glow-blue transition">${post.title}</h2>
-                        <p class="text-space-muted leading-relaxed mb-4 line-clamp-2">${post.desc || post.excerpt || 'No description available.'}</p>
-                        <div class="flex items-center text-sm text-glow-blue font-medium">
-                            Read article 
-                            <svg class="w-4 h-4 ml-2 transform group-hover:translate-x-1 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
-                        </div>
-                    `;
-                    
-                    card.addEventListener('mousemove', (e) => {
-                        const rect = card.getBoundingClientRect();
-                        card.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
-                        card.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
-                    });
-                    
-                    container.appendChild(card);
-                    obs.observe(card);
-                });
-            } catch (err) {
-                container.innerHTML = `<div class="text-center text-glow-pink font-mono">Error loading posts: ${err.message}</div>`;
+        // ==================== SWR 缓存引擎 ====================
+        class SWRCache {
+            constructor(key, ttl = 30000) {
+                this.key = `swr_${key}`;
+                this.ttl = ttl;
+            }
+            read() {
+                try {
+                    const raw = localStorage.getItem(this.key);
+                    if (!raw) return null;
+                    return JSON.parse(raw);
+                } catch { return null; }
+            }
+            write(data, etag) {
+                try {
+                    localStorage.setItem(this.key, JSON.stringify({ data, etag, timestamp: Date.now() }));
+                } catch (e) { console.warn('SWR write failed', e); }
+            }
+            isFresh() {
+                const cached = this.read();
+                return cached && (Date.now() - cached.timestamp) < this.ttl;
             }
         }
-        loadPosts();
+
+        const indicator = document.getElementById('swr-indicator');
+        function showIndicator(msg, type = 'cached') {
+            indicator.textContent = msg;
+            indicator.className = `swr-indicator show swr-${type}`;
+            clearTimeout(indicator._timer);
+            indicator._timer = setTimeout(() => indicator.classList.remove('show'), 2500);
+        }
+
+        async function swrFetch(url, cacheKey, options = {}) {
+            const cache = new SWRCache(cacheKey, options.ttl || 30000);
+            const cached = cache.read();
+
+            if (cached) options.onCache?.(cached.data, cached.timestamp);
+            if (cached && cache.isFresh() && !options.force) {
+                options.onFresh?.();
+                return { data: cached.data, fromCache: true };
+            }
+
+            try {
+                options.onRevalidating?.();
+                const headers = { 'Accept': 'application/json' };
+                if (cached?.etag) headers['If-None-Match'] = cached.etag;
+
+                const res = await fetch(url, { headers, cache: 'no-store' });
+
+                if (res.status === 304) {
+                    cache.write(cached.data, cached.etag);
+                    options.onNotModified?.();
+                    return { data: cached.data, fromCache: true };
+                }
+
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+                const newData = await res.json();
+                const newEtag = res.headers.get('ETag');
+                const hasChanged = !cached || JSON.stringify(cached.data) !== JSON.stringify(newData);
+                
+                cache.write(newData, newEtag);
+                if (hasChanged) options.onUpdate?.(newData, cached?.data);
+
+                return { data: newData, fromCache: false, changed: hasChanged };
+            } catch (err) {
+                options.onError?.(err);
+                if (cached) return { data: cached.data, fromCache: true, stale: true };
+                throw err;
+            }
+        }
+
+        // ==================== 页面逻辑 ====================
+        const container = document.getElementById('blog-list');
+        const cacheStatusText = document.getElementById('cache-status-text');
+        const obs = new IntersectionObserver((entries) => { 
+            entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('active'); }); 
+        }, { threshold: 0.1 });
+
+        function resolveUrl(post) {
+            let targetUrl = post.url || `/blog/read.html?slug=${post.slug}`;
+            if (targetUrl.includes('read.html') && !targetUrl.includes('slug=')) {
+                targetUrl = `/blog/read.html?slug=${post.slug}`;
+            }
+            if (targetUrl.includes('/blog/posts/') && targetUrl.endsWith('.html')) {
+                const oldSlug = targetUrl.split('/').pop().replace('.html', '');
+                targetUrl = `/blog/read.html?slug=${oldSlug}`;
+            }
+            return targetUrl;
+        }
+
+        function createPostCard(post, index) {
+            const card = document.createElement('a');
+            card.href = resolveUrl(post);
+            card.className = 'spotlight-card rounded-xl p-6 block reveal';
+            card.dataset.postId = post.slug || post.title;
+            card.style.transitionDelay = `${index * 80}ms`;
+
+            let tagsHtml = '';
+            if (post.tags && Array.isArray(post.tags)) {
+                tagsHtml = post.tags.map(t => 
+                    `<span class="px-2.5 py-1 rounded-full text-xs font-medium bg-blue-900/30 text-blue-400 border border-blue-800/50 mr-2">${t}</span>`
+                ).join('');
+            }
+
+            card.innerHTML = `
+                <div class="flex flex-col md:flex-row md:items-center justify-between mb-3 gap-4">
+                    <div class="flex items-center flex-wrap">${tagsHtml}</div>
+                    <span class="text-sm text-space-muted font-mono">${post.date || 'Unknown Date'}</span>
+                </div>
+                <h2 class="text-2xl font-bold text-space-text mb-2">${post.title}</h2>
+                <p class="text-space-muted leading-relaxed mb-4 line-clamp-2">${post.desc || post.excerpt || 'No description available.'}</p>
+                <div class="flex items-center text-sm text-glow-blue font-medium">
+                    Read article 
+                    <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                </div>
+            `;
+
+            card.addEventListener('mousemove', (e) => {
+                const rect = card.getBoundingClientRect();
+                card.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
+                card.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
+            });
+
+            return card;
+        }
+
+        function renderAll(posts) {
+            container.innerHTML = '';
+            if (posts.length === 0) {
+                container.innerHTML = '<p class="text-center text-space-muted font-mono">// No posts found.</p>';
+                return;
+            }
+            posts.forEach((post, index) => {
+                const card = createPostCard(post, index);
+                container.appendChild(card);
+                obs.observe(card);
+            });
+        }
+
+        function diffUpdate(newPosts, oldPosts) {
+            const oldMap = new Map((oldPosts || []).map(p => [p.slug || p.title, p]));
+            const newMap = new Map(newPosts.map(p => [p.slug || p.title, p]));
+            
+            let added = 0, removed = 0, updated = 0;
+
+            newPosts.forEach((post, index) => {
+                const id = post.slug || post.title;
+                const oldCard = container.querySelector(`[data-post-id="${CSS.escape(id)}"]`);
+                
+                if (!oldCard) {
+                    const card = createPostCard(post, index);
+                    card.classList.add('card-enter');
+                    // 插入到正确位置（新文章通常在顶部）
+                    const firstCard = container.querySelector('.spotlight-card');
+                    if (firstCard && index === 0) {
+                        container.insertBefore(card, firstCard);
+                    } else {
+                        container.appendChild(card);
+                    }
+                    obs.observe(card);
+                    added++;
+                } else if (JSON.stringify(oldMap.get(id)) !== JSON.stringify(post)) {
+                    const newCard = createPostCard(post, index);
+                    oldCard.replaceWith(newCard);
+                    obs.observe(newCard);
+                    updated++;
+                }
+            });
+
+            (oldPosts || []).forEach(post => {
+                const id = post.slug || post.title;
+                if (!newMap.has(id)) {
+                    const oldCard = container.querySelector(`[data-post-id="${CSS.escape(id)}"]`);
+                    if (oldCard) {
+                        oldCard.style.transition = 'all 0.3s';
+                        oldCard.style.opacity = '0';
+                        oldCard.style.transform = 'translateX(-20px)';
+                        setTimeout(() => oldCard.remove(), 300);
+                        removed++;
+                    }
+                }
+            });
+
+            return { added, removed, updated };
+        }
+
+        let previousPosts = null;
+
+        async function initPosts() {
+            await swrFetch('/data/posts.json', 'posts_index', {
+                ttl: 60000,
+                onCache: (data, timestamp) => {
+                    const posts = Array.isArray(data) ? data : (data.posts || []);
+                    previousPosts = posts;
+                    renderAll(posts);
+                    const age = Math.round((Date.now() - timestamp) / 1000);
+                    cacheStatusText.textContent = `Cached ${age}s ago`;
+                    showIndicator(`⚡ Loaded from cache (${age}s ago)`, 'cached');
+                },
+                onFresh: () => {},
+                onRevalidating: () => {
+                    cacheStatusText.textContent = 'Syncing...';
+                    showIndicator('🔄 Checking for new posts...', 'loading');
+                },
+                onNotModified: () => {
+                    cacheStatusText.textContent = 'Up to date';
+                    showIndicator('✓ Already up to date', 'cached');
+                },
+                onUpdate: (newData, oldData) => {
+                    const newPosts = Array.isArray(newData) ? newData : (newData.posts || []);
+                    const stats = diffUpdate(newPosts, previousPosts);
+                    previousPosts = newPosts;
+                    cacheStatusText.textContent = 'Updated just now';
+                    
+                    const msg = [];
+                    if (stats.added) msg.push(`${stats.added} new post${stats.added > 1 ? 's' : ''}`);
+                    if (stats.updated) msg.push(`${stats.updated} updated`);
+                    if (stats.removed) msg.push(`${stats.removed} removed`);
+                    
+                    showIndicator(`✨ ${msg.join(', ') || 'Refreshed'}`, 'updated');
+                },
+                onError: (err) => {
+                    console.error('SWR Error:', err);
+                    container.innerHTML = `<div class="text-center text-glow-pink font-mono">Error loading posts: ${err.message}</div>`;
+                }
+            });
+        }
+
+        initPosts();
+
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) initPosts();
+        });
     </script>
 </body>
 </html>
