@@ -13,7 +13,7 @@
                 extend: {
                     colors: {
                         space: { 900: '#010409', 800: '#0d1117', 700: '#161b22', 600: '#21262d', border: '#30363d', text: '#f0f6fc', muted: '#8b949e' },
-                        glow: { green: '#3fb950', blue: '#58a6ff', pink: '#da3633', purple: '#8957e5' }
+                        glow: { green: '#3fb950', blue: '#58a6ff', pink: '#da3633', purple: '#8957e5', yellow: '#d29922' }
                     },
                     fontFamily: { sans: ['Inter', 'sans-serif'], mono: ['"JetBrains Mono"', 'monospace'] }
                 }
@@ -26,6 +26,19 @@
         .tab-active { border-bottom: 2px solid #58a6ff; color: #f0f6fc; }
         .tab-inactive { border-bottom: 2px solid transparent; color: #8b949e; }
         .tab-inactive:hover { color: #f0f6fc; }
+        
+        /* 图床拖拽区 */
+        .dropzone { border: 2px dashed #30363d; transition: all 0.2s; }
+        .dropzone.dragover { border-color: #58a6ff; background: rgba(88, 166, 255, 0.05); }
+        .dropzone:hover { border-color: #58a6ff; }
+        
+        /* 图片上传进度 */
+        .upload-item { animation: slideIn 0.3s ease-out; }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        /* 草稿卡片 */
+        .draft-card { transition: all 0.2s; }
+        .draft-card:hover { background: #161b22; border-color: #58a6ff; }
     </style>
 </head>
 <body class="font-sans min-h-screen flex flex-col">
@@ -36,113 +49,190 @@
             Back to Home
         </a>
         <h1 class="text-glow-green font-bold flex items-center">
-            <span class="mr-2">⚡</span> Creator Studio
+            <span class="mr-2">⚡</span> <span id="page-title">Creator Studio</span>
         </h1>
     </header>
 
-    <main class="flex-grow max-w-6xl mx-auto w-full p-6 grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <!-- Left: Form -->
-        <div class="lg:col-span-2 space-y-6">
-            <!-- Type Tabs -->
-            <div class="bg-space-800 border border-space-border rounded-lg p-2 flex space-x-4">
-                <button id="tab-post" onclick="switchType('post')" class="flex-1 py-2 px-4 font-medium transition tab-active">📝 Blog Post</button>
-                <button id="tab-tool" onclick="switchType('tool')" class="flex-1 py-2 px-4 font-medium transition tab-inactive">🛠️ Web Tool</button>
+    <!-- 顶部 Tab 切换 -->
+    <div class="bg-space-900 border-b border-space-border">
+        <div class="max-w-6xl mx-auto px-6 flex space-x-6">
+            <button onclick="switchMainTab('editor')" id="main-tab-editor" class="py-3 px-2 text-sm font-medium transition tab-active">✍️ Editor</button>
+            <button onclick="switchMainTab('drafts')" id="main-tab-drafts" class="py-3 px-2 text-sm font-medium transition tab-inactive">💾 Drafts <span id="draft-count" class="ml-1 px-1.5 py-0.5 text-[10px] bg-space-700 rounded-full">0</span></button>
+        </div>
+    </div>
+
+    <main class="flex-grow max-w-6xl mx-auto w-full p-6">
+        
+        <!-- ========== Editor Tab ========== -->
+        <div id="panel-editor" class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Left: Form -->
+            <div class="lg:col-span-2 space-y-6">
+                <!-- Type Tabs -->
+                <div class="bg-space-800 border border-space-border rounded-lg p-2 flex space-x-4">
+                    <button id="tab-post" onclick="switchType('post')" class="flex-1 py-2 px-4 font-medium transition tab-active">📝 Blog Post</button>
+                    <button id="tab-tool" onclick="switchType('tool')" class="flex-1 py-2 px-4 font-medium transition tab-inactive">🛠️ Web Tool</button>
+                </div>
+
+                <!-- 图床上传区 -->
+                <div id="dropzone" class="dropzone rounded-lg p-6 text-center cursor-pointer" onclick="document.getElementById('file-input').click()">
+                    <input type="file" id="file-input" accept="image/*" multiple class="hidden" onchange="handleFiles(this.files)">
+                    <div class="text-space-muted">
+                        <svg class="w-8 h-8 mx-auto mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                        <p class="text-sm">Drop images here or <span class="text-glow-blue underline">click to upload</span></p>
+                        <p class="text-xs mt-1">Images will be hosted on GitHub (assets/images/)</p>
+                    </div>
+                    <div id="upload-list" class="mt-4 space-y-2 text-left"></div>
+                </div>
+
+                <div class="bg-space-800 border border-space-border rounded-lg p-6 shadow-lg">
+                    <!-- 编辑模式提示 -->
+                    <div id="edit-mode-banner" class="hidden mb-4 p-3 bg-glow-yellow/10 border border-glow-yellow/30 rounded-md flex items-center justify-between">
+                        <span class="text-glow-yellow text-sm flex items-center">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                            Editing: <span id="edit-target-name" class="font-bold ml-1"></span>
+                        </span>
+                        <button onclick="exitEditMode()" class="text-xs text-space-muted hover:text-space-text">✕ Exit Edit Mode</button>
+                    </div>
+
+                    <label class="block text-sm text-space-muted mb-2">Title / Name</label>
+                    <input type="text" id="item-title" class="w-full bg-space-900 border border-space-border rounded p-3 text-space-text focus:border-glow-blue outline-none transition font-bold text-lg" placeholder="e.g., My First Post">
+                    
+                    <div class="grid grid-cols-2 gap-4 mt-4">
+                        <div>
+                            <label class="block text-sm text-space-muted mb-2">Author</label>
+                            <input type="text" id="item-author" class="w-full bg-space-900 border border-space-border rounded p-3 text-space-text focus:border-glow-blue outline-none" value="lunarHope">
+                        </div>
+                        <div id="field-date">
+                            <label class="block text-sm text-space-muted mb-2">Publish Date</label>
+                            <input type="date" id="item-date" class="w-full bg-space-900 border border-space-border rounded p-3 text-space-text focus:border-glow-blue outline-none">
+                        </div>
+                    </div>
+
+                    <div id="tool-fields" class="hidden grid grid-cols-2 gap-4 mt-4">
+                        <div>
+                            <label class="block text-sm text-space-muted mb-2">Emoji Icon</label>
+                            <input type="text" id="item-emoji" class="w-full bg-space-900 border border-space-border rounded p-3 text-space-text focus:border-glow-blue outline-none" placeholder="🛠️">
+                        </div>
+                        <div>
+                            <label class="block text-sm text-space-muted mb-2">Short Description</label>
+                            <input type="text" id="item-desc" class="w-full bg-space-900 border border-space-border rounded p-3 text-space-text focus:border-glow-blue outline-none" placeholder="A quick utility...">
+                        </div>
+                    </div>
+
+                    <div id="post-tags-field" class="mt-4">
+                        <label class="block text-sm text-space-muted mb-2">Tags (comma separated)</label>
+                        <input type="text" id="item-tags" class="w-full bg-space-900 border border-space-border rounded p-3 text-space-text focus:border-glow-blue outline-none" placeholder="tech, life, code">
+                    </div>
+
+                    <label class="block text-sm text-space-muted mt-4 mb-2">Content (<span id="content-type-label">Markdown</span>)</label>
+                    <textarea id="item-content" rows="16" class="w-full bg-space-900 border border-space-border rounded p-4 text-space-text focus:border-glow-blue outline-none transition font-mono text-sm leading-relaxed" placeholder="Start writing..."></textarea>
+                </div>
             </div>
 
-            <div class="bg-space-800 border border-space-border rounded-lg p-6 shadow-lg">
-                <label class="block text-sm text-space-muted mb-2">Title / Name</label>
-                <input type="text" id="item-title" class="w-full bg-space-900 border border-space-border rounded p-3 text-space-text focus:border-glow-blue outline-none transition font-bold text-lg" placeholder="e.g., My First Post">
-                
-                <div class="grid grid-cols-2 gap-4 mt-4">
-                    <div>
-                        <label class="block text-sm text-space-muted mb-2">Author</label>
-                        <input type="text" id="item-author" class="w-full bg-space-900 border border-space-border rounded p-3 text-space-text focus:border-glow-blue outline-none" value="lunarHope">
-                    </div>
-                    <div id="field-date">
-                        <label class="block text-sm text-space-muted mb-2">Publish Date</label>
-                        <input type="date" id="item-date" class="w-full bg-space-900 border border-space-border rounded p-3 text-space-text focus:border-glow-blue outline-none">
-                    </div>
-                </div>
-
-                <div id="tool-fields" class="hidden grid grid-cols-2 gap-4 mt-4">
-                    <div>
-                        <label class="block text-sm text-space-muted mb-2">Emoji Icon</label>
-                        <input type="text" id="item-emoji" class="w-full bg-space-900 border border-space-border rounded p-3 text-space-text focus:border-glow-blue outline-none" placeholder="🛠️">
-                    </div>
-                    <div>
-                        <label class="block text-sm text-space-muted mb-2">Short Description</label>
-                        <input type="text" id="item-desc" class="w-full bg-space-900 border border-space-border rounded p-3 text-space-text focus:border-glow-blue outline-none" placeholder="A quick utility...">
+            <!-- Right: Config & Terminal -->
+            <div class="space-y-6">
+                <div class="bg-space-800 border border-space-border rounded-lg p-6 shadow-lg">
+                    <h3 class="text-glow-blue font-bold mb-4 flex items-center">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                        Publish Settings
+                    </h3>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-xs text-space-muted mb-1">GitHub Token (repo scope)</label>
+                            <input type="password" id="gh-token" class="w-full bg-space-900 border border-space-border rounded p-2 text-xs text-space-text focus:border-glow-green outline-none" placeholder="ghp_xxxxxxxxxxxx">
+                        </div>
+                        <button onclick="publishItem(false)" id="publish-btn" class="w-full bg-glow-green/20 text-glow-green border border-glow-green/50 hover:bg-glow-green/30 py-3 rounded font-bold transition flex items-center justify-center">
+                            <span id="btn-text">🚀 Publish</span>
+                        </button>
+                        <button onclick="publishItem(true)" id="draft-btn" class="w-full bg-space-700 text-space-text border border-space-border hover:bg-space-600 py-2.5 rounded text-sm transition">
+                            💾 Save as Draft
+                        </button>
                     </div>
                 </div>
 
-                <div id="post-tags-field" class="mt-4">
-                    <label class="block text-sm text-space-muted mb-2">Tags (comma separated)</label>
-                    <input type="text" id="item-tags" class="w-full bg-space-900 border border-space-border rounded p-3 text-space-text focus:border-glow-blue outline-none" placeholder="tech, life, code">
+                <div class="bg-black border border-space-border rounded-lg p-4 h-80 overflow-y-auto font-mono text-xs text-gray-400 shadow-inner" id="terminal-log">
+                    <p class="text-glow-green">➜  ~  System ready.</p>
                 </div>
-
-                <label class="block text-sm text-space-muted mt-4 mb-2">Content (<span id="content-type-label">Markdown</span>)</label>
-                <textarea id="item-content" rows="16" class="w-full bg-space-900 border border-space-border rounded p-4 text-space-text focus:border-glow-blue outline-none transition font-mono text-sm leading-relaxed" placeholder="Start writing..."></textarea>
             </div>
         </div>
 
-        <!-- Right: Config & Terminal -->
-        <div class="space-y-6">
-            <div class="bg-space-800 border border-space-border rounded-lg p-6 shadow-lg">
-                <h3 class="text-glow-blue font-bold mb-4 flex items-center">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                    Publish Settings
-                </h3>
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-xs text-space-muted mb-1">GitHub Token (repo scope)</label>
-                        <input type="password" id="gh-token" class="w-full bg-space-900 border border-space-border rounded p-2 text-xs text-space-text focus:border-glow-green outline-none" placeholder="ghp_xxxxxxxxxxxx">
-                        <p class="text-[10px] text-space-muted mt-1">Stored in localStorage securely.</p>
-                    </div>
-                    <button onclick="publishItem()" id="publish-btn" class="w-full bg-glow-green/20 text-glow-green border border-glow-green/50 hover:bg-glow-green/30 py-3 rounded font-bold transition flex items-center justify-center">
-                        <span id="btn-text">Push to Repository</span>
-                    </button>
-                </div>
+        <!-- ========== Drafts Tab ========== -->
+        <div id="panel-drafts" class="hidden">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold text-space-text">💾 Your Drafts</h2>
+                <button onclick="loadDrafts()" class="text-sm text-space-muted hover:text-space-text flex items-center">
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                    Refresh
+                </button>
             </div>
-
-            <div class="bg-black border border-space-border rounded-lg p-4 h-80 overflow-y-auto font-mono text-xs text-gray-400 shadow-inner" id="terminal-log">
-                <p class="text-glow-green">➜  ~  System ready. Select a type and start creating.</p>
+            <div id="drafts-list" class="space-y-3">
+                <p class="text-space-muted text-center py-12 font-mono">Loading drafts...</p>
             </div>
         </div>
     </main>
 
     <script>
-        // 初始化
+        // ==================== 全局状态 ====================
+        let currentType = 'post';
+        let editMode = { active: false, type: null, slug: null, sha: null, originalSlug: null };
+        
+        // ==================== 初始化 ====================
         document.getElementById('item-date').valueAsDate = new Date();
         if (localStorage.getItem('gh_token')) document.getElementById('gh-token').value = localStorage.getItem('gh_token');
         
-        let currentType = 'post';
-
-        // URL 参数自动切换 (例如 /publish.html?type=tool)
         const params = new URLSearchParams(window.location.search);
-        if (params.get('type') === 'tool') switchType('tool');
+        
+        // 处理编辑模式 URL: ?edit=slug&type=post
+        if (params.get('edit')) {
+            editMode.active = true;
+            editMode.type = params.get('type') || 'post';
+            editMode.slug = params.get('edit');
+            switchType(editMode.type);
+            document.getElementById('page-title').textContent = `Editing: ${editMode.slug}`;
+            loadItemForEdit();
+        } else if (params.get('type') === 'tool') {
+            switchType('tool');
+        }
+        
+        // 处理草稿 Tab URL: ?tab=drafts
+        if (params.get('tab') === 'drafts') switchMainTab('drafts');
+        
+        // 加载草稿数量
+        loadDraftCount();
+        
+        // ==================== Tab 切换 ====================
+        function switchMainTab(tab) {
+            document.getElementById('panel-editor').classList.toggle('hidden', tab !== 'editor');
+            document.getElementById('panel-drafts').classList.toggle('hidden', tab !== 'drafts');
+            document.getElementById('main-tab-editor').className = `py-3 px-2 text-sm font-medium transition ${tab === 'editor' ? 'tab-active' : 'tab-inactive'}`;
+            document.getElementById('main-tab-drafts').className = `py-3 px-2 text-sm font-medium transition ${tab === 'drafts' ? 'tab-active' : 'tab-inactive'}`;
+            if (tab === 'drafts') loadDrafts();
+        }
 
         function switchType(type) {
             currentType = type;
             const tabPost = document.getElementById('tab-post');
             const tabTool = document.getElementById('tab-tool');
-            const postFields = ['field-date', 'post-tags-field'];
-            const toolFields = ['tool-fields'];
-            const contentLabel = document.getElementById('content-type-label');
-
             if (type === 'post') {
                 tabPost.className = tabPost.className.replace('tab-inactive', 'tab-active');
                 tabTool.className = tabTool.className.replace('tab-active', 'tab-inactive');
-                postFields.forEach(id => document.getElementById(id).classList.remove('hidden'));
-                toolFields.forEach(id => document.getElementById(id).classList.add('hidden'));
-                contentLabel.textContent = 'Markdown';
+                document.getElementById('field-date').classList.remove('hidden');
+                document.getElementById('post-tags-field').classList.remove('hidden');
+                document.getElementById('tool-fields').classList.add('hidden');
+                document.getElementById('content-type-label').textContent = 'Markdown';
             } else {
                 tabTool.className = tabTool.className.replace('tab-inactive', 'tab-active');
                 tabPost.className = tabPost.className.replace('tab-active', 'tab-inactive');
-                postFields.forEach(id => document.getElementById(id).classList.add('hidden'));
-                toolFields.forEach(id => document.getElementById(id).classList.remove('hidden'));
-                contentLabel.textContent = 'HTML';
+                document.getElementById('field-date').classList.add('hidden');
+                document.getElementById('post-tags-field').classList.add('hidden');
+                document.getElementById('tool-fields').classList.remove('hidden');
+                document.getElementById('content-type-label').textContent = 'HTML';
             }
         }
+
+        // ==================== 工具函数 ====================
+        function utf8ToBase64(str) { return btoa(unescape(encodeURIComponent(str))); }
+        function base64ToUtf8(base64) { return decodeURIComponent(escape(atob(base64))); }
 
         function log(msg, type = 'info') {
             const term = document.getElementById('terminal-log');
@@ -153,18 +243,247 @@
             term.scrollTop = term.scrollHeight;
         }
 
-        function utf8ToBase64(str) { return btoa(unescape(encodeURIComponent(str))); }
-        function base64ToUtf8(base64) { return decodeURIComponent(escape(atob(base64))); }
+        async function ghFetch(path, options = {}) {
+            const token = document.getElementById('gh-token').value.trim();
+            const headers = { 'Accept': 'application/vnd.github.v3+json' };
+            if (token) headers['Authorization'] = `token ${token}`;
+            if (options.headers) Object.assign(headers, options.headers);
+            
+            const res = await fetch(`https://api.github.com/repos/WJULY42/WJULY42.github.io${path}`, { ...options, headers });
+            return res;
+        }
 
-        async function getFileSha(path, token) {
+        async function getFileSha(path) {
             try {
-                const res = await fetch(`https://api.github.com/repos/WJULY42/WJULY42.github.io/contents/${path}`, { headers: { Authorization: `token ${token}` } });
+                const res = await ghFetch(`/contents/${path}`);
                 if (res.ok) return (await res.json()).sha;
-            } catch (e) { return null; }
+            } catch (e) {}
             return null;
         }
 
-        async function publishItem() {
+        function generateSlug(title) {
+            let slug = "";
+            if (window.pinyinPro) slug = window.pinyinPro.pinyin(title, { toneType: 'none', type: 'array' }).join('-');
+            else slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+            slug = slug.replace(/-+/g, '-').toLowerCase().replace(/(^-|-$)/g, '');
+            return slug || `item-${Date.now()}`;
+        }
+
+        // ==================== 图床功能 ====================
+        const dropzone = document.getElementById('dropzone');
+        const uploadList = document.getElementById('upload-list');
+        
+        ['dragenter', 'dragover'].forEach(evt => {
+            dropzone.addEventListener(evt, (e) => { e.preventDefault(); dropzone.classList.add('dragover'); });
+        });
+        ['dragleave', 'drop'].forEach(evt => {
+            dropzone.addEventListener(evt, (e) => { e.preventDefault(); dropzone.classList.remove('dragover'); });
+        });
+        dropzone.addEventListener('drop', (e) => handleFiles(e.dataTransfer.files));
+
+        async function handleFiles(files) {
+            const token = document.getElementById('gh-token').value.trim();
+            if (!token) { log('⚠️ Please enter GitHub Token first.', 'error'); return; }
+            
+            for (const file of files) {
+                if (!file.type.startsWith('image/')) continue;
+                await uploadImage(file, token);
+            }
+        }
+
+        async function uploadImage(file, token) {
+            const itemId = 'upload-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5);
+            const item = document.createElement('div');
+            item.id = itemId;
+            item.className = 'upload-item flex items-center justify-between p-2 bg-space-900 border border-space-border rounded text-xs';
+            item.innerHTML = `
+                <div class="flex items-center flex-1 min-w-0">
+                    <span class="text-glow-blue mr-2">⏳</span>
+                    <span class="truncate text-space-text">${file.name}</span>
+                </div>
+                <span class="text-space-muted ml-2 upload-status">Uploading...</span>
+            `;
+            uploadList.appendChild(item);
+
+            try {
+                // 转 base64
+                const base64 = await fileToBase64(file);
+                const ext = file.name.split('.').pop().toLowerCase();
+                const dateStr = new Date().toISOString().split('T')[0].replace(/-/g, '');
+                const rand = Math.random().toString(36).substr(2, 6);
+                const fileName = `${dateStr}-${rand}.${ext}`;
+                const path = `assets/images/${fileName}`;
+
+                // 上传到 GitHub
+                const res = await ghFetch(`/contents/${path}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: `feat: upload image ${fileName}`,
+                        content: base64.split(',')[1], // 去掉 data:image/xxx;base64, 前缀
+                        branch: 'main'
+                    })
+                });
+
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+                // 生成 Markdown 链接
+                const imageUrl = `https://wjuly42.github.io/${path}`;
+                const mdLink = file.type.startsWith('image/') ? `![${file.name}](${imageUrl})` : `[${file.name}](${imageUrl})`;
+
+                // 插入到 textarea 光标位置
+                insertAtCursor(document.getElementById('item-content'), mdLink + '\n');
+
+                // 更新 UI
+                item.innerHTML = `
+                    <div class="flex items-center flex-1 min-w-0">
+                        <span class="text-glow-green mr-2">✓</span>
+                        <span class="truncate text-space-text">${file.name}</span>
+                    </div>
+                    <button onclick="copyToClipboard('${imageUrl}'); this.textContent='Copied!'; setTimeout(()=>this.textContent='Copy URL', 1500)" class="text-glow-blue hover:underline ml-2">Copy URL</button>
+                `;
+                log(`Image uploaded: ${fileName}`, 'success');
+
+                // 5秒后移除
+                setTimeout(() => item.remove(), 5000);
+            } catch (err) {
+                item.querySelector('.upload-status').textContent = '❌ Failed';
+                item.querySelector('.upload-status').className = 'text-glow-pink ml-2 upload-status';
+                log(`Upload failed: ${err.message}`, 'error');
+            }
+        }
+
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function insertAtCursor(textarea, text) {
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            const before = textarea.value.substring(0, start);
+            const after = textarea.value.substring(end);
+            textarea.value = before + text + after;
+            textarea.selectionStart = textarea.selectionEnd = start + text.length;
+            textarea.focus();
+        }
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text);
+        }
+
+        // ==================== 编辑模式 ====================
+        async function loadItemForEdit() {
+            const token = document.getElementById('gh-token').value.trim();
+            if (!token) {
+                log('⚠️ Please enter GitHub Token to load item for editing.', 'warn');
+                return;
+            }
+
+            log(`Loading ${editMode.type}: ${editMode.slug}...`, 'info');
+            
+            try {
+                if (editMode.type === 'post') {
+                    // 1. 从 posts.json 找到元数据
+                    const postsRes = await fetch('/data/posts.json?t=' + Date.now());
+                    const postsData = await postsRes.json();
+                    const posts = Array.isArray(postsData) ? postsData : (postsData.posts || []);
+                    const post = posts.find(p => p.slug === editMode.slug);
+                    if (!post) throw new Error('Post not found in index');
+
+                    // 2. 获取 md 文件内容和 sha
+                    const mdPath = `blog/posts/${editMode.slug}.md`;
+                    const [mdRes, sha] = await Promise.all([
+                        fetch(`/${mdPath}?t=${Date.now()}`),
+                        getFileSha(mdPath)
+                    ]);
+                    if (!mdRes.ok) throw new Error('Markdown file not found');
+                    const mdText = await mdRes.text();
+
+                    // 3. 解析 Frontmatter
+                    const fmMatch = mdText.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
+                    if (!fmMatch) throw new Error('Invalid frontmatter');
+                    
+                    const fm = {};
+                    fmMatch[1].split('\n').forEach(line => {
+                        const m = line.match(/^(\w+):\s*(.+)$/);
+                        if (m) {
+                            let val = m[2].trim().replace(/^["']|["']$/g, '');
+                            if (m[1] === 'tags') {
+                                val = val.replace(/[\[\]]/g, '').split(',').map(t => t.trim()).filter(t => t);
+                            }
+                            fm[m[1]] = val;
+                        }
+                    });
+
+                    // 4. 填充表单
+                    document.getElementById('item-title').value = fm.title || post.title;
+                    document.getElementById('item-author').value = fm.author || post.author || 'lunarHope';
+                    document.getElementById('item-date').value = fm.date || post.date || '';
+                    document.getElementById('item-tags').value = Array.isArray(fm.tags) ? fm.tags.join(', ') : (fm.tags || '');
+                    document.getElementById('item-content').value = fmMatch[2];
+
+                    editMode.sha = sha;
+                    editMode.originalSlug = editMode.slug;
+                } else {
+                    // Tool
+                    const toolsRes = await fetch('/data/tools.json?t=' + Date.now());
+                    const toolsData = await toolsRes.json();
+                    const tools = Array.isArray(toolsData) ? toolsData : (toolsData.tools || []);
+                    const tool = tools.find(t => t.url === editMode.slug || t.url === `${editMode.slug}.html`);
+                    if (!tool) throw new Error('Tool not found in index');
+
+                    const htmlPath = `tools/${tool.url}`;
+                    const [htmlRes, sha] = await Promise.all([
+                        fetch(`/${htmlPath}?t=${Date.now()}`),
+                        getFileSha(htmlPath)
+                    ]);
+                    if (!htmlRes.ok) throw new Error('HTML file not found');
+                    let htmlText = await htmlRes.text();
+
+                    // 去除头部注释
+                    htmlText = htmlText.replace(/^<!--[\s\S]*?-->\n?/, '');
+
+                    document.getElementById('item-title').value = tool.name;
+                    document.getElementById('item-author').value = tool.author || 'lunarHope';
+                    document.getElementById('item-emoji').value = tool.emoji || '';
+                    document.getElementById('item-desc').value = tool.desc || '';
+                    document.getElementById('item-content').value = htmlText;
+
+                    editMode.sha = sha;
+                    editMode.originalSlug = tool.url.replace('.html', '');
+                }
+
+                // 显示编辑模式 banner
+                document.getElementById('edit-mode-banner').classList.remove('hidden');
+                document.getElementById('edit-target-name').textContent = editMode.slug;
+                document.getElementById('btn-text').textContent = '💾 Update (Overwrite)';
+                log('Loaded successfully. Ready to update.', 'success');
+            } catch (err) {
+                log(`Failed to load: ${err.message}`, 'error');
+            }
+        }
+
+        function exitEditMode() {
+            editMode = { active: false, type: null, slug: null, sha: null, originalSlug: null };
+            document.getElementById('edit-mode-banner').classList.add('hidden');
+            document.getElementById('btn-text').textContent = '🚀 Publish';
+            document.getElementById('page-title').textContent = 'Creator Studio';
+            // 清空表单
+            ['item-title', 'item-content', 'item-emoji', 'item-desc', 'item-tags'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.value = '';
+            });
+            // 清除 URL 参数
+            history.replaceState({}, '', '/publish.html');
+        }
+
+        // ==================== 发布/更新 ====================
+        async function publishItem(asDraft) {
             const token = document.getElementById('gh-token').value.trim();
             const title = document.getElementById('item-title').value.trim();
             const author = document.getElementById('item-author').value.trim() || 'lunarHope';
@@ -173,23 +492,17 @@
             const btnText = document.getElementById('btn-text');
 
             if (!token || !title || !content) { log('Error: Title, Content and Token are required.', 'error'); return; }
-            localStorage.setItem('gh_token', token);
-
-            // 安全检查
             if (content.includes(token) || /ghp_[a-zA-Z0-9]{36}/.test(content)) {
-                log('⚠️ Security Alert: Content contains potential token!', 'error');
-                return;
+                log('⚠️ Security Alert: Content contains potential token!', 'error'); return;
             }
 
-            btn.disabled = true; btnText.textContent = 'Processing...';
-            log(`Preparing ${currentType === 'post' ? 'Blog Post' : 'Web Tool'}...`, 'info');
+            localStorage.setItem('gh_token', token);
+            btn.disabled = true;
+            btnText.textContent = 'Processing...';
 
-            // Slug 生成
-            let slug = "";
-            if (window.pinyinPro) slug = window.pinyinPro.pinyin(title, { toneType: 'none', type: 'array' }).join('-');
-            else slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-            slug = slug.replace(/-+/g, '-').toLowerCase().replace(/(^-|-$)/g, '');
-            if (!slug) slug = `item-${Date.now()}`;
+            const slug = generateSlug(title);
+            const isUpdate = editMode.active;
+            const targetSlug = isUpdate ? editMode.originalSlug : slug;
 
             let path, jsonPath, encodedContent, jsonKey, newMeta;
 
@@ -197,67 +510,237 @@
                 const date = document.getElementById('item-date').value;
                 const tags = document.getElementById('item-tags').value.split(',').map(t => t.trim()).filter(t => t);
                 const frontmatter = `---\ntitle: "${title}"\nauthor: "${author}"\ndate: ${date}\ntags: [${tags.join(', ')}]\n---\n\n`;
-                
-                path = `blog/posts/${slug}.md`;
+                path = `blog/posts/${targetSlug}.md`;
                 jsonPath = `data/posts.json`;
                 encodedContent = utf8ToBase64(frontmatter + content);
                 jsonKey = 'posts';
-                newMeta = { title, author, date, tags, slug, url: `/blog/read.html?slug=${slug}` };
+                newMeta = { title, author, date, tags, slug: targetSlug, url: `/blog/read.html?slug=${targetSlug}` };
             } else {
                 const emoji = document.getElementById('item-emoji').value.trim() || '🛠️';
                 const desc = document.getElementById('item-desc').value.trim();
                 const comment = `<!--\nTool: ${title}\nAuthor: ${author}\nDate: ${new Date().toISOString().split('T')[0]}\n-->\n`;
-                
-                path = `tools/${slug}.html`;
+                path = `tools/${targetSlug}.html`;
                 jsonPath = `data/tools.json`;
                 encodedContent = utf8ToBase64(comment + content);
                 jsonKey = 'tools';
-                newMeta = { name: title, desc, author, url: `${slug}.html`, emoji, status: "Live", lang: "HTML", langColor: "#e34c26" };
+                newMeta = { name: title, desc, author, url: `${targetSlug}.html`, emoji, status: "Live", lang: "HTML", langColor: "#e34c26" };
+            }
+
+            // 如果是草稿，走不同的路径
+            if (asDraft) {
+                jsonPath = `data/drafts.json`;
+                jsonKey = 'drafts';
+                newMeta.type = currentType;
+                newMeta.savedAt = new Date().toISOString();
+                newMeta.content = content; // 草稿保存完整内容
+                if (currentType === 'post') {
+                    newMeta.frontmatter = {
+                        title, author,
+                        date: document.getElementById('item-date').value,
+                        tags: document.getElementById('item-tags').value.split(',').map(t => t.trim()).filter(t => t)
+                    };
+                } else {
+                    newMeta.emoji = document.getElementById('item-emoji').value.trim() || '🛠️';
+                    newMeta.desc = document.getElementById('item-desc').value.trim();
+                }
             }
 
             try {
                 // 1. 更新 JSON 索引
                 log(`Fetching /${jsonPath}...`, 'info');
                 let items = [];
-                const currentJsonSha = await getFileSha(jsonPath, token);
-                
+                const currentJsonSha = await getFileSha(jsonPath);
+                let existingIndex = -1;
+
                 if (currentJsonSha) {
-                    const jsonRes = await fetch(`https://api.github.com/repos/WJULY42/WJULY42.github.io/contents/${jsonPath}`, { headers: { Authorization: `token ${token}` } });
+                    const jsonRes = await ghFetch(`/contents/${jsonPath}`);
                     const parsed = JSON.parse(base64ToUtf8((await jsonRes.json()).content));
                     items = Array.isArray(parsed) ? parsed : (parsed[jsonKey] || []);
+                    
+                    // 编辑模式下，找到原条目位置
+                    if (isUpdate && !asDraft) {
+                        existingIndex = items.findIndex(item => {
+                            if (currentType === 'post') return item.slug === editMode.originalSlug;
+                            else return (item.url || '').replace('.html', '') === editMode.originalSlug;
+                        });
+                    }
                 }
-                
-                items.unshift(newMeta);
+
+                if (existingIndex >= 0) {
+                    // 更新现有条目
+                    items[existingIndex] = { ...items[existingIndex], ...newMeta };
+                    log(`Updating existing entry at index ${existingIndex}`, 'info');
+                } else {
+                    // 新增条目
+                    items.unshift(newMeta);
+                }
+
                 const newJsonContent = JSON.stringify({ [jsonKey]: items }, null, 2);
-                const jsonPayload = { message: `chore: add ${currentType} "${title}"`, content: utf8ToBase64(newJsonContent), branch: 'main' };
+                const jsonPayload = { 
+                    message: asDraft ? `draft: save "${title}"` : (isUpdate ? `update: ${currentType} "${title}"` : `feat: create ${currentType} "${title}"`),
+                    content: utf8ToBase64(newJsonContent), 
+                    branch: 'main' 
+                };
                 if (currentJsonSha) jsonPayload.sha = currentJsonSha;
 
-                log(`Updating index...`, 'info');
-                const jsonRes = await fetch(`https://api.github.com/repos/WJULY42/WJULY42.github.io/contents/${jsonPath}`, {
-                    method: 'PUT', headers: { 'Authorization': `token ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(jsonPayload)
+                const jsonRes = await ghFetch(`/contents/${jsonPath}`, {
+                    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(jsonPayload)
                 });
                 if (!jsonRes.ok) throw new Error(`Index update failed: ${await jsonRes.text()}`);
                 log('Index updated.', 'success');
 
-                // 2. 推送内容文件
-                log(`Pushing ${path}...`, 'info');
-                const fileSha = await getFileSha(path, token);
-                const filePayload = { message: `feat: create ${currentType} "${title}"`, content: encodedContent, branch: 'main' };
-                if (fileSha) filePayload.sha = fileSha;
+                // 2. 推送内容文件（草稿不需要）
+                if (!asDraft) {
+                    log(`Pushing ${path}...`, 'info');
+                    const filePayload = { message: jsonPayload.message, content: encodedContent, branch: 'main' };
+                    if (editMode.sha) filePayload.sha = editMode.sha; // 编辑模式带 sha 覆盖
 
-                const fileRes = await fetch(`https://api.github.com/repos/WJULY42/WJULY42.github.io/contents/${path}`, {
-                    method: 'PUT', headers: { 'Authorization': `token ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(filePayload)
-                });
-                if (!fileRes.ok) throw new Error(`File push failed: ${await fileRes.text()}`);
-                log('File published successfully.', 'success');
-                log('🎉 Done! Redirecting...', 'success');
+                    const fileRes = await ghFetch(`/contents/${path}`, {
+                        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(filePayload)
+                    });
+                    if (!fileRes.ok) throw new Error(`File push failed: ${await fileRes.text()}`);
+                    log('File published.', 'success');
+                }
 
-                setTimeout(() => window.location.href = currentType === 'post' ? '/blog/' : '/tools/', 1500);
-
+                if (asDraft) {
+                    log('💾 Draft saved!', 'success');
+                    loadDraftCount();
+                    setTimeout(() => {
+                        if (confirm('Draft saved! View drafts?')) switchMainTab('drafts');
+                    }, 800);
+                } else {
+                    log('🎉 Done!', 'success');
+                    setTimeout(() => window.location.href = currentType === 'post' ? '/blog/' : '/tools/', 1200);
+                }
             } catch (err) {
                 log(`Critical Error: ${err.message}`, 'error');
             } finally {
-                btn.disabled = false; btnText.textContent = 'Push to Repository';
+                btn.disabled = false;
+                btnText.textContent = isUpdate ? '💾 Update (Overwrite)' : '🚀 Publish';
+            }
+        }
+
+        // ==================== 草稿管理 ====================
+        async function loadDraftCount() {
+            try {
+                const res = await fetch('/data/drafts.json?t=' + Date.now());
+                if (!res.ok) { document.getElementById('draft-count').textContent = '0'; return; }
+                const data = await res.json();
+                const drafts = Array.isArray(data) ? data : (data.drafts || []);
+                document.getElementById('draft-count').textContent = drafts.length;
+            } catch { document.getElementById('draft-count').textContent = '0'; }
+        }
+
+        async function loadDrafts() {
+            const list = document.getElementById('drafts-list');
+            try {
+                const res = await fetch('/data/drafts.json?t=' + Date.now());
+                if (!res.ok) { list.innerHTML = '<p class="text-space-muted text-center py-12 font-mono">// No drafts yet.</p>'; return; }
+                const data = await res.json();
+                const drafts = Array.isArray(data) ? data : (data.drafts || []);
+                
+                if (drafts.length === 0) {
+                    list.innerHTML = '<p class="text-space-muted text-center py-12 font-mono">// No drafts yet.</p>';
+                    return;
+                }
+
+                list.innerHTML = drafts.map((d, i) => `
+                    <div class="draft-card bg-space-800 border border-space-border rounded-lg p-4 flex items-center justify-between">
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="text-lg">${d.type === 'post' ? '📝' : '🛠️'}</span>
+                                <h3 class="font-bold text-space-text truncate">${d.title}</h3>
+                                <span class="text-[10px] px-2 py-0.5 rounded-full bg-glow-yellow/10 text-glow-yellow border border-glow-yellow/30">Draft</span>
+                            </div>
+                            <p class="text-xs text-space-muted">Saved ${new Date(d.savedAt).toLocaleString()}</p>
+                        </div>
+                        <div class="flex gap-2 ml-4">
+                            <button onclick='editDraft(${i})' class="px-3 py-1.5 bg-space-700 hover:bg-space-600 border border-space-border rounded text-xs text-space-text">Edit</button>
+                            <button onclick='publishDraft(${i})' class="px-3 py-1.5 bg-glow-green/20 hover:bg-glow-green/30 border border-glow-green/50 rounded text-xs text-glow-green">Publish</button>
+                            <button onclick='deleteDraft(${i})' class="px-3 py-1.5 bg-glow-pink/10 hover:bg-glow-pink/20 border border-glow-pink/50 rounded text-xs text-glow-pink">Delete</button>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (err) {
+                list.innerHTML = `<p class="text-glow-pink text-center font-mono">Error: ${err.message}</p>`;
+            }
+        }
+
+        let draftsCache = [];
+        async function editDraft(index) {
+            const res = await fetch('/data/drafts.json?t=' + Date.now());
+            const data = await res.json();
+            draftsCache = Array.isArray(data) ? data : (data.drafts || []);
+            const draft = draftsCache[index];
+            if (!draft) return;
+
+            switchType(draft.type);
+            document.getElementById('item-title').value = draft.title;
+            document.getElementById('item-author').value = draft.author || 'lunarHope';
+            document.getElementById('item-content').value = draft.content || '';
+            
+            if (draft.type === 'post' && draft.frontmatter) {
+                document.getElementById('item-date').value = draft.frontmatter.date || '';
+                document.getElementById('item-tags').value = (draft.frontmatter.tags || []).join(', ');
+            } else {
+                document.getElementById('item-emoji').value = draft.emoji || '';
+                document.getElementById('item-desc').value = draft.desc || '';
+            }
+
+            switchMainTab('editor');
+            log(`Loaded draft: ${draft.title}`, 'info');
+        }
+
+        async function publishDraft(index) {
+            if (!confirm('Publish this draft? It will be moved to the public list.')) return;
+            const res = await fetch('/data/drafts.json?t=' + Date.now());
+            const data = await res.json();
+            draftsCache = Array.isArray(data) ? data : (data.drafts || []);
+            const draft = draftsCache[index];
+            if (!draft) return;
+
+            // 填充表单并切换类型
+            switchType(draft.type);
+            document.getElementById('item-title').value = draft.title;
+            document.getElementById('item-author').value = draft.author || 'lunarHope';
+            document.getElementById('item-content').value = draft.content || '';
+            if (draft.type === 'post' && draft.frontmatter) {
+                document.getElementById('item-date').value = draft.frontmatter.date || '';
+                document.getElementById('item-tags').value = (draft.frontmatter.tags || []).join(', ');
+            } else {
+                document.getElementById('item-emoji').value = draft.emoji || '';
+                document.getElementById('item-desc').value = draft.desc || '';
+            }
+            switchMainTab('editor');
+            
+            // 删除草稿
+            await deleteDraft(index, false);
+            log('Draft loaded into editor. Click Publish to make it live.', 'info');
+        }
+
+        async function deleteDraft(index, confirmFirst = true) {
+            if (confirmFirst && !confirm('Delete this draft?')) return;
+            const token = document.getElementById('gh-token').value.trim();
+            if (!token) { log('⚠️ Token required.', 'error'); return; }
+
+            const res = await fetch('/data/drafts.json?t=' + Date.now());
+            const data = await res.json();
+            const drafts = Array.isArray(data) ? data : (data.drafts || []);
+            drafts.splice(index, 1);
+
+            try {
+                const sha = await getFileSha('data/drafts.json');
+                const payload = { message: 'chore: delete draft', content: utf8ToBase64(JSON.stringify({ drafts }, null, 2)), branch: 'main' };
+                if (sha) payload.sha = sha;
+                const putRes = await ghFetch('/contents/data/drafts.json', {
+                    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+                });
+                if (!putRes.ok) throw new Error(await putRes.text());
+                log('Draft deleted.', 'success');
+                loadDrafts();
+                loadDraftCount();
+            } catch (err) {
+                log(`Delete failed: ${err.message}`, 'error');
             }
         }
     </script>
