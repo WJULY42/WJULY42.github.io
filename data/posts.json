@@ -1,6 +1,16 @@
 {
   "posts": [
     {
+      "title": "依旧测试",
+      "author": "lunarHope",
+      "date": "2026-07-02",
+      "tags": [
+        "none"
+      ],
+      "slug": "yi-jiu-ce-shi",
+      "url": "/blog/read.html?slug=yi-jiu-ce-shi"
+    },
+    {
       "title": "README",
       "date": "2026-06-28",
       "tags": [
