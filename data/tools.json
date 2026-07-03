@@ -2,10 +2,10 @@
   "tools": [
     {
       "name": "扫雷",
-      "desc": "扫雷",
+      "desc": "",
       "author": "lunarHope",
       "url": "sao-lei.html",
-      "emoji": "雷",
+      "emoji": "💣",
       "status": "Live",
       "lang": "HTML",
       "langColor": "#e34c26"
