@@ -1,6 +1,16 @@
 {
   "tools": [
     {
+      "name": "扫雷",
+      "desc": "扫雷",
+      "author": "lunarHope",
+      "url": "sao-lei.html",
+      "emoji": "雷",
+      "status": "Live",
+      "lang": "HTML",
+      "langColor": "#e34c26"
+    },
+    {
       "name": "cut",
       "desc": "by wjuly42",
       "url": "c-u-t.html",
