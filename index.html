@@ -4,36 +4,34 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>lunarHope | Code. Tinker. Share.</title>
-    
-    <script src="https://cdn.tailwindcss.com"></script>
+    <meta name="description" content="lunarHope's digital garden - tools, blog, and experiments.">
+
+    <!-- ============ 字体预连接优化 ============ -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="dns-prefetch" href="https://cdn.tailwindcss.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 
+    <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
                         space: {
-                            900: '#010409', 
-                            800: '#0d1117',
-                            700: '#161b22',
-                            600: '#21262d',
-                            border: '#30363d',
-                            text: '#f0f6fc',
-                            muted: '#8b949e',
+                            900: '#010409', 800: '#0d1117', 700: '#161b22',
+                            600: '#21262d', border: '#30363d',
+                            text: '#f0f6fc', muted: '#8b949e',
                         },
                         glow: {
-                            purple: '#8957e5',
-                            blue: '#58a6ff',
-                            pink: '#da3633',
-                            green: '#3fb950',
+                            purple: '#8957e5', blue: '#58a6ff',
+                            pink: '#da3633', green: '#3fb950',
                         }
                     },
                     fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                        mono: ['"JetBrains Mono"', 'monospace'],
+                        // 系统字体栈兜底，确保即使 CDN 慢也能立即显示
+                        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Helvetica', 'Arial', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace'],
                     },
                     animation: {
                         'float': 'float 20s ease-in-out infinite',
@@ -51,12 +49,22 @@
         }
     </script>
 
+    <!-- ============ 关键 CSS 内联（首屏零请求） ============ -->
     <style>
-        body { background-color: #010409; color: #f0f6fc; overflow-x: hidden; }
-        ::-webkit-scrollbar { width: 8px; } ::-webkit-scrollbar-track { background: #010409; } ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 4px; }
+        * { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+        body { background-color: #010409; color: #f0f6fc; overflow-x: hidden; font-display: swap; }
 
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #010409; }
+        ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 4px; }
+
+        /* 追光卡片 */
         .spotlight-card { position: relative; background: #0d1117; border: 1px solid #30363d; overflow: hidden; transition: border-color 0.3s ease; }
-        .spotlight-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: radial-gradient(800px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(137, 87, 229, 0.15), transparent 40%); z-index: 0; opacity: 0; transition: opacity 0.3s ease; }
+        .spotlight-card::before {
+            content: ''; position: absolute; inset: 0;
+            background: radial-gradient(800px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(137, 87, 229, 0.15), transparent 40%);
+            z-index: 0; opacity: 0; transition: opacity 0.3s ease;
+        }
         .spotlight-card:hover::before { opacity: 1; }
         .spotlight-card:hover { border-color: rgba(137, 87, 229, 0.5); }
         .spotlight-card > * { position: relative; z-index: 1; }
@@ -67,44 +75,200 @@
         .text-gradient { background: linear-gradient(135deg, #f0f6fc 0%, #8b949e 50%, #f0f6fc 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
         .text-gradient-glow { background: linear-gradient(135deg, #58a6ff 0%, #8957e5 50%, #da3633 100%); -webkit-background-clip: text; background-clip: text; color: transparent; text-shadow: 0 0 30px rgba(137, 87, 229, 0.3); }
 
-        .no-scrollbar::-webkit-scrollbar { display: none; } .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        
         .reveal { opacity: 0; transform: translateY(30px); transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1); }
         .reveal.active { opacity: 1; transform: translateY(0); }
+
+        /* ============ Spotlight 面板 ============ */
+        #spotlight-backdrop {
+            position: fixed; inset: 0; z-index: 9998;
+            background: rgba(1, 4, 9, 0.7); backdrop-filter: blur(8px);
+            opacity: 0; transition: opacity 0.2s ease; pointer-events: none;
+        }
+        #spotlight-backdrop.open { opacity: 1; pointer-events: auto; }
+
+        #spotlight-panel {
+            position: fixed; top: 20vh; left: 50%; z-index: 9999;
+            width: 90%; max-width: 640px; max-height: 70vh;
+            transform: translateX(-50%) scale(0.95); opacity: 0;
+            background: #0d1117; border: 1px solid #30363d;
+            border-radius: 12px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            pointer-events: none; display: flex; flex-direction: column;
+        }
+        #spotlight-panel.open { transform: translateX(-50%) scale(1); opacity: 1; pointer-events: auto; }
+
+        .spotlight-input {
+            width: 100%; background: transparent; border: none; outline: none;
+            padding: 16px 20px; font-size: 16px; color: #f0f6fc;
+            border-bottom: 1px solid #30363d; font-family: 'Inter', sans-serif;
+        }
+        .spotlight-input::placeholder { color: #8b949e; }
+
+        .spotlight-results { overflow-y: auto; padding: 8px; flex: 1; }
+        .spotlight-group-title {
+            padding: 8px 12px 4px; font-size: 11px; font-weight: 600;
+            color: #8b949e; text-transform: uppercase; letter-spacing: 0.05em;
+        }
+        .spotlight-item {
+            display: flex; align-items: center; padding: 10px 12px;
+            border-radius: 6px; cursor: pointer; color: #f0f6fc;
+            font-size: 14px; transition: background 0.1s;
+        }
+        .spotlight-item:hover, .spotlight-item.selected { background: #161b22; }
+        .spotlight-item.selected { outline: 1px solid #30363d; }
+        .spotlight-item-icon {
+            width: 28px; height: 28px; border-radius: 6px;
+            background: #161b22; display: flex; align-items: center; justify-content: center;
+            margin-right: 12px; flex-shrink: 0; font-size: 14px;
+        }
+        .spotlight-item-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .spotlight-item-meta { font-size: 11px; color: #8b949e; margin-left: 8px; flex-shrink: 0; }
+        .spotlight-empty { padding: 40px 20px; text-align: center; color: #8b949e; font-size: 13px; }
+
+        .spotlight-footer {
+            padding: 8px 16px; border-top: 1px solid #30363d;
+            display: flex; gap: 16px; font-size: 11px; color: #8b949e;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .spotlight-footer kbd {
+            padding: 2px 6px; background: #161b22; border: 1px solid #30363d;
+            border-radius: 3px; font-size: 10px; color: #f0f6fc; margin-right: 4px;
+        }
+
+        /* ============ 终端样式 ============ */
+        .terminal-input {
+            background: transparent; border: none; outline: none;
+            color: #f0f6fc; font-family: 'JetBrains Mono', monospace;
+            font-size: 14px; flex: 1; caret-color: #3fb950;
+        }
+        .terminal-prompt { color: #3fb950; font-family: 'JetBrains Mono', monospace; font-size: 14px; }
+        .terminal-path { color: #58a6ff; font-family: 'JetBrains Mono', monospace; font-size: 14px; }
+
+        /* ============ Matrix 代码雨 ============ */
+        #matrix-canvas {
+            position: fixed; inset: 0; z-index: 99999;
+            pointer-events: none; display: none;
+        }
+        #matrix-canvas.active { display: block; }
+
+        /* ============ 系统崩溃 (BSOD) ============ */
+        #crash-overlay {
+            position: fixed; inset: 0; z-index: 999999;
+            background: #0078d7; display: none;
+            font-family: 'Segoe UI', sans-serif; color: white;
+            padding: 10vh 10vw; flex-direction: column; justify-content: center;
+        }
+        #crash-overlay.active { display: flex; animation: glitch 0.3s ease-out; }
+        @keyframes glitch {
+            0% { transform: translate(0); filter: hue-rotate(0deg); }
+            20% { transform: translate(-5px, 3px); filter: hue-rotate(90deg); }
+            40% { transform: translate(3px, -5px); filter: hue-rotate(180deg); }
+            60% { transform: translate(-3px, 5px); filter: hue-rotate(270deg); }
+            80% { transform: translate(5px, -3px); filter: hue-rotate(360deg); }
+            100% { transform: translate(0); filter: hue-rotate(0deg); }
+        }
+        .bsod-face { font-size: 120px; margin-bottom: 20px; }
+        .bsod-title { font-size: 28px; margin-bottom: 20px; font-weight: 400; }
+        .bsod-text { font-size: 16px; line-height: 1.8; max-width: 700px; opacity: 0.95; }
+        .bsod-progress { margin-top: 40px; font-size: 16px; }
+        .bsod-qr {
+            width: 100px; height: 100px; background: white;
+            margin-top: 30px; display: flex; align-items: center; justify-content: center;
+            color: black; font-size: 10px; text-align: center;
+        }
+
+        /* 故障效果 */
+        .glitch-effect { animation: screenGlitch 0.1s infinite; }
+        @keyframes screenGlitch {
+            0% { transform: translate(0); filter: invert(0); }
+            25% { transform: translate(-2px, 1px); filter: invert(0.1); }
+            50% { transform: translate(2px, -1px); filter: invert(0.2); }
+            75% { transform: translate(-1px, 2px); filter: invert(0.1); }
+            100% { transform: translate(0); filter: invert(0); }
+        }
+
+        /* 隐藏滚动条但保留功能 */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
 <body class="font-sans antialiased">
 
-    <!-- ================= 背景光影 (Aurora Glows) ================= -->
+    <!-- ============ 背景光影 ============ -->
     <div class="fixed inset-0 z-0 overflow-hidden pointer-events-none">
         <div class="absolute top-[-10%] left-[-5%] w-[500px] h-[500px] bg-glow-purple/20 rounded-full blur-[120px] animate-float"></div>
         <div class="absolute bottom-[-10%] right-[-5%] w-[600px] h-[600px] bg-glow-blue/20 rounded-full blur-[120px] animate-float-delayed"></div>
         <div class="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000_70%,transparent_110%)]"></div>
     </div>
 
-    <!-- ================= 顶部导航 (Nav) ================= -->
+    <!-- ============ Matrix 代码雨 Canvas ============ -->
+    <canvas id="matrix-canvas"></canvas>
+
+    <!-- ============ 系统崩溃 (BSOD) 遮罩 ============ -->
+    <div id="crash-overlay">
+        <div class="bsod-face">:(</div>
+        <div class="bsod-title">Your PC ran into a problem and needs to restart.</div>
+        <div class="bsod-text">
+            We're just collecting some error info, and then we'll restart for you.<br><br>
+            <strong>Stop code:</strong> CRITICAL_PROCESS_DIED<br>
+            <strong>What failed:</strong> lunarHope-terminal.exe<br>
+            <strong>What happened:</strong> You typed <code style="background:rgba(255,255,255,0.2);padding:2px 6px;border-radius:3px;">sudo rm -rf /</code> 🙃
+        </div>
+        <div class="bsod-progress"><span id="bsod-percent">0</span>% complete</div>
+        <div class="bsod-qr">
+            <div>
+                For more info<br>search online for<br>"lunarHope easter egg"
+            </div>
+        </div>
+    </div>
+
+    <!-- ============ Spotlight 全局搜索面板 ============ -->
+    <div id="spotlight-backdrop"></div>
+    <div id="spotlight-panel">
+        <div class="flex items-center px-4 border-b border-space-border">
+            <svg class="w-5 h-5 text-space-muted mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            <input type="text" id="spotlight-input" class="spotlight-input" placeholder="Search posts, tools, or type a command..." autocomplete="off" spellcheck="false">
+            <kbd class="font-mono text-[10px] text-space-muted bg-space-700 px-1.5 py-0.5 rounded border border-space-border ml-2">ESC</kbd>
+        </div>
+        <div id="spotlight-results" class="spotlight-results"></div>
+        <div class="spotlight-footer">
+            <span><kbd>↑</kbd><kbd>↓</kbd> Navigate</span>
+            <span><kbd>↵</kbd> Open</span>
+            <span><kbd>esc</kbd> Close</span>
+            <span class="ml-auto"><kbd>⌘</kbd><kbd>K</kbd> to toggle</span>
+        </div>
+    </div>
+
+    <!-- ============ Boot 动画 ============ -->
+    <div id="boot-overlay" class="fixed inset-0 z-[200] bg-space-900/95 backdrop-blur-md hidden flex-col items-center justify-center font-mono">
+        <div class="text-glow-green text-4xl mb-6 animate-pulse">></div>
+        <p id="boot-text" class="text-space-text text-xl mb-8">Initializing System...</p>
+        <div class="w-64 h-1.5 bg-space-700 rounded-full overflow-hidden">
+            <div id="boot-progress" class="h-full bg-glow-green w-0 transition-all duration-1000 ease-linear"></div>
+        </div>
+    </div>
+
+    <!-- ============ 顶部导航 ============ -->
     <header class="fixed top-0 w-full z-50 bg-space-900/60 backdrop-blur-md border-b border-white/5">
         <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-            <a href="https://wjuly42.github.io/" class="flex items-center space-x-2 font-mono font-bold text-lg text-space-text">
+            <a href="/" class="flex items-center space-x-2 font-mono font-bold text-lg text-space-text">
                 <svg class="w-6 h-6 text-glow-purple" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
                 <span>lunarHope</span>
             </a>
-            <nav class="hidden md:flex items-center space-x-8 text-sm text-space-muted font-medium">
+            <nav class="hidden md:flex items-center space-x-6 text-sm text-space-muted font-medium">
                 <a href="/tools/" class="hover:text-space-text transition">Tools</a>
                 <a href="/blog/" class="hover:text-space-text transition">Blog</a>
                 <a href="#guestbook" class="hover:text-space-text transition">Guestbook</a>
-                <button id="cmd-k-btn" class="flex items-center space-x-2 bg-space-800 border border-space-border rounded-md px-3 py-1.5 text-xs hover:border-space-muted transition">
-                    <span>Search...</span>
+                <button id="spotlight-btn" class="flex items-center space-x-2 bg-space-800 border border-space-border rounded-md px-3 py-1.5 text-xs hover:border-space-muted transition">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    <span>Search</span>
                     <kbd class="font-mono text-[10px] bg-space-700 px-1.5 py-0.5 rounded border border-space-border">⌘K</kbd>
                 </button>
             </nav>
-            <div class="md:hidden flex items-center space-x-4">
-                 <button id="cmd-k-btn-mobile" class="p-2 text-space-muted"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg></button>
-            </div>
         </div>
     </header>
 
-    <!-- ================= 首屏英雄区 (Hero Section) ================= -->
+    <!-- ============ Hero ============ -->
     <section class="relative z-10 pt-32 md:pt-48 pb-24 px-6">
         <div class="max-w-5xl mx-auto text-center space-y-8 reveal">
             <div class="inline-flex items-center space-x-2 bg-space-800/50 border border-space-border rounded-full px-4 py-1.5 text-xs text-space-muted backdrop-blur-sm">
@@ -114,16 +278,13 @@
                 </span>
                 <span>Building open-source tools & sharing tech notes</span>
             </div>
-            
             <h1 class="text-5xl md:text-7xl lg:text-8xl font-extrabold tracking-tight text-gradient leading-[1.1]">
                 Code. Tinker. Share.
             </h1>
-            
             <p class="text-xl md:text-2xl text-space-muted max-w-2xl mx-auto font-light leading-relaxed">
                 The future of building happens together. <br class="hidden md:block">
                 Welcome to <span class="text-space-text font-medium">lunarHope</span>'s digital garden.
             </p>
-            
             <div class="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
                 <a href="/tools/" class="group relative px-8 py-3 bg-white text-space-900 rounded-md font-semibold text-sm overflow-hidden transition transform hover:scale-105">
                     <span class="relative z-10">Explore Tools</span>
@@ -136,13 +297,13 @@
         </div>
     </section>
 
-    <!-- ================= 交互式终端展示 (Interactive Demo) ================= -->
+    <!-- ============ 交互式终端（增强版） ============ -->
     <section class="relative z-10 py-20 px-6">
         <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div class="space-y-6 reveal">
                 <h2 class="text-3xl md:text-4xl font-bold text-gradient-glow">Tools built for developers.</h2>
                 <p class="text-lg text-space-muted leading-relaxed">
-                    我不只是写博客，我更热衷于创造解决实际问题的小工具。从自动化脚本到提升生产力的 Web 应用，每一个工具都源于一次“折腾”。
+                    我不只是写博客，我更热衷于创造解决实际问题的小工具。从自动化脚本到提升生产力的 Web 应用，每一个工具都源于一次"折腾"。
                 </p>
                 <ul class="space-y-4 text-space-text">
                     <li class="flex items-start space-x-3">
@@ -153,9 +314,14 @@
                         <svg class="w-6 h-6 text-glow-blue flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
                         <span><strong>Performance Matters:</strong> 极致轻量，拒绝臃肿，专注于核心功能。</span>
                     </li>
+                    <li class="flex items-start space-x-3">
+                        <svg class="w-6 h-6 text-glow-purple flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>
+                        <span><strong>Easter Eggs Inside:</strong> 在下方终端试试 <code class="font-mono text-glow-green">help</code>、<code class="font-mono text-glow-green">matrix</code> 或 <code class="font-mono text-glow-pink">sudo rm -rf /</code> 😉</span>
+                    </li>
                 </ul>
             </div>
 
+            <!-- 可输入终端 -->
             <div class="reveal bg-space-800 border border-space-border rounded-xl shadow-2xl overflow-hidden">
                 <div class="bg-space-700 px-4 py-3 border-b border-space-border flex items-center justify-between">
                     <div class="flex space-x-2">
@@ -163,33 +329,40 @@
                         <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
                         <div class="w-3 h-3 rounded-full bg-green-500"></div>
                     </div>
-                    <span class="text-xs text-space-muted font-mono">lunarHope ~ zsh</span>
-                    <div class="w-12"></div>
+                    <span class="text-xs text-space-muted font-mono">lunarHope@dev ~ zsh</span>
+                    <button onclick="toggleSound()" id="sound-toggle" class="text-xs text-space-muted hover:text-space-text font-mono" title="Toggle sound">
+                        🔊
+                    </button>
                 </div>
-                <div class="p-6 font-mono text-sm h-72 overflow-y-auto no-scrollbar" id="terminal-output">
-                    <p class="text-space-muted mb-2"># Try clicking the commands below to see the magic ✨</p>
-                    <p><span class="text-glow-green">➜</span> <span class="text-glow-blue">~</span> <span class="cursor-blink text-space-text"></span></p>
+                <div id="terminal-output" class="p-4 font-mono text-sm h-72 overflow-y-auto no-scrollbar space-y-1">
+                    <p class="text-space-muted">Welcome to lunarHope Terminal v1.0.0</p>
+                    <p class="text-space-muted">Type <span class="text-glow-green">help</span> for available commands. Try the easter eggs! 🥚</p>
+                    <p class="text-space-muted">────────────────────────────────────</p>
                 </div>
-                <div class="bg-space-900/50 border-t border-space-border p-3 flex flex-wrap gap-2">
-                    <button class="cmd-btn px-3 py-1 bg-space-700 hover:bg-space-600 border border-space-border rounded text-xs text-space-text transition" data-cmd="npm run build">npm run build</button>
-                    <button class="cmd-btn px-3 py-1 bg-space-700 hover:bg-space-600 border border-space-border rounded text-xs text-space-text transition" data-cmd="git push origin main">git push</button>
-                    <button class="cmd-btn px-3 py-1 bg-space-700 hover:bg-space-600 border border-space-border rounded text-xs text-space-text transition" data-cmd="deploy --prod">deploy --prod</button>
+                <div class="bg-space-900/50 border-t border-space-border px-4 py-3 flex items-center">
+                    <span class="terminal-prompt mr-2">➜</span>
+                    <span class="terminal-path mr-2">~</span>
+                    <input type="text" id="terminal-input" class="terminal-input" placeholder="type a command..." autofocus spellcheck="false">
+                </div>
+                <div class="bg-space-900/80 border-t border-space-border p-2 flex flex-wrap gap-1.5">
+                    <button class="quick-cmd px-2 py-1 bg-space-700 hover:bg-space-600 border border-space-border rounded text-[11px] text-space-text transition font-mono" data-cmd="help">help</button>
+                    <button class="quick-cmd px-2 py-1 bg-space-700 hover:bg-space-600 border border-space-border rounded text-[11px] text-space-text transition font-mono" data-cmd="neofetch">neofetch</button>
+                    <button class="quick-cmd px-2 py-1 bg-space-700 hover:bg-space-600 border border-space-border rounded text-[11px] text-space-text transition font-mono" data-cmd="ls">ls</button>
+                    <button class="quick-cmd px-2 py-1 bg-space-700 hover:bg-space-600 border border-space-border rounded text-[11px] text-space-text transition font-mono" data-cmd="matrix">matrix</button>
+                    <button class="quick-cmd px-2 py-1 bg-glow-pink/20 hover:bg-glow-pink/30 border border-glow-pink/50 rounded text-[11px] text-glow-pink transition font-mono" data-cmd="sudo rm -rf /">⚠️ sudo rm -rf /</button>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- ================= 工具展示网格 (Tools Grid with Spotlight) ================= -->
-    <section id="tools" class="relative z-10 py-24 px-6">
+    <!-- ============ Featured Projects ============ -->
+    <section id="projects" class="relative z-10 py-24 px-6">
         <div class="max-w-7xl mx-auto">
             <div class="text-center mb-16 reveal">
                 <h2 class="text-3xl md:text-5xl font-bold text-gradient mb-4">Featured Projects</h2>
                 <p class="text-space-muted text-lg">Hover over the cards to feel the energy.</p>
             </div>
-
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                
-                <!-- Card 1: NextChat (Modified) -->
                 <a href="https://github.com/ChatGPTNextWeb/NextChat" target="_blank" rel="noopener noreferrer" class="spotlight-card rounded-xl p-6 transition-all duration-300 hover:border-glow-purple/50 reveal block">
                     <div class="w-12 h-12 bg-glow-purple/10 rounded-lg flex items-center justify-center mb-4 text-glow-purple">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
@@ -201,8 +374,6 @@
                         <span class="text-glow-blue hover:underline flex items-center">View Repo <svg class="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg></span>
                     </div>
                 </a>
-
-                <!-- Card 2: DeepSeek (Modified) -->
                 <a href="https://github.com/deepseek-ai" target="_blank" rel="noopener noreferrer" class="spotlight-card rounded-xl p-6 transition-all duration-300 hover:border-glow-blue/50 reveal block" style="transition-delay: 100ms;">
                     <div class="w-12 h-12 bg-glow-blue/10 rounded-lg flex items-center justify-center mb-4 text-glow-blue">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>
@@ -214,13 +385,11 @@
                         <span class="text-glow-blue hover:underline flex items-center">View Repo <svg class="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg></span>
                     </div>
                 </a>
-
-                <!-- Card 3: Giscus (Kept as Inspiration) -->
                 <a href="https://github.com/giscus/giscus" target="_blank" rel="noopener noreferrer" class="spotlight-card rounded-xl p-6 transition-all duration-300 hover:border-glow-pink/50 reveal block" style="transition-delay: 200ms;">
                     <div class="w-12 h-12 bg-glow-pink/10 rounded-lg flex items-center justify-center mb-4 text-glow-pink">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"></path></svg>
                     </div>
-                    <h3 class="text-xl font-bold text-space-text mb-2">Giscus (Inspiration)</h3>
+                    <h3 class="text-xl font-bold text-space-text mb-2">Giscus</h3>
                     <p class="text-space-muted text-sm mb-6">The engine powering this Guestbook. A comment system based on GitHub Discussions.</p>
                     <div class="flex items-center justify-between text-xs text-space-muted">
                         <span class="flex items-center"><span class="w-2 h-2 rounded-full bg-purple-500 mr-2"></span> TypeScript</span>
@@ -231,165 +400,650 @@
         </div>
     </section>
 
-    <!-- ================= 留言板 (Guestbook) ================= -->
+    <!-- ============ Guestbook ============ -->
     <section id="guestbook" class="relative z-10 py-24 px-6 border-t border-white/5">
         <div class="max-w-4xl mx-auto text-center space-y-8 reveal">
             <h2 class="text-3xl md:text-4xl font-bold text-gradient">💬 Guestbook</h2>
             <p class="text-space-muted text-lg">The future of building happens together. <br>Leave a trace, share your thoughts, or just say hi!</p>
-            
-            <div class="bg-space-800 border border-space-border rounded-xl p-8 min-h-[300px] flex flex-col items-center justify-center text-space-muted font-mono text-sm">
-                <div class="w-full max-w-2xl text-left text-space-text">
-                    <!-- Giscus 脚本 -->
-                    <script src="https://giscus.app/client.js"
-                            data-repo="WJULY42/WJULY42.github.io"
-                            data-repo-id="YOUR_REPO_ID"
-                            data-category="Announcements"
-                            data-category-id="YOUR_CATEGORY_ID"
-                            data-mapping="pathname"
-                            data-strict="0"
-                            data-reactions-enabled="1"
-                            data-emit-metadata="0"
-                            data-input-position="bottom"
-                            data-theme="dark"
-                            data-lang="zh-CN"
-                            crossorigin="anonymous"
-                            async>
-                    </script>
-                    <noscript>Please enable JavaScript to view the comments powered by Giscus.</noscript>
-                </div>
+            <div class="bg-space-800 border border-space-border rounded-xl p-8 min-h-[300px]">
+                <script src="https://giscus.app/client.js"
+                        data-repo="WJULY42/WJULY42.github.io"
+                        data-repo-id="YOUR_REPO_ID"
+                        data-category="Announcements"
+                        data-category-id="YOUR_CATEGORY_ID"
+                        data-mapping="pathname"
+                        data-strict="0"
+                        data-reactions-enabled="1"
+                        data-emit-metadata="0"
+                        data-input-position="bottom"
+                        data-theme="dark"
+                        data-lang="zh-CN"
+                        crossorigin="anonymous"
+                        async>
+                </script>
             </div>
         </div>
     </section>
 
-    <!-- ================= 全局命令面板 (Command Palette Modal) ================= -->
-    <div id="cmd-palette" class="fixed inset-0 z-[100] hidden items-start justify-center pt-[20vh] bg-black/60 backdrop-blur-sm p-4">
-        <div class="w-full max-w-xl bg-space-800 border border-space-border rounded-xl shadow-2xl overflow-hidden transform scale-95 opacity-0 transition-all duration-200" id="cmd-panel">
-            <div class="flex items-center border-b border-space-border px-4">
-                <svg class="w-5 h-5 text-space-muted mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                <input type="text" id="cmd-input" placeholder="Search tools, blogs, or actions..." class="w-full bg-transparent py-4 text-space-text outline-none placeholder-space-muted">
-                <kbd class="hidden sm:block font-mono text-[10px] text-space-muted bg-space-700 px-1.5 py-0.5 rounded border border-space-border">ESC</kbd>
-            </div>
-            <div class="p-2 max-h-[300px] overflow-y-auto" id="cmd-results">
-                <p class="px-3 py-2 text-xs text-space-muted font-semibold uppercase tracking-wider">Navigation</p>
-                <a href="/tools/" class="cmd-item flex items-center px-3 py-2 rounded-md text-space-text hover:bg-space-700 cursor-pointer transition">
-                    <svg class="w-4 h-4 mr-3 text-space-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                    Go to Tools (/tools/)
-                </a>
-                <a href="/blog/" class="cmd-item flex items-center px-3 py-2 rounded-md text-space-text hover:bg-space-700 cursor-pointer transition">
-                    <svg class="w-4 h-4 mr-3 text-space-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"></path></svg>
-                    Read Blog (/blog/)
-                </a>
-                <a href="https://github.com/WJULY42" target="_blank" class="cmd-item flex items-center px-3 py-2 rounded-md text-space-text hover:bg-space-700 cursor-pointer transition">
-                    <svg class="w-4 h-4 mr-3 text-space-muted" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
-                    Visit GitHub Profile
-                </a>
-            </div>
-        </div>
-    </div>
-
-    <!-- ================= 页脚 (Footer) ================= -->
+    <!-- ============ Footer ============ -->
     <footer class="relative z-10 border-t border-white/5 mt-12 py-8 text-center text-xs text-space-muted">
-        <div class="flex justify-center space-x-6 mb-4">
-            <a href="https://github.com/WJULY42" target="_blank" class="hover:text-space-text transition">
-                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
-            </a>
-        </div>
         <p>&copy; 2026 lunarHope. Built with ❤️ and Tailwind CSS.</p>
     </footer>
 
+    <!-- ============ JavaScript ============ -->
     <script>
-        // 1. 鼠标追光效果 (Spotlight)
-        document.querySelectorAll('.spotlight-card').forEach(card => {
-            card.addEventListener('mousemove', (e) => {
-                const rect = card.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
-                card.style.setProperty('--mouse-x', `${x}px`);
-                card.style.setProperty('--mouse-y', `${y}px`);
-            });
-        });
-
-        // 2. 滚动显示动画 (Intersection Observer)
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add('active'); });
-        }, { threshold: 0.1 });
-        document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
-
-        // 3. 交互式终端逻辑
-        const termOut = document.getElementById('terminal-output');
-        const cmdBtns = document.querySelectorAll('.cmd-btn');
-        const responses = {
-            'npm run build': [
-                { text: '> lunarhope-tools@1.0.0 build', color: 'text-space-muted' },
-                { text: '> vite build', color: 'text-space-muted' },
-                { text: '✓ 12 modules transformed.', color: 'text-glow-green' },
-                { text: 'dist/index.html  1.42 kB │ gzip: 0.71 kB', color: 'text-space-text' },
-                { text: '✓ built in 420ms', color: 'text-glow-green' }
-            ],
-            'git push origin main': [
-                { text: 'Enumerating objects: 5, done.', color: 'text-space-text' },
-                { text: 'Counting objects: 100% (5/5), done.', color: 'text-space-text' },
-                { text: 'remote: Resolving deltas: 100% (2/2), completed with 1 local object.', color: 'text-space-muted' },
-                { text: 'To github.com:WJULY42/WJULY42.github.io.git', color: 'text-space-text' },
-                { text: '   8a1b2c3..9d4e5f6  main -> main', color: 'text-glow-blue' }
-            ],
-            'deploy --prod': [
-                { text: 'Connecting to GitHub Pages...', color: 'text-yellow-500' },
-                { text: 'Uploading assets... 100%', color: 'text-space-text' },
-                { text: 'Triggering GitHub Actions workflow...', color: 'text-space-text' },
-                { text: '✔ Deployment successful! Site is live at wjuly42.github.io', color: 'text-glow-green' }
-            ]
-        };
-
-        cmdBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                const cmd = btn.dataset.cmd;
-                const cursorLine = termOut.querySelector('.cursor-blink');
-                if(cursorLine) cursorLine.classList.remove('cursor-blink');
-                const cmdLine = document.createElement('p');
-                cmdLine.innerHTML = `<span class="text-glow-green">➜</span> <span class="text-glow-blue">~</span> ${cmd}`;
-                termOut.appendChild(cmdLine);
-                let delay = 300;
-                responses[cmd].forEach(res => {
-                    setTimeout(() => {
-                        const resLine = document.createElement('p');
-                        resLine.className = res.color;
-                        resLine.textContent = res.text;
-                        termOut.appendChild(resLine);
-                        termOut.scrollTop = termOut.scrollHeight;
-                    }, delay);
-                    delay += 200 + Math.random() * 300;
-                });
-                setTimeout(() => {
-                    const newCursor = document.createElement('p');
-                    newCursor.innerHTML = `<span class="text-glow-green">➜</span> <span class="text-glow-blue">~</span> <span class="cursor-blink text-space-text"></span>`;
-                    termOut.appendChild(newCursor);
-                    termOut.scrollTop = termOut.scrollHeight;
-                }, delay + 200);
-            });
-        });
-
-        // 4. Command Palette (Cmd+K) 逻辑
-        const palette = document.getElementById('cmd-palette');
-        const panel = document.getElementById('cmd-panel');
-        const input = document.getElementById('cmd-input');
-        function togglePalette() {
-            if (palette.classList.contains('hidden')) {
-                palette.classList.remove('hidden'); palette.classList.add('flex');
-                setTimeout(() => { panel.classList.remove('scale-95', 'opacity-0'); input.focus(); }, 10);
-            } else {
-                panel.classList.add('scale-95', 'opacity-0');
-                setTimeout(() => { palette.classList.add('hidden'); palette.classList.remove('flex'); }, 200);
+    // ==================== 音效系统 (Web Audio API) ====================
+    class SoundFX {
+        constructor() {
+            this.ctx = null;
+            this.enabled = localStorage.getItem('sound_enabled') !== 'false';
+        }
+        init() {
+            if (!this.ctx) {
+                try {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                } catch(e) { console.warn('Audio not supported'); }
             }
         }
-        document.getElementById('cmd-k-btn').addEventListener('click', togglePalette);
-        document.getElementById('cmd-k-btn-mobile').addEventListener('click', togglePalette);
-        document.addEventListener('keydown', (e) => {
-            if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); togglePalette(); }
-            if (e.key === 'Escape' && !palette.classList.contains('hidden')) togglePalette();
+        beep(freq = 440, duration = 0.1, type = 'sine', volume = 0.08) {
+            if (!this.enabled) return;
+            this.init();
+            if (!this.ctx) return;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = type;
+            osc.frequency.value = freq;
+            gain.gain.setValueAtTime(volume, this.ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start();
+            osc.stop(this.ctx.currentTime + duration);
+        }
+        click() { this.beep(800, 0.04, 'square', 0.04); }
+        success() {
+            this.beep(600, 0.08, 'sine');
+            setTimeout(() => this.beep(900, 0.12, 'sine'), 80);
+        }
+        error() { this.beep(200, 0.2, 'sawtooth', 0.1); }
+        type() { this.beep(1200 + Math.random() * 400, 0.02, 'square', 0.02); }
+        matrix() {
+            if (!this.enabled) return;
+            this.init();
+            if (!this.ctx) return;
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(60, this.ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(40, this.ctx.currentTime + 2);
+            gain.gain.setValueAtTime(0.05, this.ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 2);
+            osc.connect(gain); gain.connect(this.ctx.destination);
+            osc.start(); osc.stop(this.ctx.currentTime + 2);
+        }
+        crash() {
+            if (!this.enabled) return;
+            this.init();
+            if (!this.ctx) return;
+            // 白噪音
+            const bufferSize = this.ctx.sampleRate * 0.5;
+            const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+            const noise = this.ctx.createBufferSource();
+            noise.buffer = buffer;
+            const gain = this.ctx.createGain();
+            gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.5);
+            noise.connect(gain); gain.connect(this.ctx.destination);
+            noise.start();
+        }
+        toggle() {
+            this.enabled = !this.enabled;
+            localStorage.setItem('sound_enabled', this.enabled);
+            return this.enabled;
+        }
+    }
+    const sfx = new SoundFX();
+
+    function toggleSound() {
+        const enabled = sfx.toggle();
+        document.getElementById('sound-toggle').textContent = enabled ? '🔊' : '🔇';
+        if (enabled) sfx.success();
+    }
+    // 初始化声音按钮状态
+    if (!sfx.enabled) document.getElementById('sound-toggle').textContent = '🔇';
+
+    // ==================== 追光效果 ====================
+    document.querySelectorAll('.spotlight-card').forEach(card => {
+        card.addEventListener('mousemove', (e) => {
+            const rect = card.getBoundingClientRect();
+            card.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
+            card.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
         });
-        palette.addEventListener('click', (e) => { if (e.target === palette) togglePalette(); });
-        document.querySelectorAll('.cmd-item').forEach(item => { item.addEventListener('click', () => togglePalette()); });
+    });
+
+    // ==================== 滚动显示 ====================
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add('active'); });
+    }, { threshold: 0.1 });
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+    // ==================== Spotlight 全局搜索 ====================
+    const spotlightBackdrop = document.getElementById('spotlight-backdrop');
+    const spotlightPanel = document.getElementById('spotlight-panel');
+    const spotlightInput = document.getElementById('spotlight-input');
+    const spotlightResults = document.getElementById('spotlight-results');
+    let spotlightData = { posts: [], tools: [] };
+    let spotlightItems = [];
+    let spotlightSelectedIndex = 0;
+
+    // 预加载数据
+    async function loadSpotlightData() {
+        try {
+            const [postsRes, toolsRes] = await Promise.all([
+                fetch('/data/posts.json?_=' + Date.now()).then(r => r.ok ? r.json() : { posts: [] }),
+                fetch('/data/tools.json?_=' + Date.now()).then(r => r.ok ? r.json() : { tools: [] })
+            ]);
+            spotlightData.posts = Array.isArray(postsRes) ? postsRes : (postsRes.posts || []);
+            spotlightData.tools = Array.isArray(toolsRes) ? toolsRes : (toolsRes.tools || []);
+        } catch(e) { console.warn('Spotlight data load failed', e); }
+    }
+    loadSpotlightData();
+
+    const staticPages = [
+        { title: 'Home', icon: '🏠', url: '/', meta: 'Page' },
+        { title: 'Tools', icon: '🛠️', url: '/tools/', meta: 'Page' },
+        { title: 'Blog', icon: '📝', url: '/blog/', meta: 'Page' },
+        { title: 'Guestbook', icon: '💬', url: '/#guestbook', meta: 'Page' },
+        { title: 'Creator Studio', icon: '⚡', url: '/publish.html', meta: 'Page' },
+    ];
+
+    function openSpotlight() {
+        spotlightBackdrop.classList.add('open');
+        spotlightPanel.classList.add('open');
+        spotlightInput.value = '';
+        spotlightSelectedIndex = 0;
+        renderSpotlightResults('');
+        setTimeout(() => spotlightInput.focus(), 100);
+        sfx.click();
+    }
+
+    function closeSpotlight() {
+        spotlightBackdrop.classList.remove('open');
+        spotlightPanel.classList.remove('open');
+        sfx.click();
+    }
+
+    function toggleSpotlight() {
+        if (spotlightPanel.classList.contains('open')) closeSpotlight();
+        else openSpotlight();
+    }
+
+    document.getElementById('spotlight-btn').addEventListener('click', toggleSpotlight);
+    spotlightBackdrop.addEventListener('click', closeSpotlight);
+
+    // 快捷键
+    document.addEventListener('keydown', (e) => {
+        // Cmd/Ctrl + K
+        if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+            e.preventDefault();
+            toggleSpotlight();
+            return;
+        }
+        // 面板打开时的键盘导航
+        if (spotlightPanel.classList.contains('open')) {
+            if (e.key === 'Escape') { closeSpotlight(); return; }
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                spotlightSelectedIndex = Math.min(spotlightSelectedIndex + 1, spotlightItems.length - 1);
+                updateSpotlightSelection();
+                sfx.type();
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                spotlightSelectedIndex = Math.max(spotlightSelectedIndex - 1, 0);
+                updateSpotlightSelection();
+                sfx.type();
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                if (spotlightItems[spotlightSelectedIndex]) {
+                    sfx.success();
+                    window.location.href = spotlightItems[spotlightSelectedIndex].url;
+                }
+            }
+        }
+    });
+
+    function renderSpotlightResults(query) {
+        const q = query.trim().toLowerCase();
+        spotlightItems = [];
+        let html = '';
+
+        // 1. Pages
+        const matchedPages = q
+            ? staticPages.filter(p => p.title.toLowerCase().includes(q) || p.meta.toLowerCase().includes(q))
+            : staticPages;
+        if (matchedPages.length > 0) {
+            html += `<div class="spotlight-group-title">Pages</div>`;
+            matchedPages.forEach(p => {
+                spotlightItems.push(p);
+                const idx = spotlightItems.length - 1;
+                html += renderItem(p.icon, highlight(p.title, q), p.meta, idx);
+            });
+        }
+
+        // 2. Posts
+        const matchedPosts = q
+            ? spotlightData.posts.filter(p =>
+                (p.title || '').toLowerCase().includes(q) ||
+                (p.desc || '').toLowerCase().includes(q) ||
+                (p.tags || []).some(t => t.toLowerCase().includes(q))
+            )
+            : spotlightData.posts.slice(0, 5);
+        if (matchedPosts.length > 0) {
+            html += `<div class="spotlight-group-title">Posts</div>`;
+            matchedPosts.forEach(p => {
+                const item = {
+                    title: p.title,
+                    icon: '📄',
+                    url: p.url || `/view.html?type=post&slug=${p.slug}`,
+                    meta: p.date || 'Post'
+                };
+                spotlightItems.push(item);
+                const idx = spotlightItems.length - 1;
+                html += renderItem(item.icon, highlight(p.title, q), item.meta, idx);
+            });
+        }
+
+        // 3. Tools
+        const matchedTools = q
+            ? spotlightData.tools.filter(t =>
+                (t.name || '').toLowerCase().includes(q) ||
+                (t.desc || '').toLowerCase().includes(q)
+            )
+            : spotlightData.tools.slice(0, 5);
+        if (matchedTools.length > 0) {
+            html += `<div class="spotlight-group-title">Tools</div>`;
+            matchedTools.forEach(t => {
+                const item = {
+                    title: t.name,
+                    icon: t.emoji || '🛠️',
+                    url: t.url.startsWith('http') ? t.url : `/view.html?type=tool&app=${t.url}`,
+                    meta: t.status || 'Tool',
+                    external: t.url.startsWith('http')
+                };
+                spotlightItems.push(item);
+                const idx = spotlightItems.length - 1;
+                html += renderItem(item.icon, highlight(t.name, q), item.meta, idx);
+            });
+        }
+
+        if (!html) {
+            html = `<div class="spotlight-empty">No results for "<strong>${escapeHtml(query)}</strong>"</div>`;
+        }
+
+        spotlightResults.innerHTML = html;
+        spotlightSelectedIndex = 0;
+        updateSpotlightSelection();
+
+        // 绑定点击
+        spotlightResults.querySelectorAll('.spotlight-item').forEach((el, i) => {
+            el.addEventListener('click', () => {
+                sfx.success();
+                window.location.href = spotlightItems[i].url;
+            });
+            el.addEventListener('mouseenter', () => {
+                spotlightSelectedIndex = i;
+                updateSpotlightSelection();
+            });
+        });
+    }
+
+    function renderItem(icon, title, meta, idx) {
+        return `<div class="spotlight-item${idx === 0 ? ' selected' : ''}" data-idx="${idx}">
+            <div class="spotlight-item-icon">${icon}</div>
+            <div class="spotlight-item-title">${title}</div>
+            <div class="spotlight-item-meta">${meta}</div>
+        </div>`;
+    }
+
+    function updateSpotlightSelection() {
+        spotlightResults.querySelectorAll('.spotlight-item').forEach((el, i) => {
+            el.classList.toggle('selected', i === spotlightSelectedIndex);
+            if (i === spotlightSelectedIndex) el.scrollIntoView({ block: 'nearest' });
+        });
+    }
+
+    function highlight(text, query) {
+        if (!query) return escapeHtml(text);
+        const escaped = escapeHtml(text);
+        const regex = new RegExp(`(${escapeRegex(query)})`, 'gi');
+        return escaped.replace(regex, '<mark style="background:#8957e5;color:white;padding:0 2px;border-radius:2px;">$1</mark>');
+    }
+
+    function escapeHtml(str) {
+        return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+    }
+
+    function escapeRegex(str) {
+        return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    spotlightInput.addEventListener('input', (e) => {
+        renderSpotlightResults(e.target.value);
+        if (e.target.value) sfx.type();
+    });
+
+    // ==================== 终端彩蛋系统 ====================
+    const termOutput = document.getElementById('terminal-output');
+    const termInput = document.getElementById('terminal-input');
+    const commandHistory = [];
+    let historyIndex = -1;
+
+    function termPrint(text, color = 'text-space-text') {
+        const p = document.createElement('p');
+        p.className = color;
+        p.style.fontFamily = '"JetBrains Mono", monospace';
+        p.style.fontSize = '13px';
+        p.style.lineHeight = '1.5';
+        if (typeof text === 'string') {
+            p.innerHTML = text;
+        } else {
+            p.appendChild(text);
+        }
+        termOutput.appendChild(p);
+        termOutput.scrollTop = termOutput.scrollHeight;
+    }
+
+    function termPrintEcho(cmd) {
+        const p = document.createElement('p');
+        p.style.fontFamily = '"JetBrains Mono", monospace';
+        p.style.fontSize = '13px';
+        p.innerHTML = `<span class="text-glow-green">➜</span> <span class="text-glow-blue">~</span> <span class="text-space-text">${escapeHtml(cmd)}</span>`;
+        termOutput.appendChild(p);
+        termOutput.scrollTop = termOutput.scrollHeight;
+    }
+
+    function executeCommand(cmd) {
+        const raw = cmd.trim();
+        if (!raw) return;
+        commandHistory.unshift(raw);
+        historyIndex = -1;
+        termPrintEcho(raw);
+
+        const parts = raw.split(/\s+/);
+        const command = parts[0].toLowerCase();
+        const args = parts.slice(1);
+
+        sfx.click();
+
+        switch(command) {
+            case 'help':
+                termPrint('Available commands:', 'text-glow-blue');
+                termPrint('  <span class="text-glow-green">help</span>          - Show this help message');
+                termPrint('  <span class="text-glow-green">ls</span>            - List files in current directory');
+                termPrint('  <span class="text-glow-green">whoami</span>        - Display current user');
+                termPrint('  <span class="text-glow-green">date</span>          - Show current date and time');
+                termPrint('  <span class="text-glow-green">neofetch</span>      - Display system information');
+                termPrint('  <span class="text-glow-green">echo [text]</span>   - Print text to terminal');
+                termPrint('  <span class="text-glow-green">clear</span>         - Clear terminal screen');
+                termPrint('  <span class="text-glow-green">exit</span>          - Try to exit (you can\'t 😈)');
+                termPrint('');
+                termPrint('Easter Eggs 🥚:', 'text-glow-pink');
+                termPrint('  <span class="text-glow-green">matrix</span>        - Enter the Matrix 🟩');
+                termPrint('  <span class="text-glow-pink">sudo rm -rf /</span>  - ⚠️  DANGER! System crash 💥');
+                termPrint('  <span class="text-glow-green">hack</span>          - Initiate hacking sequence');
+                termPrint('  <span class="text-glow-green">fortune</span>       - Get a random dev quote');
+                termPrint('  <span class="text-glow-green">cowsay [text]</span> - A cow says...');
+                sfx.success();
+                break;
+
+            case 'ls':
+                termPrint('<span class="text-glow-blue">blog/</span>  <span class="text-glow-blue">tools/</span>  <span class="text-glow-blue">data/</span>  <span class="text-glow-blue">assets/</span>  <span class="text-space-text">index.html</span>  <span class="text-space-text">publish.html</span>  <span class="text-space-text">view.html</span>  <span class="text-glow-pink">.nojekyll</span>');
+                break;
+
+            case 'whoami':
+                termPrint('<span class="text-glow-green">lunarHope</span>@github-pages');
+                termPrint('Role: Tinkerer | Builder | Open Source Enthusiast');
+                break;
+
+            case 'date':
+                termPrint(new Date().toString());
+                break;
+
+            case 'echo':
+                termPrint(escapeHtml(args.join(' ')) || '');
+                break;
+
+            case 'clear':
+                termOutput.innerHTML = '';
+                break;
+
+            case 'exit':
+                termPrint('Nice try. You\'re stuck here forever. 😈', 'text-glow-pink');
+                termPrint('(Press Cmd+K to escape via Spotlight)', 'text-space-muted');
+                sfx.error();
+                break;
+
+            case 'neofetch':
+                const ascii = [
+                    '<span class="text-glow-blue">    ___</span>       <span class="text-glow-green">lunarHope</span>@<span class="text-glow-green">github</span>',
+                    '<span class="text-glow-blue">   /   \\</span>      ─────────────────',
+                    '<span class="text-glow-blue">  /  L  \\</span>     <span class="text-glow-blue">OS</span>: lunarOS v1.0 (GitHub Pages)',
+                    '<span class="text-glow-blue"> /  ___  \\</span>    <span class="text-glow-blue">Host</span>: WJULY42.github.io',
+                    '<span class="text-glow-blue">/ /     \\ \\</span>   <span class="text-glow-blue">Kernel</span>: Static HTML + Tailwind',
+                    '<span class="text-glow-blue">\\/       \\/</span>    <span class="text-glow-blue">Uptime</span>: since 2026',
+                    '              <span class="text-glow-blue">Shell</span>: zsh (browser edition)',
+                    '              <span class="text-glow-blue">Theme</span>: GitHub Dark [Aurora]',
+                    '              <span class="text-glow-blue">Terminal</span>: lunarHope Terminal',
+                    '              <span class="text-glow-blue">CPU</span>: Your Browser @ ∞ GHz',
+                    '              <span class="text-glow-blue">Memory</span>: ' + Math.round(performance.memory?.usedJSHeapSize / 1048576 || 42) + 'MiB / ∞ MiB',
+                ];
+                ascii.forEach(line => termPrint(line));
+                sfx.success();
+                break;
+
+            case 'matrix':
+                termPrint('<span class="text-glow-green">Wake up, Neo...</span>');
+                termPrint('<span class="text-glow-green">The Matrix has you...</span>');
+                termPrint('<span class="text-glow-green">Follow the white rabbit. 🐇</span>');
+                sfx.matrix();
+                setTimeout(startMatrix, 800);
+                break;
+
+            case 'sudo':
+                if (raw.toLowerCase().includes('rm -rf')) {
+                    termPrint('<span class="text-glow-pink">⚠️  WARNING: This will delete everything!</span>');
+                    termPrint('<span class="text-space-muted">Just kidding... or am I? 😈</span>');
+                    sfx.error();
+                    setTimeout(triggerCrash, 1000);
+                } else {
+                    termPrint('sudo: command not found. Try <span class="text-glow-green">help</span>', 'text-glow-pink');
+                    sfx.error();
+                }
+                break;
+
+            case 'hack':
+                termPrint('<span class="text-glow-green">[*] Initializing hacking sequence...</span>');
+                sfx.matrix();
+                fakeHack();
+                break;
+
+            case 'fortune':
+                const fortunes = [
+                    '"Any fool can write code that a computer can understand. Good programmers write code that humans can understand." - Martin Fowler',
+                    '"First, solve the problem. Then, write the code." - John Johnson',
+                    '"The best error message is the one that never shows up." - Thomas Fuchs',
+                    '"Code is like humor. When you have to explain it, it\'s bad." - Cory House',
+                    '"Simplicity is the soul of efficiency." - Austin Freeman',
+                    '"Talk is cheap. Show me the code." - Linus Torvalds',
+                    '"It works on my machine." - Every developer ever',
+                ];
+                termPrint('<span class="text-glow-purple">🔮 ' + fortunes[Math.floor(Math.random() * fortunes.length)] + '</span>');
+                break;
+
+            case 'cowsay':
+                const msg = args.join(' ') || 'Moo!';
+                const border = '-'.repeat(msg.length + 2);
+                termPrint(` <span class="text-glow-green">${border}</span>`);
+                termPrint(`<span class="text-glow-green">&lt; ${escapeHtml(msg)} &gt;</span>`);
+                termPrint(` <span class="text-glow-green">${border}</span>`);
+                termPrint('<span class="text-glow-green">        \\   ^__^</span>');
+                termPrint('<span class="text-glow-green">         \\  (oo)\\_______</span>');
+                termPrint('<span class="text-glow-green">            (__)\\       )\\/\\</span>');
+                termPrint('<span class="text-glow-green">                ||----w |</span>');
+                termPrint('<span class="text-glow-green">                ||     ||</span>');
+                break;
+
+            default:
+                termPrint(`zsh: command not found: <span class="text-glow-pink">${escapeHtml(command)}</span>. Try <span class="text-glow-green">help</span>`, 'text-space-muted');
+                sfx.error();
+        }
+    }
+
+    // 回车执行
+    termInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            executeCommand(termInput.value);
+            termInput.value = '';
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            if (commandHistory.length > 0) {
+                historyIndex = Math.min(historyIndex + 1, commandHistory.length - 1);
+                termInput.value = commandHistory[historyIndex];
+            }
+        } else if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            if (historyIndex > 0) {
+                historyIndex--;
+                termInput.value = commandHistory[historyIndex];
+            } else {
+                historyIndex = -1;
+                termInput.value = '';
+            }
+        } else if (e.key.length === 1) {
+            sfx.type();
+        }
+    });
+
+    // 快捷按钮
+    document.querySelectorAll('.quick-cmd').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const cmd = btn.dataset.cmd;
+            termInput.value = cmd;
+            executeCommand(cmd);
+            termInput.value = '';
+            termInput.focus();
+        });
+    });
+
+    // ==================== Matrix 代码雨 ====================
+    function startMatrix() {
+        const canvas = document.getElementById('matrix-canvas');
+        canvas.classList.add('active');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const chars = 'アイウエオカキクケコサシスセソタチツテトナニヌネノ0123456789ABCDEF<>/\\{}[]';
+        const fontSize = 16;
+        const columns = Math.floor(canvas.width / fontSize);
+        const drops = Array(columns).fill(0).map(() => Math.random() * -100);
+
+        let frameCount = 0;
+        const maxFrames = 240; // ~8 秒
+
+        function draw() {
+            if (frameCount++ > maxFrames) {
+                canvas.classList.remove('active');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                termPrint('<span class="text-glow-green">[*] Matrix disconnected.</span>');
+                return;
+            }
+            ctx.fillStyle = 'rgba(1, 4, 9, 0.08)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.font = fontSize + 'px "JetBrains Mono", monospace';
+
+            for (let i = 0; i < drops.length; i++) {
+                const char = chars[Math.floor(Math.random() * chars.length)];
+                const x = i * fontSize;
+                const y = drops[i] * fontSize;
+                // 头部亮绿色，尾部暗绿
+                const brightness = Math.random();
+                if (brightness > 0.95) ctx.fillStyle = '#ffffff';
+                else if (brightness > 0.8) ctx.fillStyle = '#3fb950';
+                else ctx.fillStyle = '#0a6e2e';
+                ctx.fillText(char, x, y);
+
+                if (y > canvas.height && Math.random() > 0.975) drops[i] = 0;
+                drops[i] += 0.5 + Math.random() * 0.5;
+            }
+            requestAnimationFrame(draw);
+        }
+        draw();
+    }
+
+    // ==================== 系统崩溃 (BSOD) ====================
+    function triggerCrash() {
+        sfx.crash();
+        // 先故障效果
+        document.body.classList.add('glitch-effect');
+        setTimeout(() => {
+            document.body.classList.remove('glitch-effect');
+            const overlay = document.getElementById('crash-overlay');
+            overlay.classList.add('active');
+            // 进度条动画
+            let percent = 0;
+            const percentEl = document.getElementById('bsod-percent');
+            const interval = setInterval(() => {
+                percent += Math.floor(Math.random() * 15) + 5;
+                if (percent >= 100) {
+                    percent = 100;
+                    clearInterval(interval);
+                    setTimeout(() => {
+                        overlay.classList.remove('active');
+                        termPrint('<span class="text-glow-green">[*] System restored. Nice try, hacker. 😏</span>');
+                        termPrint('<span class="text-space-muted">Pro tip: don\'t run sudo commands you don\'t understand.</span>');
+                        sfx.success();
+                    }, 1500);
+                }
+                percentEl.textContent = percent;
+            }, 300);
+        }, 300);
+    }
+
+    // ==================== 假黑客动画 ====================
+    function fakeHack() {
+        const lines = [
+            '[*] Connecting to mainframe...',
+            '[*] Bypassing firewall... OK',
+            '[*] Injecting SQL payload...',
+            '[*] Accessing /etc/shadow...',
+            '[*] Decrypting AES-256 keys...',
+            '[*] Downloading secrets...',
+            '[████████░░░░░░░░] 42%',
+            '[████████████░░░░] 78%',
+            '[████████████████] 100%',
+            '[!] ACCESS DENIED - Just kidding, this is a fake hack 😄',
+            '[*] You are now a 1337 h4x0r!'
+        ];
+        let i = 0;
+        const interval = setInterval(() => {
+            if (i >= lines.length) {
+                clearInterval(interval);
+                sfx.success();
+                return;
+            }
+            const color = lines[i].includes('[!]') ? 'text-glow-pink' :
+                          lines[i].includes('OK') || lines[i].includes('100%') ? 'text-glow-green' :
+                          lines[i].includes('█') ? 'text-glow-blue' : 'text-space-text';
+            termPrint(`<span class="${color}">${lines[i]}</span>`);
+            i++;
+        }, 400);
+    }
+
+    // 首次点击任意处初始化 Audio Context（浏览器策略要求）
+    document.addEventListener('click', () => sfx.init(), { once: true });
     </script>
 </body>
 </html>
