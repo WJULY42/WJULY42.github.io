@@ -20,15 +20,6 @@
       "langColor": "#e34c26"
     },
     {
-      "name": "atest",
-      "desc": "by wjuly42",
-      "url": "a-t-e-s-t.html",
-      "emoji": "N",
-      "status": "Live",
-      "lang": "HTML",
-      "langColor": "#e34c26"
-    },
-    {
       "emoji": "🧮",
       "name": "计算器",
       "desc": "简单好用的四则运算，支持键盘",
