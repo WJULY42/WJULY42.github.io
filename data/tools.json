@@ -34,8 +34,12 @@
     {
       "emoji": "🐍",
       "name": "贪吃蛇",
-      "desc": "经典怀旧小游戏，键盘/触摸控制",
-      "url": "snake.html"
+      "desc": "",
+      "url": "snake.html",
+      "author": "lunarHope",
+      "status": "Live",
+      "lang": "HTML",
+      "langColor": "#e34c26"
     },
     {
       "emoji": "🍅",
