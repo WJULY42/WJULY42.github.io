@@ -38,12 +38,6 @@
       "url": "snake.html"
     },
     {
-      "emoji": "💣",
-      "name": "扫雷",
-      "desc": "经典逻辑扫雷游戏",
-      "url": "minesweeper.html"
-    },
-    {
       "emoji": "🍅",
       "name": "番茄时钟",
       "desc": "25分钟专注，提高效率",
