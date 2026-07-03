@@ -1,6 +1,16 @@
 {
   "posts": [
     {
+      "title": "镜子？",
+      "author": "lunarHope",
+      "date": "2026-07-03",
+      "tags": [
+        "AI"
+      ],
+      "slug": "jing-zi-？",
+      "url": "/view.html?type=post&slug=jing-zi-？"
+    },
+    {
       "title": "依旧测试-2",
       "author": "lunarHope",
       "date": "2026-07-02",
