@@ -1,6 +1,16 @@
 {
   "posts": [
     {
+      "title": "生死之间",
+      "author": "lunarHope",
+      "date": "2026-07-03",
+      "tags": [
+        "life"
+      ],
+      "slug": "sheng-si-zhi-jian",
+      "url": "/view.html?type=post&slug=sheng-si-zhi-jian"
+    },
+    {
       "title": "镜子？",
       "author": "lunarHope",
       "date": "2026-07-03",
