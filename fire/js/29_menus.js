@@ -137,7 +137,9 @@ function extractSdp(text) {
   if (m) { t = m[1]; } // 提取 hash 中的编码 SDP
   // 如果以 http 开头但没有 hash, 可能是整个 URL 其他格式, 跳过
   if (t.startsWith('http') && !t.includes('#join=')) return null;
-  // base64 解码尝试
+  // 原始 SDP 包含换行符和空格, 直接返回不解码
+  if (t.includes('\n') || t.includes('\r') || (t.match(/ /g)||[]).length > 5) return t;
+  // base64 解码尝试 (干净字符串可能是编码后的 SDP)
   if (typeof urlToSdp === 'function') {
     const dec = urlToSdp(t);
     if (dec) return dec;
