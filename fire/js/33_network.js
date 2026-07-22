@@ -1,7 +1,7 @@
 'use strict';
 // ============================================================
 // 钢铁前线1944 · P2P 联机网络模块 (WebRTC, 纯浏览器)
-// 无需服务器 — 主机生成可分享链接, 客机点链接自动加入
+// 无需服务器 — 主机生成连接码, 客机粘贴即可直连
 // ============================================================
 
 const ICE_SERVERS = {
@@ -10,35 +10,6 @@ const ICE_SERVERS = {
     { urls: 'stun:stun1.l.google.com:19302' }
   ]
 };
-
-// ---- SDP URL 编码工具 ----
-function sdpToUrl(sdp) {
-  // 压缩 + base64 URL安全编码
-  return btoa(sdp).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-}
-function urlToSdp(str) {
-  try {
-    str = str.replace(/-/g, '+').replace(/_/g, '/');
-    while (str.length % 4) str += '=';
-    return atob(str);
-  } catch (e) {
-    return null;
-  }
-}
-
-let autoJoinSdp = null;
-// 页面加载时自动检测 URL hash 中的连接码
-(function checkAutoJoin() {
-  const hash = location.hash;
-  if (hash.startsWith('#join=')) {
-    autoJoinSdp = urlToSdp(hash.substring(6));
-    if (autoJoinSdp) {
-      console.log('[P2P] 检测到链接邀请, SDP=' + autoJoinSdp.substring(0, 40) + '...');
-    }
-    // 清除 hash, 避免刷新重复触发
-    history.replaceState(null, '', location.pathname + location.search);
-  }
-})();
 
 const NET = {
   pc: null,          // RTCPeerConnection
@@ -53,28 +24,8 @@ const NET = {
   recvBytes: 0,
   ping: 0,
   pingTimer: null,
-  _offerSdp: null,   // 暂存 offer, 用于生成分享链接
 
-  // 生成可分享的邀请链接
-  getShareUrl() {
-    if (!this._offerSdp) return null;
-    const base = location.origin + location.pathname;
-    return base + '#join=' + sdpToUrl(this._offerSdp);
-  },
-
-  // 自动加入 (从 URL hash 中提取)
-  async autoJoinIfInvited(playerName) {
-    if (!autoJoinSdp) return false;
-    console.log('[P2P] 自动加入邀请...');
-    const answer = await this.join(autoJoinSdp, playerName || '客机');
-    if (!answer) { console.error('[P2P] 自动加入失败'); return false; }
-    // 客机生成 answer, 但无法自动发回主机 (需要额外通道)
-    // 显示 answer 让客机手动发回
-    this._pendingAnswer = answer;
-    return true;
-  },
-
-  // ---- 公开 API ----
+  // ---- 公开 API (与旧版兼容) ----
   /** 主机: 创建 P2P 邀请 */
   async host(playerName) {
     this.playerName = playerName || '主机';
@@ -91,7 +42,6 @@ const NET = {
     try {
       const offer = await this.pc.createOffer();
       await this.pc.setLocalDescription(offer);
-      this._offerSdp = offer.sdp;
       console.log('[P2P] 主机 offer 已生成, 等待客机连接...');
       return offer.sdp;
     } catch (e) {
