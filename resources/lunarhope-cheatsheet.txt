@@ -1,0 +1,17 @@
+﻿lunarHope Shortcuts & Cheatsheet
+=================================
+
+Global
+  Ctrl/Cmd + K      Open Spotlight search
+  ESC               Close Spotlight
+
+Terminal (index.html)
+  help              Show commands
+  matrix            Enter the Matrix
+  hack              Fake hack sequence
+  fortune           Random dev quote
+
+Theme
+  Click sun/moon icon to toggle dark/light mode
+
+Built with lunarHope.

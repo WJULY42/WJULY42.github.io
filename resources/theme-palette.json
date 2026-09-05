@@ -1,0 +1,17 @@
+﻿{
+  "name": "lunarHope Dark Space Theme",
+  "colors": {
+    "bg": "#010409",
+    "surface": "#0d1117",
+    "border": "#30363d",
+    "text": "#f0f6fc",
+    "muted": "#8b949e",
+    "accent": "#8957e5",
+    "blue": "#58a6ff",
+    "green": "#3fb950"
+  },
+  "fonts": {
+    "sans": "Inter",
+    "mono": "JetBrains Mono"
+  }
+}
