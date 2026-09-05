@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📝 便签板</title>
+    <meta name="description" content="本地存储的多色便签板，支持新增、编辑、删除与换色。">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                colors: {
+                    space: { 900: '#010409', 800: '#0d1117', 700: '#161b22', 600: '#21262d', border: '#30363d', text: '#f0f6fc', muted: '#8b949e' },
+                    glow: { purple: '#8957e5', blue: '#58a6ff', pink: '#da3633', green: '#3fb950' }
+                },
+                fontFamily: {
+                    sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Helvetica', 'Arial', 'sans-serif'],
+                    mono: ['"JetBrains Mono"', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace'],
+                }
+            }
+        }
+    }
+</script>
+    <style>
+        * { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+        .note {
+            box-shadow: 0 12px 30px rgba(0,0,0,0.35);
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        .note:hover { transform: translateY(-2px); box-shadow: 0 16px 36px rgba(0,0,0,0.45); }
+        textarea.note-body { resize: none; }
+    </style>
+</head>
+<body class="bg-space-900 text-space-text font-sans antialiased min-h-screen flex flex-col">
+    <main class="flex-1 flex flex-col items-center w-full p-4 md:p-6">
+        <div class="w-full max-w-5xl">
+            <p class="text-xs text-space-muted font-mono uppercase tracking-wider mb-2">// sticky notes</p>
+            <div class="bg-space-700 border border-space-border rounded-xl p-6 shadow-2xl">
+                <div class="flex items-center justify-between mb-6 flex-wrap gap-3">
+                    <div>
+                        <h1 class="text-xl font-bold">📝 便签板</h1>
+                        <p class="text-xs text-space-muted mt-1">
+                            <span id="note-count">0</span> 张便签 · 保存在本地浏览器
+                        </p>
+                    </div>
+                    <button onclick="addNote()" class="bg-glow-green/20 text-glow-green border border-glow-green/50 px-4 py-2 rounded-md text-sm font-medium hover:bg-glow-green/30 transition">
+                        ＋ 新增便签
+                    </button>
+                </div>
+
+                <div id="board" class="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 min-h-[200px]"></div>
+
+                <div id="empty" class="text-center text-space-muted text-sm py-10 border border-dashed border-space-border rounded-lg">
+                    还没有便签 —— 点「＋ 新增便签」开始。
+                </div>
+            </div>
+
+            <p class="text-xs text-space-muted font-mono mt-4 text-center">内容会自动保存到 localStorage，刷新页面不会丢失。</p>
+        </div>
+    </main>
+
+    <script>
+        // 4 种便签颜色（含深色对比）
+        const COLORS = {
+            yellow: { bg: 'bg-yellow-300/90',  text: 'text-yellow-950',     border: 'border-yellow-400' },
+            pink:   { bg: 'bg-pink-400/80',    text: 'text-pink-950',       border: 'border-pink-500' },
+            green:  { bg: 'bg-green-400/80',   text: 'text-green-950',      border: 'border-green-500' },
+            blue:   { bg: 'bg-sky-400/80',     text: 'text-sky-950',        border: 'border-sky-500' },
+        };
+        const COLOR_KEYS = Object.keys(COLORS);
+
+        const STORAGE_KEY = 'lunar_notes';
+        const board = document.getElementById('board');
+        const emptyEl = document.getElementById('empty');
+        const countEl = document.getElementById('note-count');
+
+        let notes = loadNotes();
+
+        function loadNotes() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                const arr = raw ? JSON.parse(raw) : [];
+                if (!Array.isArray(arr)) return [];
+                return arr.filter(n => n && typeof n.id === 'string');
+            } catch {
+                return [];
+            }
+        }
+
+        function saveNotes() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
+        }
+
+        function newId() {
+            return 'n_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
+        }
+
+        function addNote() {
+            notes.unshift({
+                id: newId(),
+                text: '',
+                color: COLOR_KEYS[notes.length % COLOR_KEYS.length],
+                created: Date.now(),
+            });
+            saveNotes();
+            render();
+            // 让新加的便签直接可编辑
+            const ta = document.querySelector('textarea[data-id="' + notes[0].id + '"]');
+            if (ta) { ta.focus(); }
+        }
+
+        function deleteNote(id) {
+            if (!confirm('删除这张便签？')) return;
+            notes = notes.filter(n => n.id !== id);
+            saveNotes();
+            render();
+        }
+
+        function updateText(id, text) {
+            const n = notes.find(x => x.id === id);
+            if (n) { n.text = text; saveNotes(); }
+        }
+
+        function setColor(id, color) {
+            const n = notes.find(x => x.id === id);
+            if (n) { n.color = color; saveNotes(); render(); }
+        }
+
+        function render() {
+            countEl.textContent = notes.length;
+            emptyEl.classList.toggle('hidden', notes.length > 0);
+
+            board.innerHTML = notes.map(n => {
+                const c = COLORS[n.color] || COLORS.yellow;
+                return `
+                    <div class="note rounded-lg border-2 ${c.bg} ${c.border} p-4 flex flex-col">
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="flex gap-1.5">
+                                ${COLOR_KEYS.map(k => {
+                                    const kC = COLORS[k];
+                                    const active = k === n.color;
+                                    return `<button title="换色" onclick="setColor('${n.id}','${k}')"
+                                        class="w-4 h-4 rounded-full ${kC.bg} border ${active ? 'border-black' : 'border-space-600'}"
+                                        ${active ? 'ring-2 ring-offset-1 ring-black/60' : ''}></button>`;
+                                }).join('')}
+                            </div>
+                            <button title="删除" onclick="deleteNote('${n.id}')"
+                                    class="opacity-60 hover:opacity-100 text-lg leading-none">×</button>
+                        </div>
+                        <textarea data-id="${n.id}" placeholder="写点什么…"
+                                  oninput="updateText('${n.id}', this.value)"
+                                  class="note-body ${c.text} bg-transparent outline-none w-full flex-grow text-sm"
+                                  rows="6"></textarea>
+                        <div class="${c.text} opacity-60 text-[10px] font-mono mt-2 pt-2 border-t border-black/10">
+                            ${formatDate(n.created)}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // 回填已有内容（innerHTML 里不直接塞值，避免转义问题）
+            notes.forEach(n => {
+                const ta = board.querySelector(`textarea[data-id="${n.id}"]`);
+                if (ta) ta.value = n.text || '';
+            });
+        }
+
+        function formatDate(ts) {
+            const d = new Date(ts);
+            const pad = x => String(x).padStart(2, '0');
+            return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        }
+
+        render();
+    </script>
+</body>
+</html>

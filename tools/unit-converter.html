@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+<head>
+<!-- unit converter -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>📏 单位换算</title>
+<meta name="description" content="长度、重量、温度三类单位实时换算，支持一键交换单位。">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                colors: {
+                    space: { 900: '#010409', 800: '#0d1117', 700: '#161b22', 600: '#21262d', border: '#30363d', text: '#f0f6fc', muted: '#8b949e' },
+                    glow: { purple: '#8957e5', blue: '#58a6ff', pink: '#da3633', green: '#3fb950' }
+                },
+                fontFamily: {
+                    sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Helvetica', 'Arial', 'sans-serif'],
+                    mono: ['"JetBrains Mono"', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace'],
+                }
+            }
+        }
+    }
+</script>
+<style>
+    * { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+    .unit-btn { transition: all 0.15s; }
+    .unit-btn:active { transform: scale(0.96); }
+    select option { background-color: #161b22; color: #f0f6fc; }
+    input[type="number"]::-webkit-outer-spin-button,
+    input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    input[type="number"] { -moz-appearance: textfield; }
+</style>
+</head>
+<body class="bg-space-900 text-space-text font-sans antialiased min-h-screen flex flex-col">
+    <main class="flex-1 flex flex-col items-center justify-start w-full p-4 md:p-6">
+        <div class="w-full max-w-lg">
+            <p class="text-xs text-space-muted font-mono uppercase tracking-wider mb-2">// unit converter</p>
+            <div class="bg-space-700 border border-space-border rounded-xl p-6 shadow-2xl">
+                <h1 class="text-2xl font-bold mb-1">📏 单位换算</h1>
+                <p class="text-sm text-space-muted mb-6">长度 · 重量 · 温度三类换算，输入即出结果</p>
+
+                <!-- 类别切换 -->
+                <div id="categoryTabs" class="grid grid-cols-3 gap-2 mb-6"></div>
+
+                <!-- 数值输入 -->
+                <div class="mb-5">
+                    <label for="value" class="block text-xs text-space-muted font-mono uppercase tracking-wider mb-2">数值</label>
+                    <input type="number" id="value" value="1" step="any" inputmode="decimal"
+                        class="w-full bg-space-900 border border-space-border rounded-lg px-4 py-3 text-xl font-mono outline-none focus:border-glow-blue transition">
+                </div>
+
+                <!-- 单位选择 + 交换 -->
+                <div class="grid grid-cols-[1fr_auto_1fr] gap-3 mb-5">
+                    <div>
+                        <label for="from" class="block text-xs text-space-muted font-mono uppercase tracking-wider mb-2">从单位</label>
+                        <select id="from"
+                            class="w-full bg-space-900 border border-space-border rounded-lg px-3 py-3 text-sm font-mono outline-none focus:border-glow-blue transition"></select>
+                    </div>
+                    <button onclick="swapUnits()" id="swapBtn" title="交换单位" aria-label="交换单位"
+                        class="unit-btn self-end bg-space-600 border border-space-border rounded-lg px-3 py-3 text-glow-blue hover:bg-space-border hover:border-glow-blue">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"></path></svg>
+                    </button>
+                    <div>
+                        <label for="to" class="block text-xs text-space-muted font-mono uppercase tracking-wider mb-2">到单位</label>
+                        <select id="to"
+                            class="w-full bg-space-900 border border-space-border rounded-lg px-3 py-3 text-sm font-mono outline-none focus:border-glow-blue transition"></select>
+                    </div>
+                </div>
+
+                <!-- 结果 -->
+                <div class="bg-space-900 border border-space-border rounded-lg p-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs text-space-muted font-mono uppercase tracking-wider">结果</span>
+                        <button onclick="copyResult()" id="copyBtn"
+                            class="text-xs text-space-muted font-mono uppercase tracking-wider hover:text-glow-green transition">复制</button>
+                    </div>
+                    <div id="result" class="font-mono text-2xl text-glow-blue break-all">—</div>
+                    <div id="detail" class="text-xs text-space-muted mt-2 font-mono break-all">请输入数值</div>
+                </div>
+
+                <!-- 速查表 -->
+                <div class="mt-6">
+                    <p class="text-xs text-space-muted font-mono uppercase tracking-wider mb-2">速查</p>
+                    <div id="quickTable" class="grid grid-cols-2 gap-2"></div>
+                </div>
+            </div>
+            <p class="text-xs text-space-muted font-mono text-center mt-3">结果已按科学精度计算，设置自动保存于浏览器</p>
+        </div>
+    </main>
+
+<script>
+    // ============ 单位定义：所有单位都提供 toBase / fromBase，温度带偏移量也能正确处理 ============
+    const CATEGORIES = {
+        length: {
+            emoji: '📏', label: '长度',
+            units: [
+                { id: 'm',  name: '米',   symbol: 'm',  toBase: v => v,            fromBase: v => v },
+                { id: 'km', name: '千米', symbol: 'km', toBase: v => v * 1000,     fromBase: v => v / 1000 },
+                { id: 'cm', name: '厘米', symbol: 'cm', toBase: v => v / 100,      fromBase: v => v * 100 },
+                { id: 'mm', name: '毫米', symbol: 'mm', toBase: v => v / 1000,     fromBase: v => v * 1000 },
+                { id: 'ft', name: '英尺', symbol: 'ft', toBase: v => v * 0.3048,   fromBase: v => v / 0.3048 },
+                { id: 'in', name: '英寸', symbol: 'in', toBase: v => v * 0.0254,   fromBase: v => v / 0.0254 },
+            ]
+        },
+        weight: {
+            emoji: '⚖️', label: '重量',
+            units: [
+                { id: 'kg', name: '千克', symbol: 'kg', toBase: v => v,                    fromBase: v => v },
+                { id: 'g',  name: '克',   symbol: 'g',  toBase: v => v / 1000,             fromBase: v => v * 1000 },
+                { id: 'mg', name: '毫克', symbol: 'mg', toBase: v => v / 1000000,          fromBase: v => v * 1000000 },
+                { id: 'lb', name: '磅',   symbol: 'lb', toBase: v => v * 0.45359237,       fromBase: v => v / 0.45359237 },
+                { id: 'oz', name: '盎司', symbol: 'oz', toBase: v => v * 0.028349523125,   fromBase: v => v / 0.028349523125 },
+            ]
+        },
+        temp: {
+            emoji: '🌡️', label: '温度',
+            units: [
+                { id: 'c', name: '摄氏度', symbol: '°C', toBase: v => v,               fromBase: v => v },
+                { id: 'f', name: '华氏度', symbol: '°F', toBase: v => (v - 32) * 5/9,  fromBase: v => v * 9/5 + 32 },
+                { id: 'k', name: '开尔文', symbol: 'K',  toBase: v => v - 273.15,      fromBase: v => v + 273.15 },
+            ]
+        }
+    };
+
+    const STORE_KEY = 'lunar_unit_converter';
+    const valueEl = document.getElementById('value');
+    const fromEl = document.getElementById('from');
+    const toEl = document.getElementById('to');
+    const resultEl = document.getElementById('result');
+    const detailEl = document.getElementById('detail');
+
+    let state = { category: 'length', from: 'm', to: 'km', value: '1' };
+
+    // ============ 状态持久化 ============
+    function loadState() {
+        try {
+            const saved = JSON.parse(localStorage.getItem(STORE_KEY));
+            if (saved && CATEGORIES[saved.category]) {
+                state = Object.assign(state, saved);
+            }
+        } catch (e) { /* 存储损坏时沿用默认值 */ }
+        if (!findUnit(state.category, state.from)) state.from = CATEGORIES[state.category].units[0].id;
+        if (!findUnit(state.category, state.to))   state.to = CATEGORIES[state.category].units[1] ? CATEGORIES[state.category].units[1].id : CATEGORIES[state.category].units[0].id;
+    }
+
+    function saveState() {
+        try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) {}
+    }
+
+    function findUnit(category, id) {
+        return CATEGORIES[category].units.find(u => u.id === id);
+    }
+
+    // ============ 数字格式化：去掉浮点噪声，极端数值走科学计数法 ============
+    function formatNumber(n) {
+        if (!Number.isFinite(n)) return '—';
+        if (n === 0) return '0';
+        const abs = Math.abs(n);
+        if (abs >= 1e15 || abs < 1e-9) {
+            return n.toExponential(6).replace(/\.?0+e/, 'e');
+        }
+        return String(Number(n.toPrecision(12)));
+    }
+
+    function convert(value, from, to) {
+        return to.fromBase(from.toBase(value));
+    }
+
+    // ============ 渲染 ============
+    function renderCategoryTabs() {
+        const wrap = document.getElementById('categoryTabs');
+        wrap.innerHTML = Object.entries(CATEGORIES).map(([id, cat]) => {
+            const active = id === state.category;
+            return `<button onclick="setCategory('${id}')"
+                class="unit-btn py-2.5 rounded-lg text-sm font-medium border ${active
+                    ? 'bg-glow-blue/20 text-glow-blue border-glow-blue/50'
+                    : 'bg-space-600 border-space-border text-space-muted hover:bg-space-border hover:text-space-text'}">
+                <span class="block text-base leading-none mb-1">${cat.emoji}</span>${cat.label}
+            </button>`;
+        }).join('');
+    }
+
+    function renderUnitOptions() {
+        const cat = CATEGORIES[state.category];
+        const html = cat.units.map(u => `<option value="${u.id}">${u.name} (${u.symbol})</option>`).join('');
+        fromEl.innerHTML = html;
+        toEl.innerHTML = html;
+        fromEl.value = state.from;
+        toEl.value = state.to;
+    }
+
+    function renderQuickTable() {
+        const cat = CATEGORIES[state.category];
+        const from = findUnit(state.category, state.from);
+        document.getElementById('quickTable').innerHTML = cat.units.map(u => {
+            const v = convert(1, from, u);
+            const isTarget = u.id === state.to;
+            return `<div class="bg-space-800 border border-space-border rounded-md px-3 py-2 ${isTarget ? 'border-glow-blue/50' : ''}">
+                <div class="text-xs text-space-muted font-mono">${from.name} → ${u.name}</div>
+                <div class="text-sm font-mono ${isTarget ? 'text-glow-blue' : 'text-space-text'}">1 ${from.symbol} = ${formatNumber(v)} ${u.symbol}</div>
+            </div>`;
+        }).join('');
+    }
+
+    function renderResult() {
+        const from = findUnit(state.category, state.from);
+        const to = findUnit(state.category, state.to);
+        const raw = valueEl.value;
+
+        if (raw === '' || raw === null) {
+            resultEl.textContent = '—';
+            detailEl.textContent = '请输入数值';
+            return;
+        }
+        const value = parseFloat(raw);
+        if (!Number.isFinite(value)) {
+            resultEl.textContent = '—';
+            detailEl.textContent = '请输入有效数值';
+            return;
+        }
+
+        const result = convert(value, from, to);
+        resultEl.textContent = `${formatNumber(result)} ${to.symbol}`;
+
+        const factor = convert(1, from, to);
+        detailEl.textContent = `${formatNumber(value)} ${from.symbol} = ${formatNumber(result)} ${to.symbol}　|　1 ${from.symbol} = ${formatNumber(factor)} ${to.symbol}`;
+    }
+
+    function update() {
+        state.value = valueEl.value;
+        state.from = fromEl.value;
+        state.to = toEl.value;
+        renderQuickTable();
+        renderResult();
+        saveState();
+    }
+
+    // ============ 交互 ============
+    function setCategory(id) {
+        state.category = id;
+        state.from = CATEGORIES[id].units[0].id;
+        state.to = CATEGORIES[id].units[1] ? CATEGORIES[id].units[1].id : CATEGORIES[id].units[0].id;
+        renderCategoryTabs();
+        renderUnitOptions();
+        update();
+    }
+
+    function swapUnits() {
+        const tmp = state.from;
+        state.from = state.to;
+        state.to = tmp;
+        fromEl.value = state.from;
+        toEl.value = state.to;
+        update();
+    }
+
+    let copyTimer = null;
+    function copyResult() {
+        if (resultEl.textContent === '—') return;
+        const done = () => {
+            const btn = document.getElementById('copyBtn');
+            btn.textContent = '已复制';
+            btn.classList.add('text-glow-green');
+            clearTimeout(copyTimer);
+            copyTimer = setTimeout(() => {
+                btn.textContent = '复制';
+                btn.classList.remove('text-glow-green');
+            }, 1200);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(resultEl.textContent).then(done).catch(done);
+        } else {
+            // 非 https 环境（file:// 直开）兜底
+            const ta = document.createElement('textarea');
+            ta.value = resultEl.textContent;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            try { document.execCommand('copy'); done(); } catch (e) {}
+            document.body.removeChild(ta);
+        }
+    }
+
+    valueEl.addEventListener('input', update);
+    fromEl.addEventListener('change', update);
+    toEl.addEventListener('change', update);
+    document.getElementById('swapBtn').addEventListener('dblclick', swapUnits);
+
+    // ============ 启动 ============
+    loadState();
+    valueEl.value = state.value;
+    renderCategoryTabs();
+    renderUnitOptions();
+    update();
+</script>
+</body>
+</html>

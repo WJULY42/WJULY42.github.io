@@ -1,0 +1,2886 @@
+<!--
+Tool: 破 门 而 入 html
+Author: lunarHope
+Date: 2026-07-26
+-->
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>战术小队射击 - 迷雾行动</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background:#14161a; color:#cfd3da; font-family:"Microsoft YaHei",sans-serif;
+    display:flex; flex-direction:column; align-items:center; padding:12px; user-select:none;
+  }
+  #hud {
+    width:1200px; display:flex; align-items:center; gap:18px;
+    background:#1e2128; border:1px solid #333a45; border-radius:6px 6px 0 0;
+    padding:8px 14px; font-size:14px;
+  }
+  #hud b { color:#fff; }
+  .stat span { font-weight:bold; }
+  #enemyCount { color:#ef4444; } #hostageCount { color:#22c55e; }
+  #playerHp { color:#3b82f6; } #squadMode { color:#22d3ee; }
+  #coords { margin-left:auto; color:#8b929e; font-size:12px; min-width:110px; text-align:right; }
+  button {
+    background:#2b3140; color:#dfe3ea; border:1px solid #444d5f; border-radius:4px;
+    padding:4px 14px; cursor:pointer; font-size:13px;
+  }
+  button:hover { background:#3a4256; }
+  canvas#game { display:block; background:#000; border:1px solid #333a45; cursor:crosshair; }
+  #help {
+    width:1200px; background:#1e2128; border:1px solid #333a45; border-radius:0 0 6px 6px;
+    padding:6px 14px; font-size:12px; color:#8b929e; line-height:1.7;
+  }
+  #help kbd { background:#2b3140; padding:1px 5px; border-radius:3px; color:#dfe3ea; margin:0 2px; }
+  /* ===== 开始菜单 / 联机 ===== */
+  #menu { position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center;
+    background:radial-gradient(circle at 50% 28%, #1c2230, #0b0d11 72%); }
+  #menu.hidden { display:none; }
+  .card { width:540px; max-height:94vh; overflow:auto; background:#171b22; border:1px solid #2e3644; border-radius:14px;
+    padding:24px 30px; box-shadow:0 18px 60px rgba(0,0,0,.55); }
+  .card h1 { font-size:25px; color:#fff; margin-bottom:3px; letter-spacing:2px; }
+  .card .sub { color:#8b929e; font-size:12.5px; margin-bottom:16px; }
+  .row { margin:13px 0; }
+  .row > label { display:block; color:#aeb6c2; font-size:13px; margin-bottom:7px; }
+  .seg { display:flex; gap:8px; }
+  .seg button { flex:1; padding:9px 0; background:#222834; border:1px solid #3a4456; color:#cfd3da;
+    border-radius:8px; cursor:pointer; font-size:13px; }
+  .seg button.active { background:#2f6df0; border-color:#2f6df0; color:#fff; }
+  .primary { width:100%; margin-top:6px; padding:12px 0; background:linear-gradient(180deg,#3b82f6,#2563eb);
+    border:none; color:#fff; font-size:15px; font-weight:bold; border-radius:9px; cursor:pointer; }
+  .primary:hover { filter:brightness(1.08); }
+  .ghost { width:100%; margin-top:8px; padding:10px 0; background:#222834; border:1px solid #3a4456;
+    color:#cfd3da; border-radius:9px; cursor:pointer; font-size:14px; }
+  .ghost:hover { background:#2c3442; }
+  textarea { width:100%; height:60px; background:#0e1116; color:#9fe6b0; border:1px solid #2e3644;
+    border-radius:8px; padding:8px; font-family:monospace; font-size:11px; resize:none; }
+  .netbox { margin-top:14px; padding:14px; background:#0f1318; border:1px solid #232b36; border-radius:10px; }
+  .netbox h3 { font-size:14px; color:#fff; margin-bottom:10px; }
+  .hint { font-size:11.5px; color:#7a828f; line-height:1.65; }
+  .status { font-size:12px; color:#22d3ee; margin-top:8px; min-height:16px; }
+  #roomList { font-size:12px; color:#cfd3da; max-height:96px; overflow:auto; margin-top:8px; }
+  #roomList .rm { padding:7px 9px; background:#1a212c; border:1px solid #2a3340;
+    border-radius:7px; margin-bottom:6px; cursor:pointer; display:flex; justify-content:space-between; }
+  .step { font-size:12px; color:#93c5fd; margin:12px 0 6px; font-weight:bold; }
+  #roomList .rm:hover { border-color:#3b82f6; }
+  /* ===== 移动端适配 ===== */
+  #hud, #help { width:min(1200px, 100%); flex-wrap:wrap; }
+  canvas#game { max-width:100%; height:auto; touch-action:none; }
+  .card { width:min(540px, 94vw); padding:20px 18px; }
+  #touchUI { position:fixed; inset:0; z-index:60; display:none; pointer-events:none; }
+  #touchUI .stick { position:absolute; bottom:22px; width:124px; height:124px; border-radius:50%;
+    background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.22); pointer-events:auto; touch-action:none; }
+  #stickL { left:18px; } #stickR { right:18px; }
+  #touchUI .knob { position:absolute; left:37px; top:37px; width:50px; height:50px; border-radius:50%;
+    background:rgba(255,255,255,.28); }
+  .tbtn { position:absolute; pointer-events:auto; touch-action:none; border-radius:50%;
+    background:rgba(59,130,246,.32); border:1px solid rgba(255,255,255,.3); color:#fff; font-size:12px; padding:0; }
+  #tFire { right:154px; bottom:40px; width:74px; height:74px; background:rgba(239,68,68,.42); font-size:16px; font-weight:bold; }
+  #tDoor { right:44px; bottom:164px; width:58px; height:58px; }
+  #tSquad { right:120px; bottom:150px; width:52px; height:52px; }
+  #tItems { position:absolute; left:18px; bottom:164px; display:flex; gap:10px; pointer-events:auto; }
+  #tItems .ti { position:static; width:46px; height:46px; font-size:18px; }
+  @media (max-width:900px){
+    body { padding:4px; }
+    #help { display:none; }
+    #hud { font-size:11px; gap:6px; padding:5px 8px; }
+    #coords { display:none; }
+  }
+</style>
+
+
+
+</head>
+<body>
+<div id="menu">
+  <div class="card">
+    <h1>战术小队射击</h1>
+    <div class="sub">迷雾行动 · 单文件战术射击 · 支持 P2P 联机（点对点直连）</div>
+
+    <div class="row">
+      <label>联机模式</label>
+      <div class="seg" id="modeSeg">
+        <button data-v="pve" class="active">合作 PvE（一起打敌人）</button>
+        <button data-v="pvp">对战 PvP（互相攻击）</button>
+      </div>
+    </div>
+
+    <div class="row">
+      <label>操控模式</label>
+      <div class="seg" id="ctrlSeg">
+        <button data-v="auto" class="active">自动检测</button>
+        <button data-v="kb">键盘鼠标</button>
+        <button data-v="touch">触屏摇杆</button>
+      </div>
+    </div>
+
+    <button class="primary" id="btnSolo">单人开始</button>
+
+    <div class="netbox">
+      <h3>联机对战（WebRTC P2P）</h3>
+      <div class="row">
+        <label>连接方式</label>
+        <div class="seg" id="connSeg">
+          <button data-v="manual" class="active">手动交换连接码</button>
+          <button data-v="lan">局域网搜索</button>
+        </div>
+      </div>
+
+      <div id="lanPanel" style="display:none">
+        <div class="hint">搜索同一 WiFi / 同一台电脑下<b>同样在搜索的玩家</b>。发现后点击对方头像向其发送<b>加入申请</b>，对方点「同意」后即可一起游戏。<br>提示：受浏览器限制，跨机器若扫不到，请改用「手动交换连接码」（同样适用于局域网）。</div>
+        <button class="ghost" id="btnScan" style="margin-top:8px">🔍 搜索玩家</button>
+        <div id="roomList"></div>
+        <div style="margin-top:10px;font-weight:bold;color:#ffd166">收到的加入申请</div>
+        <div id="reqList"></div>
+      </div>
+
+      <div id="manualPanel">
+        <div class="seg" id="roleSeg" style="margin-bottom:6px">
+          <button data-r="host" class="active">我是主机（创建）</button>
+          <button data-r="join">我是加入方</button>
+        </div>
+
+        <!-- 主机流程 -->
+        <div id="hostFlow">
+          <div class="step">① 生成你的邀请码，复制发给好友</div>
+          <button class="ghost" id="btnCreate">生成邀请码</button>
+          <textarea id="myCode" readonly placeholder="点上方按钮后，这里出现邀请码"></textarea>
+          <button class="ghost" id="btnCopyMine">📋 复制邀请码</button>
+          <div class="step">② 收到好友的「应答码」后，粘贴到这里</div>
+          <textarea id="peerCode" placeholder="在此粘贴好友发来的应答码"></textarea>
+          <button class="ghost" id="btnAccept">完成连接，进入战场</button>
+        </div>
+
+        <!-- 加入方流程 -->
+        <div id="joinFlow" style="display:none">
+          <div class="step">① 把主机发来的「邀请码」粘贴到这里</div>
+          <textarea id="joinPeer" placeholder="在此粘贴主机的邀请码"></textarea>
+          <button class="ghost" id="btnJoin">生成应答码</button>
+          <div class="step">② 复制「应答码」发回给主机，等主机点“完成连接”</div>
+          <textarea id="joinMine" readonly placeholder="点上方按钮后，这里出现应答码"></textarea>
+          <button class="ghost" id="btnCopyAns">📋 复制应答码</button>
+        </div>
+      </div>
+
+      <div class="status" id="netStatus">未连接</div>
+    </div>
+  </div>
+</div>
+<div id="hud">
+  <span class="stat">关卡: <span id="levelNum">1 / 10</span></span>
+  <span class="stat">敌人: <span id="enemyCount">5</span></span>
+  <span class="stat">人质: <span id="hostageCount">3</span></span>
+  <span class="stat">生命: <span id="playerHp">1</span></span>
+  <span class="stat">队友: <span id="squadMode">跟随</span></span>
+  <button id="btnPause">暂停</button>
+  <button id="btnReset">重置</button>
+  <span id="coords">坐标: —</span>
+  <span class="stat" id="items">道具: —</span>
+</div>
+<canvas id="game" width="1200" height="800"></canvas>
+<!-- 移动端触控层：左摇杆移动 / 右摇杆仅瞄准（开火用开火键）/ 功能按钮 -->
+<div id="touchUI">
+  <div class="stick" id="stickL"><div class="knob"></div></div>
+  <div class="stick" id="stickR"><div class="knob"></div></div>
+  <button class="tbtn" id="tFire">开火</button>
+  <button class="tbtn" id="tDoor">开门</button>
+  <button class="tbtn" id="tSquad">队友</button>
+  <div id="tItems">
+    <button class="tbtn ti" data-item="grenade" title="手榴弹">💣</button>
+    <button class="tbtn ti" data-item="smoke" title="烟雾弹">💨</button>
+    <button class="tbtn ti" data-item="drone" title="探测车">🚗</button>
+    <button class="tbtn ti" data-item="flare" title="照明弹">🔆</button>
+  </div>
+</div>
+<div id="help">
+  <kbd>W A S D</kbd> 移动　|　鼠标控制朝向　|　<kbd>左键</kbd> 朝准星方向射击　|
+  <kbd>右键</kbd> 指挥队友前往指示点　|　<kbd>F</kbd> 连点开门(越快噪声越大)　|　<kbd>G</kbd> 切换队友 跟随/警戒　|　注意：<b style="color:#22c55e">绿色人质</b>不可误伤！
+  <br><kbd>1</kbd> 手榴弹(范围秒杀+巨响)　<kbd>2</kbd> 烟雾弹(遮挡视线)　<kbd>3</kbd> 探测车(探索+标记敌人)　<kbd>4</kbd> 照明弹(照亮区域10秒,显示敌人与人质,无阴影)
+  <br>目标：连续通关 10 关，地形 / 敌人逐关升级（胜利后点"下一关"继续）　|　<kbd>M</kbd> 静音开关
+</div>
+
+<script>
+"use strict";
+/* ============================================================
+ * 战术小队射击 —— 单文件实现
+ * 玩家(蓝) + 2 AI 队友(青) vs 5 敌人(红)，保护人质(绿)
+ * 核心：面向鼠标、自由移动、视野锥 + 射线遮挡 + 战争迷雾
+ * ============================================================ */
+
+const VIEW_W = 1200, VIEW_H = 800;      // 画布显示尺寸（固定视口）
+let W = 1200, H = 800;                   // 地图世界尺寸（随关卡增大）
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+
+/* ---------- 常量 ---------- */
+const ROOM_W = 300, ROOM_H = 266;        // 单个房间尺寸（固定）
+let COLS = 4, ROWS = 3;                  // 房间网格（随关卡增大→更复杂）
+const CW = ROOM_W, CH = ROOM_H;
+const WALL_T = 10;                      // 墙厚
+const DOOR_W = 56;                      // 门宽
+const FOV = Math.PI / 3;                // 视野锥 60°
+const HALF_FOV = FOV / 2;
+const VIEW_R = 300;                     // 玩家/队友视距
+let ENEMY_VIEW_R = 250;                 // 敌人视距（随关卡增大→更敏感）
+let enemySpeed = 60;                    // 敌人移动速度（随关卡增大）
+let enemyAimTime = 1.5;                 // 敌人锁定开火秒数（越小越敏感）
+let enemyTurn = 4;                      // 敌人转向速率（越大越敏感）
+let investTime = 7;                     // 噪声调查持续秒数（越长越执着）
+let scanSpeed = 0.45;                   // 敌人待机扫视速率（越大越敏感）
+let level = 1;                          // 当前关卡
+const MAX_LEVEL = 10;                   // 总关卡数
+let enemyNum = 5, hostageNum = 3;        // 本关敌人/人质数
+let lastWin = false;                    // 上一局是否胜利（用于下一关/重试）
+const PLAYER_SPEED = 75, MATE_SPEED = 100;
+
+/* ---------- 全局状态 ---------- */
+let wallRects = [];   // 墙体矩形（碰撞用）
+let props = [];      // 家具/场景装饰（碰撞 + 视线遮挡 + 渲染）
+let segments  = [];   // 墙体线段（视线/射线用）
+let player, mates, enemies, hostages, tracers;
+let projectiles = [], smokes = [], drones = [], effects = [], flares = [];  // 道具：飞行物/烟雾/探测车/爆炸特效/照明弹
+let startRoomRect = null, startCell = 0;   // 起始房间（安全屋）矩形与格索引，用于常亮渲染与隔断
+let itemHeld = {};                                  // 道具按键边沿触发防重发
+let paused = false, gameOver = false, gameMsg = '';
+/* ===== 联机 P2P 状态 ===== */
+let remotePlayer = null;          // 远端玩家（host 端=guest，guest 端=host），用于渲染与同步
+let loopRunning = false;          // 主循环是否已启动（避免重复 rAF）
+const net = {                     // 单一连接对象
+  peer:null, ch:null, host:false, connected:false,
+  pid: Math.floor(Math.random() * 1e9),   // 局域网发现用的本端随机标识
+  pendingPeer: null,   // 已向其发送加入申请 / 同意其申请的对方 pid（用于避免双方同时建房冲突）
+  mode:'pve',                      // 'pve' | 'pvp'
+  worldApplied:false,             // guest 是否已应用 host 发来的世界
+  roomId:0, bc:null, level:1
+};
+let mouse = { x: W/2, y: H/2 };
+let keys = {};
+/* 移动端触控状态 */
+const IS_TOUCH = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+let ctrlMode = 'auto';                               // 操控模式：auto=按设备自动 / kb=键盘鼠标 / touch=触屏摇杆
+let touchMove = { x:0, y:0 };                        // 左摇杆移动向量（-1~1）
+let touchAim  = { active:false, ang:0, dist:0 };     // 右摇杆瞄准（仅控制朝向，不开火）
+let squadMode = 'follow';   // follow=跟随 / hold=警戒 / move=前往指示点
+let squadMoveTarget = null; // 右键指示的目标点 {x, y}
+let doors = [];             // 交互门（需按 F 开启）
+let camX = 0, camY = 0;     // 摄像机中心世界坐标（跟随玩家，带边界限制）
+const ZOOM = 1.6;           // 显示缩放（>1 放大更有真实感；越小可见范围越广，可改）
+let doorSegs = [];          // 关闭门的视线线段（开门时更新）
+let noisePings = [];        // 开门噪声可视化波纹
+
+/* ============================================================
+ * 音效系统（Web Audio API 程序化合成，无需外部音频文件）
+ * ============================================================ */
+let audioCtx = null;
+let master = null;
+let muted = false;
+function initAudio(){
+  if (audioCtx) return;
+  try {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    master = audioCtx.createGain();
+    master.gain.value = 0.85;
+    master.connect(audioCtx.destination);
+  } catch (e) { audioCtx = null; }
+}
+function resumeAudio(){               // 浏览器自动播放策略：首次用户手势后恢复
+  initAudio();
+  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+}
+function ac(){ return audioCtx; }
+
+/* 世界声源 → 立体声声像(pan -1~1) + 距离衰减（离玩家越远越轻） */
+function worldGain(x, y, baseVol){
+  if (!player) return { vol: baseVol, pan: 0 };
+  const dx = x - player.x, dy = y - player.y;
+  const d = Math.hypot(dx, dy);
+  const vol = baseVol / (1 + d / 240);
+  let pan = dx / 340;
+  if (pan > 1) pan = 1; else if (pan < -1) pan = -1;
+  return { vol, pan };
+}
+function outNode(pan){
+  if (pan && audioCtx.createStereoPanner){
+    const p = audioCtx.createStereoPanner();
+    p.pan.value = pan;
+    p.connect(master);
+    return p;
+  }
+  return master;
+}
+/* 振荡器音（可滑音），pan 为声像 */
+function tone(freq, dur, type, vol, slideTo, pan){
+  if (muted) return;
+  const c = ac(); if (!c) return;
+  const o = c.createOscillator(), g = c.createGain();
+  o.type = type;
+  o.frequency.setValueAtTime(freq, c.currentTime);
+  if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, c.currentTime + dur);
+  g.gain.setValueAtTime(Math.max(0.0001, vol), c.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + dur);
+  o.connect(g); g.connect(outNode(pan));
+  o.start(); o.stop(c.currentTime + dur);
+}
+/* 噪声爆破（带低通滑频），用于枪声/爆炸/脚步 */
+function noiseBurst(dur, vol, filterFreq, slide, pan){
+  if (muted) return;
+  const c = ac(); if (!c) return;
+  const n = Math.floor(c.sampleRate * dur);
+  const buf = c.createBuffer(1, n, c.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < n; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / n);
+  const src = c.createBufferSource(); src.buffer = buf;
+  const f = c.createBiquadFilter(); f.type = 'lowpass';
+  f.frequency.setValueAtTime(filterFreq, c.currentTime);
+  if (slide) f.frequency.exponentialRampToValueAtTime(Math.max(60, slide), c.currentTime + dur);
+  const g = c.createGain();
+  g.gain.setValueAtTime(Math.max(0.0001, vol), c.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + dur);
+  src.connect(f); f.connect(g); g.connect(outNode(pan));
+  src.start(); src.stop(c.currentTime + dur);
+}
+/* 喘息声：低频双段（吸气短 + 呼气长）包络，低通滤波，避免高频"丝丝" */
+function breathSound(dur, vol, freq, pan){
+  if (muted) return;
+  const c = ac(); if (!c) return;
+  const n = Math.floor(c.sampleRate * dur);
+  const buf = c.createBuffer(1, n, c.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < n; i++){
+    const t = i / n;
+    let env = 0;
+    if (t < 0.35) env = Math.sin(Math.PI * (t / 0.35)) * 0.55;        // 吸气
+    else if (t > 0.42) env = Math.sin(Math.PI * ((t - 0.42) / 0.58));  // 呼气
+    data[i] = (Math.random() * 2 - 1) * env;
+  }
+  const src = c.createBufferSource(); src.buffer = buf;
+  const f = c.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = freq; f.Q.value = 0.8;
+  const g = c.createGain(); g.gain.value = Math.max(0.0001, vol);
+  src.connect(f); f.connect(g); g.connect(outNode(pan));
+  src.start(); src.stop(c.currentTime + dur);
+}
+/* 移动单位脚步节流（动态计时，避免每帧触发） */
+function stepTrigger(u, dt, kind, period){
+  if (u.stepT === undefined) u.stepT = 0;
+  u.stepT -= dt;
+  if (u.stepT <= 0){
+    sfxStep(u.x, u.y, kind); u.stepT = period;
+    // 脚步声也会暴露位置、吸引附近敌人（玩家/敌人/队友各有不同响度）
+    const r = kind === 'player' ? 120 : kind === 'enemy' ? 100 : 70;
+    emitNoise(u.x, u.y, r, u);
+  }
+}
+
+/* 视角转动：厚重衣物/机械摩擦 + 低频转动呜声（随转速变化） */
+function sfxTurn(x, y, angSpeed){
+  const w = worldGain(x, y, 0.16 + Math.min(0.14, angSpeed * 0.02));
+  noiseBurst(0.08, w.vol, 700, 300, w.pan);            // 厚重摩擦
+  tone(130, 0.09, 'sine', w.vol * 0.55, 85, w.pan);   // 低频转动呜声
+}
+
+/* ===================== 具体音效（x,y 为声源世界坐标） ===================== */
+/* 真实厚重枪声：厚实宽频爆裂 + 双层低频轰(sub) + 击发 crack（无回声） */
+function sfxShoot(x, y){
+  const w = worldGain(x, y, 0.7);
+  noiseBurst(0.08, w.vol, 4500, 150, w.pan);          // 厚实宽频爆裂
+  tone(90, 0.24, 'sine', w.vol * 0.95, 34, w.pan);    // 厚重低频轰 body
+  tone(52, 0.20, 'sine', w.vol * 0.65, 28, w.pan);    // sub 超低轰鸣
+  noiseBurst(0.025, w.vol * 0.45, 9000, 5000, w.pan); // 高频击发 crack（轻）
+}
+function sfxShootMate(x, y){
+  const w = worldGain(x, y, 0.52);
+  noiseBurst(0.07, w.vol, 4200, 180, w.pan);
+  tone(100, 0.22, 'sine', w.vol * 0.9, 36, w.pan);
+  tone(58, 0.18, 'sine', w.vol * 0.6, 30, w.pan);
+  noiseBurst(0.02, w.vol * 0.4, 8500, 5000, w.pan);
+}
+function sfxShootEnemy(x, y){
+  const w = worldGain(x, y, 0.58);
+  noiseBurst(0.095, w.vol, 2600, 120, w.pan);          // 敌人枪声更闷更厚
+  tone(72, 0.28, 'sine', w.vol * 0.95, 30, w.pan);
+  tone(44, 0.22, 'sine', w.vol * 0.65, 24, w.pan);
+  noiseBurst(0.022, w.vol * 0.35, 7000, 4000, w.pan);
+}
+function sfxHit(x, y){ const w = worldGain(x, y, 0.25); tone(1000, 0.06, 'square', w.vol, 500, w.pan); }
+function sfxKill(x, y){
+  const w = worldGain(x, y, 0.5);
+  noiseBurst(0.22, w.vol, 800, 110, w.pan);
+  tone(120, 0.22, 'sawtooth', w.vol * 0.5, 40, w.pan);
+}
+function sfxHurt(){ tone(280, 0.28, 'sawtooth', 0.3, 80); noiseBurst(0.12, 0.22, 600, 200); }   // 玩家中弹（自身音）
+function sfxDoor(x, y){    // 敲门/转动把手的闷响（木门）
+  const w = worldGain(x, y, 0.22);
+  tone(180, 0.06, 'sine', w.vol, 120, w.pan);
+  noiseBurst(0.04, w.vol * 0.4, 500, 250, w.pan);
+}
+function sfxDoorOpen(x, y){  // 木门厚重开启：木头吱呀 + 低频闷撞
+  const w = worldGain(x, y, 0.4);
+  tone(220, 0.35, 'sawtooth', w.vol * 0.5, 140, w.pan);   // 木头吱呀滑音
+  noiseBurst(0.18, w.vol, 700, 200, w.pan);               // 厚重摩擦/拖动
+  tone(70, 0.2, 'sine', w.vol * 0.7, 45, w.pan);          // 低频闷撞
+}
+/* 敌人发现你：低沉威胁吼叫（非蜂鸣，更真实） */
+function sfxAlarm(x, y){
+  const w = worldGain(x, y, 0.3);
+  tone(330, 0.18, 'sawtooth', w.vol, 180, w.pan);
+  setTimeout(() => tone(300, 0.2, 'sawtooth', w.vol * 0.8, 150, w.pan), 130);
+}
+/* 脚步：低频踏地噗声 */
+function sfxStep(x, y, kind){
+  const base = kind === 'enemy' ? 0.13 : 0.16;
+  const w = worldGain(x, y, base);
+  noiseBurst(0.055, w.vol, kind === 'enemy' ? 380 : 600, 200, w.pan);
+  if (kind !== 'soft') tone(85, 0.05, 'sine', w.vol * 0.5, 55, w.pan);
+}
+/* 人质呼救（低沉闷哼起伏，不再是清脆双嘀提示音；帮助凭声定位） */
+function sfxHostageCry(x, y){
+  const w = worldGain(x, y, 0.22);
+  tone(190, 0.5, 'sine', w.vol, 240, w.pan);          // 起："救——"
+  setTimeout(() => tone(160, 0.45, 'sine', w.vol * 0.9, 130, w.pan), 240); // 落，起伏似呼喊
+}
+/* 人质获救欢呼 */
+function sfxRescue(){ [523, 659, 784].forEach((f, i) => setTimeout(() => tone(f, 0.16, 'triangle', 0.18), i * 90)); }
+function sfxWin(){ [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => tone(f, 0.18, 'triangle', 0.2), i * 120)); }
+function sfxLose(){ [400, 320, 240, 160].forEach((f, i) => setTimeout(() => tone(f, 0.25, 'sawtooth', 0.2), i * 150)); }
+function sfxStart(){ tone(440, 0.1, 'triangle', 0.15, 660); setTimeout(() => tone(660, 0.12, 'triangle', 0.15), 100); }
+function sfxClick(){ tone(600, 0.04, 'square', 0.1); }
+let fHeld = false;          // F 键按住状态（保证边沿触发，需连点）
+
+/* 离屏画布：完整地图缓存 / 已探索区域 / 小地图 */
+const mapCanvas = document.createElement('canvas');
+mapCanvas.width = W; mapCanvas.height = H;
+const mapCtx = mapCanvas.getContext('2d');
+
+const exploredCanvas = document.createElement('canvas');
+exploredCanvas.width = W; exploredCanvas.height = H;
+const expCtx = exploredCanvas.getContext('2d');
+
+/* 灰色滤镜版地图（已探明但不在当前视野内的区域用它显示） */
+const grayMapCanvas = document.createElement('canvas');
+grayMapCanvas.width = W; grayMapCanvas.height = H;
+const grayMapCtx = grayMapCanvas.getContext('2d');
+
+/* 临时画布：已探明遮罩 ∩ 灰色地图 的合成结果 */
+const dimCanvas = document.createElement('canvas');
+dimCanvas.width = W; dimCanvas.height = H;
+const dimCtx = dimCanvas.getContext('2d');
+
+const miniCanvas = document.createElement('canvas');
+const MINI_W = 180, MINI_H = 120;
+miniCanvas.width = MINI_W; miniCanvas.height = MINI_H;
+const miniCtx = miniCanvas.getContext('2d');
+
+/* ============================================================
+ * 工具函数
+ * ============================================================ */
+function dist(x1,y1,x2,y2){ return Math.hypot(x2-x1, y2-y1); }
+function normAng(a){ while(a > Math.PI) a -= Math.PI*2; while(a < -Math.PI) a += Math.PI*2; return a; }
+function rand(a,b){ return a + Math.random()*(b-a); }
+function shuffle(arr){ for(let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; } return arr; }
+
+/* 射线(原点 p, 单位方向 d) 与线段 s 相交，返回距离 t（无交返回 Infinity） */
+function raySeg(px, py, dx, dy, s){
+  const sx = s.x2 - s.x1, sy = s.y2 - s.y1;
+  const denom = dx * sy - dy * sx;
+  if (Math.abs(denom) < 1e-9) return Infinity;
+  const t = ((s.x1 - px) * sy - (s.y1 - py) * sx) / denom;
+  const u = ((s.x1 - px) * dy - (s.y1 - py) * dx) / denom;
+  if (t >= 0 && u >= -0.0005 && u <= 1.0005) return t;
+  return Infinity;
+}
+
+/* 从 (x,y) 沿角度 a 投射射线，返回撞墙前的距离（上限 R）。关闭的门也遮挡视线 */
+/* 线段是否穿过圆（烟雾遮挡判定用） */
+function segCircle(x1, y1, x2, y2, cx, cy, r){
+  const dx = x2 - x1, dy = y2 - y1;
+  const l2 = dx*dx + dy*dy;
+  let t = l2 < 1e-9 ? 0 : ((cx - x1)*dx + (cy - y1)*dy) / l2;
+  t = Math.max(0, Math.min(1, t));
+  const px = x1 + dx*t, py = y1 + dy*t;
+  return (px - cx)*(px - cx) + (py - cy)*(py - cy) <= r*r;
+}
+/* 射线（单位方向）与圆最近交点距离，无交返回 Infinity */
+function rayCircle(x, y, dx, dy, cx, cy, r){
+  const fx = cx - x, fy = cy - y;
+  const proj = fx*dx + fy*dy;
+  if (proj < 0) return Infinity;
+  const perp2 = (fx*fx + fy*fy) - proj*proj;
+  if (perp2 > r*r) return Infinity;
+  const thc = Math.sqrt(r*r - perp2);
+  const t = proj - thc;
+  return t >= 0 ? t : (proj + thc >= 0 ? 0 : Infinity);
+}
+function castRay(x, y, a, R){
+  const dx = Math.cos(a), dy = Math.sin(a);
+  let best = R;
+  for (const s of segments){
+    const t = raySeg(x, y, dx, dy, s);
+    if (t < best) best = t;
+  }
+  for (const s of doorSegs){
+    const t = raySeg(x, y, dx, dy, s);
+    if (t < best) best = t;
+  }
+  for (const s of smokes){            // 烟雾云遮挡视线
+    const t = rayCircle(x, y, dx, dy, s.x, s.y, s.r);
+    if (t < best) best = t;
+  }
+  return best;
+}
+
+/* 两点之间是否无墙遮挡（视线检测）。关闭的门与烟雾都阻挡视线 */
+function hasLOS(x1, y1, x2, y2){
+  const dx = x2 - x1, dy = y2 - y1;
+  const len = Math.hypot(dx, dy);
+  if (len < 1e-6) return true;
+  const nx = dx/len, ny = dy/len;
+  for (const s of segments){
+    if (raySeg(x1, y1, nx, ny, s) < len - 0.5) return false;
+  }
+  for (const s of doorSegs){
+    if (raySeg(x1, y1, nx, ny, s) < len - 0.5) return false;
+  }
+  for (const s of smokes){
+    if (segCircle(x1, y1, x2, y2, s.x, s.y, s.r)) return false;
+  }
+  return true;
+}
+
+/* 目标点是否在观察者 u 的视野锥内（角度+距离+遮挡） */
+function inVision(u, tx, ty, R){
+  const d = dist(u.x, u.y, tx, ty);
+  if (d > R) return false;
+  const da = normAng(Math.atan2(ty - u.y, tx - u.x) - u.angle);
+  if (Math.abs(da) > HALF_FOV) return false;
+  return hasLOS(u.x, u.y, tx, ty);
+}
+
+/* 目标点是否被任一己方单位看到 */
+function visibleToSquad(tx, ty){
+  const list = [player, ...mates];
+  for (const u of list){
+    if (u.hp <= 0) continue;
+    if (inVision(u, tx, ty, VIEW_R)) return true;
+  }
+  return false;
+}
+
+/* 点到线段的最短距离（误伤判定用） */
+function distPointSeg(px, py, x1, y1, x2, y2){
+  const dx = x2-x1, dy = y2-y1;
+  const l2 = dx*dx + dy*dy;
+  if (l2 < 1e-9) return dist(px,py,x1,y1);
+  let t = ((px-x1)*dx + (py-y1)*dy) / l2;
+  t = Math.max(0, Math.min(1, t));
+  return dist(px, py, x1 + t*dx, y1 + t*dy);
+}
+
+/* 圆与矩形碰撞 */
+function circleRect(cx, cy, r, rc){
+  const nx = Math.max(rc.x, Math.min(cx, rc.x + rc.w));
+  const ny = Math.max(rc.y, Math.min(cy, rc.y + rc.h));
+  const dx = cx - nx, dy = cy - ny;
+  return dx*dx + dy*dy < r*r;
+}
+
+/* 该位置是否可以站立（不与任何墙/边界/关闭的门重叠） */
+function canStand(x, y, r){
+  if (x < r || y < r || x > W - r || y > H - r) return false;
+  for (const rc of wallRects) if (circleRect(x, y, r, rc)) return false;
+  for (const rc of props) if (circleRect(x, y, r, rc)) return false;
+  for (const d of doors) if (!d.open && circleRect(x, y, r, d)) return false;
+  return true;
+}
+
+/* 重建所有关闭门的视线线段（门的开/关状态变化时调用，避免每帧重算） */
+function rebuildDoorSegs(){
+  doorSegs = [];
+  for (const d of doors){
+    if (d.open) continue;
+    doorSegs.push({x1:d.x,     y1:d.y,     x2:d.x+d.w, y2:d.y});
+    doorSegs.push({x1:d.x+d.w, y1:d.y,     x2:d.x+d.w, y2:d.y+d.h});
+    doorSegs.push({x1:d.x+d.w, y1:d.y+d.h, x2:d.x,     y2:d.y+d.h});
+    doorSegs.push({x1:d.x,     y1:d.y+d.h, x2:d.x,     y2:d.y});
+  }
+  rebuildNavGrid();   // 门开/关会改变可通行区域，同步刷新导航网格
+}
+
+/* 带滑动的碰撞移动：整体移动失败时，尝试沿 X / Y 单轴滑动 */
+function moveUnit(u, dx, dy){
+  if (canStand(u.x + dx, u.y + dy, u.r)){ u.x += dx; u.y += dy; return true; }
+  let moved = false;
+  if (dx !== 0 && canStand(u.x + dx, u.y, u.r)){ u.x += dx; moved = true; }
+  if (dy !== 0 && canStand(u.x, u.y + dy, u.r)){ u.y += dy; moved = true; }
+  return moved;
+}
+
+/* ============================================================
+ * 导航网格 + BFS 寻路（AI 移动不再撞墙）
+ * ============================================================ */
+const NAV = 10;                                  // 网格边长（像素）
+let NGW = Math.floor(W / NAV), NGH = Math.floor(H / NAV);
+let navBlocked = new Uint8Array(NGW * NGH);      // 1 = 该格不可通行
+
+/* 导航通行判定：只算墙体（关闭的门可被 AI 开启，不算障碍），
+ * 间距 14 = 最大单位半径 12 + 2 安全余量，避免贴墙擦碰 */
+function navFreeAt(x, y){
+  const r = 14;
+  if (x < r || y < r || x > W - r || y > H - r) return false;
+  for (const rc of wallRects) if (circleRect(x, y, r, rc)) return false;
+  for (const rc of props) if (circleRect(x, y, r, rc)) return false;
+  return true;
+}
+
+/* 重建导航网格（只依赖墙体，门的开关不影响寻路，只影响实际碰撞） */
+function rebuildNavGrid(){
+  NGW = Math.floor(W / NAV); NGH = Math.floor(H / NAV);
+  navBlocked = new Uint8Array(NGW * NGH);
+  for (let gy = 0; gy < NGH; gy++)
+    for (let gx = 0; gx < NGW; gx++)
+      navBlocked[gy * NGW + gx] =
+        navFreeAt(gx * NAV + NAV/2, gy * NAV + NAV/2) ? 0 : 1;
+}
+
+/* 找离 (gx,gy) 最近的可通行格（环形扩散搜索） */
+function nearestFreeCell(gx, gy){
+  gx = Math.max(0, Math.min(NGW-1, gx));
+  gy = Math.max(0, Math.min(NGH-1, gy));
+  if (!navBlocked[gy*NGW+gx]) return [gx, gy];
+  for (let r = 1; r <= 10; r++){
+    for (let dy = -r; dy <= r; dy++)
+      for (let dx = -r; dx <= r; dx++){
+        if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+        const nx = gx+dx, ny = gy+dy;
+        if (nx<0||ny<0||nx>=NGW||ny>=NGH) continue;
+        if (!navBlocked[ny*NGW+nx]) return [nx, ny];
+      }
+  }
+  return null;
+}
+
+/* BFS 寻路：返回世界坐标路点数组（末尾附上精确目标点） */
+function findPath(x1, y1, x2, y2){
+  const s = nearestFreeCell(Math.floor(x1/NAV), Math.floor(y1/NAV));
+  const g = nearestFreeCell(Math.floor(x2/NAV), Math.floor(y2/NAV));
+  if (!s || !g) return [{x:x2, y:y2}];
+  const start = s[1]*NGW + s[0], goal = g[1]*NGW + g[0];
+  if (start === goal) return [{x:x2, y:y2}];
+  const came = new Int32Array(NGW * NGH).fill(-1);
+  came[start] = start;
+  const queue = [start];
+  let found = false;
+  // 8 方向（斜向要求两个正交邻格都可通行，防止贴墙角穿缝）
+  const dirs = [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
+  for (let qi = 0; qi < queue.length; qi++){
+    const cur = queue[qi];
+    if (cur === goal){ found = true; break; }
+    const cx = cur % NGW, cy = (cur / NGW) | 0;
+    for (const [dx, dy] of dirs){
+      const nx = cx+dx, ny = cy+dy;
+      if (nx<0||ny<0||nx>=NGW||ny>=NGH) continue;
+      const ni = ny*NGW + nx;
+      if (came[ni] !== -1 || navBlocked[ni]) continue;
+      if (dx && dy && (navBlocked[cy*NGW+nx] || navBlocked[ny*NGW+cx])) continue;
+      came[ni] = cur;
+      queue.push(ni);
+    }
+  }
+  if (!found) return [{x:x2, y:y2}];
+  // 回溯路径 → 世界坐标
+  const pts = [];
+  let cur = goal;
+  while (cur !== start){
+    pts.push({x:(cur % NGW)*NAV + NAV/2, y:((cur / NGW)|0)*NAV + NAV/2});
+    cur = came[cur];
+  }
+  pts.reverse();
+  pts.push({x:x2, y:y2});
+  return pts;
+}
+
+/* 两点间是否可以直线行走（按半径 r+2 密集采样，用于路径平滑，含关闭的门） */
+function walkable(x1, y1, x2, y2, r){
+  const d = dist(x1, y1, x2, y2);
+  const steps = Math.max(1, Math.ceil(d / 4));
+  for (let i = 1; i <= steps; i++){
+    const t = i / steps;
+    if (!canStand(x1 + (x2-x1)*t, y1 + (y2-y1)*t, r + 2)) return false;
+  }
+  return true;
+}
+
+/* 沿寻路结果移动单位。setAngle=true 时朝向跟随移动方向 */
+function navMove(u, tx, ty, speed, dt, setAngle){
+  u.repathT = (u.repathT === undefined ? 0 : u.repathT) - dt;
+  // 无路径 / 目标点大幅变化 / 定时刷新 → 重新寻路
+  if (!u.path || !u.path.length || !u.pathGoal ||
+      dist(u.pathGoal.x, u.pathGoal.y, tx, ty) > 40 || u.repathT <= 0){
+    u.path = findPath(u.x, u.y, tx, ty);
+    u.pathGoal = {x:tx, y:ty};
+    u.repathT = 0.6 + Math.random() * 0.3;
+  }
+  // 路径平滑：能直线走到的更远路点直接跳过
+  while (u.path.length > 1 && walkable(u.x, u.y, u.path[1].x, u.path[1].y, u.r)){
+    u.path.shift();
+  }
+  let wp = u.path[0];
+  if (!wp) return true;
+  let d = dist(u.x, u.y, wp.x, wp.y);
+  if (d < 5 && u.path.length > 1){ u.path.shift(); wp = u.path[0]; d = dist(u.x, u.y, wp.x, wp.y); }
+  if (d < 1) return true;
+  const dirX = (wp.x - u.x) / d, dirY = (wp.y - u.y) / d;
+  const step = Math.min(speed * dt, d);
+  const ok = moveUnit(u, dirX * step, dirY * step);
+  if (!ok){
+    // 被关闭的门挡住 → AI 自动开门（面向门，原地摇门）
+    const door = nearestDoor(u.x, u.y, 64);
+    if (door){
+      u.angle = Math.atan2(door.y + door.h/2 - u.y, door.x + door.w/2 - u.x);
+      aiCrankDoor(door, dt);
+      return true;
+    }
+    u.repathT = 0;                     // 真卡墙：下帧立即重寻路
+  }
+  if (setAngle && ok) u.angle = Math.atan2(dirY, dirX);
+  return ok;
+}
+
+/* AI 开门：持续加进度（净速率跑赢回落），开门同样发出噪声 */
+function aiCrankDoor(d, dt){
+  d.progress = Math.min(1, d.progress + 0.75 * dt);   // 净 0.5/s，约 2s 开门
+  d.speed = 3;
+  d.aiNoiseT = (d.aiNoiseT || 0) - dt;
+  const cx = d.x + d.w/2, cy = d.y + d.h/2;
+  if (d.aiNoiseT <= 0){ d.aiNoiseT = 0.4; emitNoise(cx, cy, 150); }
+  if (d.progress >= 1){
+    d.open = true;
+    sfxDoorOpen(cx, cy);
+    rebuildDoorSegs();
+    emitNoise(cx, cy, 220);
+  }
+}
+
+/* ============================================================
+ * 地图生成：3x2 网格房间，生成树保证门连通，随机增加门/打通墙
+ * ============================================================ */
+/* 家具/场景装饰（按房间类型合理布置：碰撞 + 视线遮挡 + 渲染） */
+function rectIntersect(a, b, pad){
+  pad = pad || 0;
+  return a.x - pad < b.x + b.w && a.x + a.w + pad > b.x &&
+         a.y - pad < b.y + b.h && a.y + a.h + pad > b.y;
+}
+
+/* ============================================================
+ * 房间类型：每间屋子有明确功能划分，家具布置合理（门厅仅出生房）
+ * ============================================================ */
+const ROOM_TYPES = {
+  living:   { name:'客厅',   weight:3, props:['sofa','tv','desk','table','plant'] },
+  bedroom:  { name:'卧室',   weight:3, props:['bed','desk','wardrobe','plant'] },
+  kitchen:  { name:'厨房',   weight:2, props:['fridge','counter','table'] },
+  bath:     { name:'卫生间', weight:2, props:['bath','sink'] },
+  study:    { name:'书房',   weight:2, props:['desk','bookshelf','plant'] },
+  dining:   { name:'餐厅',   weight:2, props:['table','plant','bookshelf'] },
+  kids:     { name:'儿童房', weight:1, props:['bed','desk','plant'] },
+  storage:  { name:'储藏室', weight:1, props:['bookshelf','wardrobe','counter'] },
+  balcony:  { name:'阳台',   weight:1, props:['plant','table'] },
+  gym:      { name:'健身房', weight:1, props:['plant','table','wardrobe'] },
+  theater:  { name:'影音室', weight:1, props:['tv','sofa','plant'] },
+  laundry:  { name:'洗衣房', weight:1, props:['fridge','counter','sink'] },
+  hall:     { name:'门厅',   weight:0, props:['plant','table'] },
+};
+const ROOM_POOL = Object.keys(ROOM_TYPES).filter(k => ROOM_TYPES[k].weight > 0);  // 不含门厅
+const ROOM_TOTAL_W = ROOM_POOL.reduce((s, k) => s + ROOM_TYPES[k].weight, 0);
+let cellTypes = [];   // 每个格子的房间类型
+
+/* 按权重随机选类型，且尽量不与上一个相同（避免同类型扎堆） */
+function randRoomType(prev){
+  let pick = ROOM_POOL[0];
+  for (let t = 0; t < 6; t++){
+    let r = Math.random() * ROOM_TOTAL_W;
+    pick = ROOM_POOL[0];
+    for (const k of ROOM_POOL){ r -= ROOM_TYPES[k].weight; if (r <= 0){ pick = k; break; } }
+    if (pick !== prev) break;
+  }
+  return pick;
+}
+function assignRoomTypes(){
+  cellTypes = [];
+  let prev = null;
+  for (let i = 0; i < COLS * ROWS; i++){
+    if (i === COLS * (ROWS - 1)){ cellTypes.push('hall'); prev = 'hall'; continue; } // 出生房=门厅（唯一）
+    const t = randRoomType(prev);
+    cellTypes.push(t); prev = t;
+  }
+}
+function propSize(type){
+  return ({
+    desk:[50,30], sofa:[58,36], tv:[48,18], bath:[54,34],
+    table:[40,40], plant:[22,22], bed:[72,52], wardrobe:[46,30],
+    bookshelf:[54,20], fridge:[36,32], counter:[72,26], sink:[34,22]
+  })[type];
+}
+function generateProps(){
+  props = [];
+  // 门通道禁放区：门口两侧各留 ~34px 走廊，避免家具堵门导致单位出不去
+  const doorKeepouts = [];
+  for (const d of doors){
+    if (d.vert) doorKeepouts.push({ x:d.x-34, y:d.y-12, w:d.w+68, h:d.h+24 });
+    else        doorKeepouts.push({ x:d.x-12, y:d.y-34, w:d.w+24, h:d.h+68 });
+  }
+  for (let cell = 0; cell < COLS * ROWS; cell++){
+    const c = cell % COLS, row = Math.floor(cell / COLS);
+    const type = cellTypes[cell] || 'living';
+    const allowed = ROOM_TYPES[type].props;
+    // 数量：卫生间/门厅少，客厅/卧室/厨房/书房多
+    const maxN = (type === 'bath' || type === 'hall') ? 2 : 3;
+    const n = 1 + Math.floor(Math.random() * maxN);
+    for (let k = 0; k < n; k++){
+      const ptype = allowed[Math.floor(Math.random() * allowed.length)];
+      const sz = propSize(ptype);
+      for (let i = 0; i < 24; i++){
+        const x = rand(c*CW + WALL_T + 10, (c+1)*CW - WALL_T - 10 - sz[0]);
+        const y = rand(row*CH + WALL_T + 10, (row+1)*CH - WALL_T - 10 - sz[1]);
+        const rc = { x, y, w:sz[0], h:sz[1], type:ptype };
+        let ok = true;
+        for (const w of wallRects) if (rectIntersect(rc, w, 8)) { ok = false; break; }
+        if (ok) for (const d of doors) if (rectIntersect(rc, d, 8)) { ok = false; break; }
+        if (ok) for (const kp of doorKeepouts) if (rectIntersect(rc, kp, 0)) { ok = false; break; }
+        if (ok) for (const p of props) if (rectIntersect(rc, p, 5)) { ok = false; break; }
+        if (ok){ props.push(rc); break; }
+      }
+    }
+  }
+}
+function drawProp(g, r){
+  switch (r.type){
+    case 'desk':
+      g.fillStyle = '#b07a3c'; g.fillRect(r.x, r.y, r.w, r.h);
+      g.fillStyle = '#8a5e2a'; g.fillRect(r.x, r.y, r.w, 5);
+      g.strokeStyle = '#5e3f1c'; g.strokeRect(r.x+0.5, r.y+0.5, r.w-1, r.h-1); break;
+    case 'sofa':
+      g.fillStyle = '#5b6e8c'; g.fillRect(r.x, r.y, r.w, r.h);
+      g.fillStyle = '#6f86a8'; g.fillRect(r.x+4, r.y+4, r.w-8, 9);
+      g.fillStyle = '#4d5e78'; g.fillRect(r.x+4, r.y+r.h-13, r.w-8, 9);
+      g.strokeStyle = '#3a4a63'; g.strokeRect(r.x+0.5, r.y+0.5, r.w-1, r.h-1); break;
+    case 'tv':
+      g.fillStyle = '#2a2f3a'; g.fillRect(r.x-3, r.y-3, r.w+6, r.h+6);
+      g.fillStyle = '#0e1116'; g.fillRect(r.x, r.y, r.w, r.h); break;
+    case 'bath':
+      g.fillStyle = '#e8eef0'; g.fillRect(r.x, r.y, r.w, r.h);
+      g.fillStyle = '#cfe6ee'; g.fillRect(r.x+5, r.y+5, r.w-10, r.h-10);
+      g.strokeStyle = '#aab8bf'; g.strokeRect(r.x+0.5, r.y+0.5, r.w-1, r.h-1); break;
+    case 'table':
+      g.fillStyle = '#caa472'; g.fillRect(r.x, r.y, r.w, r.h);
+      g.strokeStyle = '#6b4f2a'; g.strokeRect(r.x+0.5, r.y+0.5, r.w-1, r.h-1); break;
+    case 'plant':
+      g.fillStyle = '#7a5230'; g.beginPath(); g.arc(r.x+r.w/2, r.y+r.h-5, 8, 0, 7); g.fill();
+      g.fillStyle = '#3f8f4f'; g.beginPath(); g.arc(r.x+r.w/2, r.y+r.h/2, 11, 0, 7); g.fill(); break;
+    case 'bed':
+      g.fillStyle = '#cfd6e2'; g.fillRect(r.x, r.y, r.w, r.h);
+      g.fillStyle = '#9aa6bd'; g.fillRect(r.x, r.y, r.w, 16);
+      g.fillStyle = '#eef2f8'; g.fillRect(r.x+6, r.y+18, r.w-12, r.h-22);
+      g.strokeStyle = '#6b7488'; g.strokeRect(r.x+0.5, r.y+0.5, r.w-1, r.h-1); break;
+    case 'wardrobe':
+      g.fillStyle = '#8a5e3a'; g.fillRect(r.x, r.y, r.w, r.h);
+      g.strokeStyle = '#5e3f1c'; g.strokeRect(r.x+0.5, r.y+0.5, r.w-1, r.h-1);
+      g.strokeStyle = '#caa472'; g.beginPath(); g.moveTo(r.x+r.w/2, r.y+3); g.lineTo(r.x+r.w/2, r.y+r.h-3); g.stroke(); break;
+    case 'bookshelf':
+      g.fillStyle = '#6b4a2a'; g.fillRect(r.x, r.y, r.w, r.h);
+      g.fillStyle = '#b5854f'; for (let s=0; s<3; s++) g.fillRect(r.x+3, r.y+3+s*6, r.w-6, 4); break;
+    case 'fridge':
+      g.fillStyle = '#d7dde2'; g.fillRect(r.x, r.y, r.w, r.h);
+      g.strokeStyle = '#9aa3ab'; g.strokeRect(r.x+0.5, r.y+0.5, r.w-1, r.h-1);
+      g.fillStyle = '#9aa3ab'; g.fillRect(r.x+4, r.y+r.h*0.45, r.w-8, 3); break;
+    case 'counter':
+      g.fillStyle = '#b9bdc4'; g.fillRect(r.x, r.y, r.w, r.h);
+      g.fillStyle = '#8a8f98'; g.fillRect(r.x, r.y, r.w, 6);
+      g.strokeStyle = '#6b6f78'; g.strokeRect(r.x+0.5, r.y+0.5, r.w-1, r.h-1); break;
+    case 'sink':
+      g.fillStyle = '#e8eef0'; g.fillRect(r.x, r.y, r.w, r.h);
+      g.fillStyle = '#cfe6ee'; g.beginPath(); g.arc(r.x+r.w/2, r.y+r.h/2, 9, 0, 7); g.fill();
+      g.strokeStyle = '#aab8bf'; g.strokeRect(r.x+0.5, r.y+0.5, r.w-1, r.h-1); break;
+  }
+}
+
+function buildMap(){
+  wallRects = [];
+  props = [];
+  doors = [];
+  mapCtx.setTransform(ZOOM, 0, 0, ZOOM, 0, 0);   // 高分辨率绘制，避免放大后模糊
+  // 外边界四面墙
+  wallRects.push({x:0, y:0, w:W, h:WALL_T});
+  wallRects.push({x:0, y:H-WALL_T, w:W, h:WALL_T});
+  wallRects.push({x:0, y:0, w:WALL_T, h:H});
+  wallRects.push({x:W-WALL_T, y:0, w:WALL_T, h:H});
+
+  // 相邻房间之间的边（候选墙）
+  const edges = [];
+  const idx = (c,r) => r * COLS + c;
+  for (let r = 0; r < ROWS; r++)
+    for (let c = 0; c < COLS - 1; c++)
+      edges.push({a:idx(c,r), b:idx(c+1,r), vert:true, c, r});
+  for (let r = 0; r < ROWS - 1; r++)
+    for (let c = 0; c < COLS; c++)
+      edges.push({a:idx(c,r), b:idx(c,r+1), vert:false, c, r});
+
+  // 并查集生成树 → 树边开门，保证全图连通（等价 Flood Fill 检查）
+  const parent = [...Array(COLS*ROWS).keys()];
+  const find = i => parent[i] === i ? i : (parent[i] = find(parent[i]));
+  shuffle(edges);
+  for (const e of edges){
+    const ra = find(e.a), rb = find(e.b);
+    if (ra !== rb){ parent[ra] = rb; e.type = 'door'; }
+    else {
+      // 非树边：35% 打通(合并房间→形成4~6个房间)，30% 额外开门，其余实墙
+      const p = Math.random();
+      e.type = p < 0.35 ? 'open' : (p < 0.65 ? 'door' : 'wall');
+    }
+  }
+
+  // 起始房间必须用门/墙隔断：禁止与邻房「打通(open)」直接相连，避免开局被邻房敌人秒掉
+  const startAdj = e => e.a === startCell || e.b === startCell;
+  for (const e of edges) if (startAdj(e) && e.type === 'open') e.type = 'door';
+
+  // 根据边类型生成墙体矩形
+  for (const e of edges){
+    if (e.type === 'open') continue; // 打通：无墙
+    if (e.vert){
+      const wx = (e.c + 1) * CW - WALL_T/2;
+      const y0 = e.r * CH, y1 = (e.r + 1) * CH;
+      if (e.type === 'wall'){
+        wallRects.push({x:wx, y:y0, w:WALL_T, h:y1-y0});
+      } else { // 门：墙上开缺口
+        const dp = rand(y0 + 26, y1 - 26 - DOOR_W);
+        wallRects.push({x:wx, y:y0, w:WALL_T, h:dp - y0});
+        wallRects.push({x:wx, y:dp + DOOR_W, w:WALL_T, h:y1 - (dp + DOOR_W)});
+        // 80% 缺口装交互门（关闭时挡路+挡视线，玩家按 F / AI 自动开启）
+        if (Math.random() < 0.8 || startAdj(e)){   // 起始房间边必定装可关闭的门，确保隔断生效
+          doors.push({x:wx-3, y:dp, w:WALL_T+6, h:DOOR_W, vert:true,
+                      open:false, progress:0, lastPress:0, speed:0});
+        }
+      }
+    } else {
+      const wy = (e.r + 1) * CH - WALL_T/2;
+      const x0 = e.c * CW, x1 = (e.c + 1) * CW;
+      if (e.type === 'wall'){
+        wallRects.push({x:x0, y:wy, w:x1-x0, h:WALL_T});
+      } else {
+        const dp = rand(x0 + 26, x1 - 26 - DOOR_W);
+        wallRects.push({x:x0, y:wy, w:dp - x0, h:WALL_T});
+        wallRects.push({x:dp + DOOR_W, y:wy, w:x1 - (dp + DOOR_W), h:WALL_T});
+        if (Math.random() < 0.8 || startAdj(e)){   // 起始房间边必定装可关闭的门，确保隔断生效
+          doors.push({x:dp, y:wy-3, w:DOOR_W, h:WALL_T+6, vert:false,
+                      open:false, progress:0, lastPress:0, speed:0});
+        }
+      }
+    }
+  }
+
+  rebuildDoorSegs();   // 初始化关闭门的视线线段
+  assignRoomTypes();   // 为每间屋子分配功能类型
+  generateProps();    // 按房间类型生成家具（合理布置）
+  noisePings = [];
+
+  // 由矩形生成视线线段（每个矩形 4 条边）
+  segments = [];
+  for (const r of wallRects.concat(props)){
+    segments.push({x1:r.x,     y1:r.y,     x2:r.x+r.w, y2:r.y});
+    segments.push({x1:r.x+r.w, y1:r.y,     x2:r.x+r.w, y2:r.y+r.h});
+    segments.push({x1:r.x+r.w, y1:r.y+r.h, x2:r.x,     y2:r.y+r.h});
+    segments.push({x1:r.x,     y1:r.y+r.h, x2:r.x,     y2:r.y});
+  }
+
+  renderMapImage();   // 把完整地图渲染到离屏画布
+}
+
+/* 把当前 wallRects/props/cellTypes 渲染到离屏 mapCanvas + grayMapCanvas。
+   单机走 buildMap 生成后调用；联机 guest 收到 host 世界后也调用，修复"无地板建模"。 */
+function renderMapImage(){
+  mapCtx.setTransform(ZOOM, 0, 0, ZOOM, 0, 0);   // 高分辨率绘制
+  mapCtx.clearRect(0, 0, W, H);
+  mapCtx.fillStyle = '#565a52';                 // 地板
+  mapCtx.fillRect(0, 0, W, H);
+  mapCtx.strokeStyle = 'rgba(0,0,0,0.12)';      // 地板纹理线
+  mapCtx.lineWidth = 1;
+  for (let x = 0; x <= W; x += 40){ mapCtx.beginPath(); mapCtx.moveTo(x,0); mapCtx.lineTo(x,H); mapCtx.stroke(); }
+  for (let y = 0; y <= H; y += 40){ mapCtx.beginPath(); mapCtx.moveTo(0,y); mapCtx.lineTo(W,y); mapCtx.stroke(); }
+  for (const r of wallRects){
+    mapCtx.fillStyle = '#9aa0ac';               // 墙
+    mapCtx.fillRect(r.x, r.y, r.w, r.h);
+    mapCtx.strokeStyle = '#42474f';
+    mapCtx.strokeRect(r.x + 0.5, r.y + 0.5, r.w - 1, r.h - 1);
+  }
+  for (const r of props) drawProp(mapCtx, r);   // 家具/场景装饰
+
+  // 房间名称标签（明确功能划分：客厅/卧室/厨房/卫生间…）
+  mapCtx.textAlign = 'center'; mapCtx.textBaseline = 'middle';
+  mapCtx.font = 'bold 19px "Microsoft YaHei", sans-serif';
+  for (let i = 0; i < COLS * ROWS; i++){
+    const c = i % COLS, row = Math.floor(i / COLS);
+    mapCtx.fillStyle = 'rgba(255,255,255,0.16)';
+    mapCtx.fillText(ROOM_TYPES[(cellTypes[i]) || 'living'].name, c*CW + CW/2, row*CH + 24);
+  }
+  mapCtx.textAlign = 'left'; mapCtx.textBaseline = 'alphabetic';
+
+  // 生成灰色滤镜版地图（去饱和 + 压暗），用于已探明区域
+  grayMapCtx.setTransform(1, 0, 0, 1, 0, 0);
+  grayMapCtx.clearRect(0, 0, grayMapCanvas.width, grayMapCanvas.height);
+  grayMapCtx.filter = 'grayscale(100%) brightness(0.4)';
+  grayMapCtx.drawImage(mapCanvas, 0, 0);
+  grayMapCtx.filter = 'none';
+}
+
+/* 在指定房间内随机取一个可站立的点 */
+function randPointInCell(cell, r){
+  const c = cell % COLS, row = Math.floor(cell / COLS);
+  for (let i = 0; i < 60; i++){
+    const x = rand(c*CW + 34, (c+1)*CW - 34);
+    const y = rand(row*CH + 34, (row+1)*CH - 34);
+    if (canStand(x, y, r + 4)) return {x, y};
+  }
+  return {x: c*CW + CW/2, y: row*CH + CH/2};
+}
+
+/* 敌人出生：优先躲在门后或障碍物后（提高埋伏概率） */
+function pickEnemySpawn(cell){
+  const c = cell % COLS, row = Math.floor(cell / COLS);
+  const x0 = c*CW, y0 = row*CH;
+  // 1) 门后：紧贴房间内一侧的门，开门即暴露
+  for (const d of doors){
+    if (d.open) continue;
+    const cx = d.x + d.w/2, cy = d.y + d.h/2;
+    let inx = 0, iny = 0;
+    if (Math.abs(cx - ((c+1)*CW - WALL_T/2)) < 10 && cy > y0 && cy < y0+CH) inx = -1;
+    else if (Math.abs(cx - (c*CW + WALL_T/2)) < 10 && cy > y0 && cy < y0+CH) inx = 1;
+    else if (Math.abs(cy - ((row+1)*CH - WALL_T/2)) < 10 && cx > x0 && cx < x0+CW) iny = -1;
+    else if (Math.abs(cy - (row*CH + WALL_T/2)) < 10 && cx > x0 && cx < x0+CW) iny = 1;
+    else continue;
+    const sx = cx + inx*32, sy = cy + iny*32;
+    if (canStand(sx, sy, 13)) return {x:sx, y:sy};
+  }
+  // 2) 障碍物后：站在房间中最大家具背离房间中心的一侧（家具挡视线）
+  const ccx = x0 + CW/2, ccy = y0 + CH/2;
+  let best = null, ba = 0;
+  for (const p of props){
+    if (p.x > x0+4 && p.x < x0+CW-4 && p.y > y0+4 && p.y < y0+CH-4){
+      const a = p.w*p.h; if (a > ba){ ba = a; best = p; }
+    }
+  }
+  if (best){
+    const px = best.x+best.w/2, py = best.y+best.h/2;
+    let dx = px-ccx, dy = py-ccy; const L = Math.hypot(dx,dy)||1; dx/=L; dy/=L;
+    const sx = px + dx*(best.w/2+18), sy = py + dy*(best.h/2+18);
+    if (canStand(sx, sy, 13)) return {x:sx, y:sy};
+  }
+  // 3) 兜底随机
+  return randPointInCell(cell, 12);
+}
+
+/* ============================================================
+ * 摄像机 / 坐标转换（地图可能大于视口，需跟随玩家滚动）
+ * ============================================================ */
+function screenToWorld(sx, sy){
+  return { x: (sx - VIEW_W/2) / ZOOM + camX, y: (sy - VIEW_H/2) / ZOOM + camY };
+}
+function mouseWorld(){ return screenToWorld(mouse.x, mouse.y); }
+function updateCamera(){
+  const halfW = VIEW_W / (2 * ZOOM), halfH = VIEW_H / (2 * ZOOM);
+  camX = W > 2*halfW ? Math.max(halfW, Math.min(W - halfW, player.x)) : W/2;
+  camY = H > 2*halfH ? Math.max(halfH, Math.min(H - halfH, player.y)) : H/2;
+}
+
+/* ============================================================
+ * 初始化：单位布局
+ * ============================================================ */
+function init(){
+  paused = false; gameOver = false; gameMsg = '';
+  squadMode = 'follow';
+  squadMoveTarget = null;
+  tracers = [];
+  expCtx.clearRect(0, 0, W, H);
+
+  let START_CELL = COLS * (ROWS - 1); // 左下角房间
+  // 联机 PvP：guest 出生在对角（右上角房间），双方分开开局
+  if (net.connected && net.mode === 'pvp' && !net.host) START_CELL = COLS - 1;
+  startCell = START_CELL;
+  const _scc = START_CELL % COLS, _scr = Math.floor(START_CELL / COLS);
+  startRoomRect = { x:_scc * ROOM_W, y:_scr * ROOM_H, w:ROOM_W, h:ROOM_H };   // 起始房间矩形（安全屋，常亮且用门/墙隔断）
+  // 玩家
+  const pp = randPointInCell(START_CELL, 12);
+  player = { x:pp.x, y:pp.y, r:12, angle:0, hp:1, fireCd:0,
+    items: { grenade:2, smoke:2, drone:1, flare:1 } };   // 每关补给：手雷/烟雾/探测车/照明弹
+  projectiles = []; smokes = []; drones = []; effects = []; flares = [];   // 重置道具状态
+
+  // 联机（guest）：世界已由 host 的 world 数据填充，仅创建本地玩家，
+  // 敌人/人质/队友由 host 每帧广播的快照维护（镜像模式，不本地模拟）
+  if (net.connected && !net.host && net.worldApplied){
+    updateHUD();
+    return;
+  }
+
+  buildMap();
+
+  // 2 名 AI 队友：起始在玩家身边（联机时无 AI 队友，纯双人玩法）
+  mates = [];
+  const mateCount = net.connected ? 0 : 2;
+  for (let i = 0; i < mateCount; i++){
+    const side = i === 0 ? 1 : -1;
+    let mx = pp.x + side * 40, my = pp.y + 30;
+    if (!canStand(mx, my, 11)){ mx = pp.x; my = pp.y; }
+    mates.push({
+      x:mx, y:my, r:11, angle:0, hp:1,
+      side,                 // 左/右扇形站位
+      aimTimer:0, fireCd:0, target:null,
+      holdX:mx, holdY:my    // 警戒模式驻守点
+    });
+  }
+
+  // 其他房间（打乱）用于放敌人和人质
+  const otherCells = shuffle([...Array(COLS*ROWS).keys()].filter(i => i !== START_CELL));
+
+  // 敌人（数量随关卡增多）
+  enemies = [];
+  for (let i = 0; i < enemyNum; i++){
+    const cell = otherCells[i % otherCells.length];
+    const p = pickEnemySpawn(cell);   // 优先躲在门后/障碍物后
+    enemies.push({
+      x:p.x, y:p.y, r:12, hp:1,
+      angle: rand(-Math.PI, Math.PI),
+      sightTimer:0, target:null, loseTimer:0,
+      scanDir: Math.random() < 0.5 ? 1 : -1,
+      investX:0, investY:0, investTimer:0,   // 噪声调查
+      wanderX:0, wanderY:0, wanderTimer:0    // 随机游荡目标
+    });
+  }
+
+  // 人质（分布在若干房间）
+  hostages = [];
+  const hCells = shuffle(otherCells.slice()).slice(0, hostageNum);
+  for (let i = 0; i < hostageNum; i++){
+    const p = randPointInCell(hCells[i % hCells.length], 10);
+    hostages.push({x:p.x, y:p.y, r:10, hp:1});
+  }
+  updateHUD();
+}
+
+/* ============================================================
+ * 关卡：随关卡递增地形 / 敌人 / 敏感度
+ * ============================================================ */
+/* 各关房间总数（L1→L10）：严格按 4,9,16,20,25,30,30,30,30,30 递增 */
+const ROOM_PROGRESSION = [4, 9, 16, 20, 25, 30, 30, 30, 30, 30];
+/* 将房间总数拆成最接近正方形的 cols × rows（决定地图长宽比） */
+function splitRooms(count){
+  let bc = count, br = 1;
+  for (let c = 1; c <= Math.floor(Math.sqrt(count)); c++){
+    if (count % c === 0){
+      const r = count / c;
+      if (Math.abs(c - r) < Math.abs(bc - br)){ bc = c; br = r; }
+    }
+  }
+  return [bc, br];
+}
+function levelConfig(n){
+  const rc = ROOM_PROGRESSION[Math.min(n, ROOM_PROGRESSION.length) - 1] || 30;
+  const [cols, rows] = splitRooms(rc);
+  return {
+    cols, rows,                               // 由房间总数推导（4→2×2, 9→3×3, 16→4×4, 20→4×5, 25→5×5, 30→5×6）
+    enemyCount: 4 + n,                        // 5 → 14
+    hostageCount: 3,
+    enemyViewR: 230 + n * 12,                 // 242 → 350（更敏感）
+    aimTime: Math.max(0.35, 0.8 - n * 0.05),  // 反应加快 2 倍（1.5→0.7 再减半）
+    turn: 8 + n * 0.6,                        // 转向速率翻倍
+    invest: 5 + n * 0.6,                      // 噪声调查更执着
+    scan: 0.45 + n * 0.04,                    // 扫视更快
+    speed: 30 + (n - 1) * 0.75                // 移动速度（已减半）
+  };
+}
+function resizeBuffers(){
+  // 地图/灰色版用 ZOOM 倍超采样分辨率，放大显示更清晰、更有真实感
+  mapCanvas.width = Math.round(W * ZOOM); mapCanvas.height = Math.round(H * ZOOM);
+  exploredCanvas.width = W; exploredCanvas.height = H;
+  grayMapCanvas.width = Math.round(W * ZOOM); grayMapCanvas.height = Math.round(H * ZOOM);
+  dimCanvas.width = W; dimCanvas.height = H;
+}
+function startLevel(n, world){
+  level = n;
+  net.level = n;
+  const cfg = levelConfig(n);
+  COLS = cfg.cols; ROWS = cfg.rows;
+  W = COLS * ROOM_W; H = ROWS * ROOM_H;
+  ENEMY_VIEW_R = cfg.enemyViewR;
+  enemySpeed   = cfg.speed;
+  enemyAimTime = cfg.aimTime;
+  enemyTurn    = cfg.turn;
+  investTime   = cfg.invest;
+  scanSpeed    = cfg.scan;
+  enemyNum     = cfg.enemyCount;
+  hostageNum   = cfg.hostageCount;
+  if (net.connected && net.mode === 'pvp'){ enemyNum = 0; hostageNum = 0; }  // 对战：无敌人/人质
+  resizeBuffers();
+  if (world) applyWorld(world);    // 联机 guest：用 host 序列化过来的世界数据
+  init();                 // 重新生成地图与单位（guest 联机时仅建玩家）
+  updateCamera();
+  document.getElementById('btnReset').textContent = '重置';
+  sfxStart();
+}
+
+/* ============================================================
+ * 战斗：开火（射线判定 + 误伤检测）
+ * ============================================================ */
+function addTracer(x1, y1, x2, y2, color){
+  tracers.push({x1, y1, x2, y2, t:0.2, color});
+}
+
+/* 屏幕中央短暂浮动提示（友伤等） */
+let toastEl = null, toastTimer = null;
+function flash(msg){
+  if (!toastEl){
+    toastEl = document.createElement('div');
+    toastEl.style.cssText = 'position:fixed;left:50%;top:16%;transform:translateX(-50%);' +
+      'background:rgba(20,20,25,.82);color:#ffd866;padding:9px 18px;border-radius:10px;' +
+      'font:bold 15px sans-serif;z-index:60;pointer-events:none;box-shadow:0 2px 12px rgba(0,0,0,.4)';
+    document.body.appendChild(toastEl);
+  }
+  toastEl.textContent = msg;
+  toastEl.style.display = 'block';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { toastEl.style.display = 'none'; }, 1700);
+}
+
+/* 玩家开火：沿射线检查人质误伤 → 友军误伤 → 命中目标（shooter=真实射手，本地或远端玩家） */
+function playerFire(shooter, ex, ey, targetEnemy){
+  // 误伤判定：射线经过存活人质（<10px）则任务失败
+  for (const h of hostages){
+    if (h.hp <= 0) continue;
+    if (distPointSeg(h.x, h.y, shooter.x, shooter.y, ex, ey) < 10){
+      h.hp = 0;
+      addTracer(shooter.x, shooter.y, h.x, h.y, '#ffe066');
+      if (net.connected && net.host) netEndH(false, false, '误伤了人质！任务失败');
+      else endGame(false, '你误伤了人质！任务失败');
+      return;
+    }
+  }
+  // 友伤：射线经过存活队友则误伤掉血（队友血量=1，一枪倒下）
+  for (const m of mates){
+    if (m.hp <= 0) continue;
+    if (distPointSeg(m.x, m.y, shooter.x, shooter.y, ex, ey) < 10){
+      m.hp--;
+      addTracer(shooter.x, shooter.y, m.x, m.y, '#ff8a3b');
+      if (m.hp <= 0){ sfxKill(m.x, m.y); flash('⚠ 误伤队友，队友阵亡！'); }
+      else { sfxHit(m.x, m.y); flash('⚠ 误伤了队友！'); }
+      return;   // 子弹命中队友即终止，不再杀敌
+    }
+  }
+  addTracer(shooter.x, shooter.y, ex, ey, '#ffe066');
+  if (targetEnemy){
+    targetEnemy.hp--;
+    if (targetEnemy.hp <= 0) sfxKill(targetEnemy.x, targetEnemy.y); else sfxHit(targetEnemy.x, targetEnemy.y);
+  }
+}
+
+/* 左键：朝准星方向射击，仅命中弹道线附近的目标（无自动锁敌） */
+function fireForwardAs(shooter){
+  resumeAudio();
+  if (shooter.fireCd > 0) return;
+  sfxShoot(shooter.x, shooter.y);
+  emitNoise(shooter.x, shooter.y, 300);   // 枪声很响，会吸引附近敌人（潜行被打破）
+  shooter.fireCd = 0.4;
+  // 目标候选：敌人 + （PvP 联机时）对方玩家。host 端：player 打 remotePlayer，remotePlayer 打 player
+  const targets = enemies.filter(e => e.hp > 0);
+  if (net.connected && net.mode === 'pvp' && net.host && remotePlayer){
+    const foe = (shooter === remotePlayer) ? player : remotePlayer;
+    if (foe && foe.hp > 0) targets.push(foe);
+  }
+  // 沿准星方向的真实弹道判定：不再自动锁定视野内任意敌人，打歪就是打歪
+  const rayD = castRay(shooter.x, shooter.y, shooter.angle, VIEW_R);   // 弹道到墙/门的距离
+  const cosA = Math.cos(shooter.angle), sinA = Math.sin(shooter.angle);
+  let best = null, bd = Infinity;
+  for (const e of targets){
+    const relX = e.x - shooter.x, relY = e.y - shooter.y;
+    const along = relX * cosA + relY * sinA;              // 目标在弹道方向上的投影距离
+    if (along <= 0 || along > rayD + (e.r || 12)) continue;   // 在身后或被墙挡住
+    const off = Math.abs(-relX * sinA + relY * cosA);     // 偏离弹道中线的垂直距离
+    if (off <= (e.r || 12) + 4 && along < bd){ best = e; bd = along; }  // +4px 轻微容差（擦边算中）
+  }
+  if (best){
+    playerFire(shooter, best.x, best.y, best);
+  } else {
+    // 未命中任何目标：子弹沿准星方向飞到墙为止，仍需检查人质/队友误伤
+    playerFire(shooter, shooter.x + cosA * rayD, shooter.y + sinA * rayD, null);
+  }
+}
+function fireForward(){ fireForwardAs(player); }
+
+/* ============================================================
+ * 更新：玩家
+ * ============================================================ */
+function updatePlayer(dt){
+  // 朝向：触屏用右摇杆方向，否则指向鼠标（鼠标为屏幕坐标，需转世界坐标）
+  const mw = mouseWorld();
+  const newAngle = touchAim.active ? touchAim.ang : Math.atan2(mw.y - player.y, mw.x - player.x);
+  if (player.prevAngle === undefined) player.prevAngle = newAngle;
+  let dAng = newAngle - player.prevAngle;
+  while (dAng > Math.PI) dAng -= 2 * Math.PI;
+  while (dAng < -Math.PI) dAng += 2 * Math.PI;
+  player.prevAngle = newAngle;
+  const angSpeed = Math.abs(dAng) / dt;
+  if (angSpeed > 2.2){                    // 视角转动够快才出声（避免微小抖动）
+    if (player.turnT === undefined) player.turnT = 0;
+    player.turnT -= dt;
+    if (player.turnT <= 0){ sfxTurn(player.x, player.y, angSpeed); player.turnT = 0.13; }
+  }
+  player.angle = newAngle;
+  player.fireCd = Math.max(0, player.fireCd - dt);
+
+  // WASD / 方向键 屏幕方向移动（与朝向无关）
+  let dx = 0, dy = 0;
+  if (keys['w'] || keys['arrowup']) dy -= 1;
+  if (keys['s'] || keys['arrowdown']) dy += 1;
+  if (keys['a'] || keys['arrowleft']) dx -= 1;
+  if (keys['d'] || keys['arrowright']) dx += 1;
+  dx += touchMove.x; dy += touchMove.y;               // 移动端左摇杆
+  if (dx || dy){
+    const len = Math.hypot(dx, dy);
+    moveUnit(player, dx/len * PLAYER_SPEED * dt, dy/len * PLAYER_SPEED * dt);
+    // 脚步声（移动时）
+    if (player.stepT === undefined) player.stepT = 0;
+    player.stepT -= dt;
+    if (player.stepT <= 0){ sfxStep(player.x, player.y, 'player'); player.stepT = 0.34; emitNoise(player.x, player.y, 120, player); }
+    // 移动时的衣料/装备"转动声"（替代原呼吸声）
+    if (player.moveSoundT === undefined) player.moveSoundT = 0;
+    player.moveSoundT -= dt;
+    if (player.moveSoundT <= 0){ sfxTurn(player.x, player.y, 2.6); player.moveSoundT = 0.17; }
+  }
+}
+
+/* ============================================================
+ * 更新：AI 队友（跟随/警戒 + 自动索敌开火）
+ * ============================================================ */
+function updateMates(dt){
+  for (const m of mates){
+    if (m.hp <= 0) continue;
+    m.fireCd = Math.max(0, m.fireCd - dt);
+
+    /* --- 索敌：视野锥内最近且无遮挡的敌人 --- */
+    let target = null, bd = Infinity;
+    for (const e of enemies){
+      if (e.hp <= 0) continue;
+      if (inVision(m, e.x, e.y, VIEW_R)){
+        const d = dist(m.x, m.y, e.x, e.y);
+        if (d < bd){ target = e; bd = d; }
+      }
+    }
+    m.target = target;
+
+    if (target){
+      /* --- 交战：停止移动，转向目标，瞄准 0.5s 后开火 --- */
+      const ta = Math.atan2(target.y - m.y, target.x - m.x);
+      const da = normAng(ta - m.angle);
+      m.angle += Math.max(-8*dt, Math.min(8*dt, da));
+      if (Math.abs(da) < 0.15) m.aimTimer += dt;
+      else m.aimTimer = 0;
+
+      if (m.aimTimer >= 0.5 && m.fireCd <= 0){
+        // AI 弹道安全检测：会误伤人质或友军（玩家/另一队友）则不开火
+        let unsafe = false;
+        for (const h of hostages){
+          if (h.hp > 0 && distPointSeg(h.x, h.y, m.x, m.y, target.x, target.y) < 12){ unsafe = true; break; }
+        }
+        if (!unsafe){
+          const allyList = (net.connected && net.host && remotePlayer) ? [player, ...mates, remotePlayer] : [player, ...mates];
+          for (const u of allyList){
+            if (u === m || u.hp <= 0) continue;
+            if (distPointSeg(u.x, u.y, m.x, m.y, target.x, target.y) < 12){ unsafe = true; break; }
+          }
+        }
+        if (!unsafe && hasLOS(m.x, m.y, target.x, target.y)){
+          addTracer(m.x, m.y, target.x, target.y, '#7ef0ff');
+          target.hp--;
+          sfxShootMate(m.x, m.y);
+          emitNoise(m.x, m.y, 300);   // 队友枪声也会暴露位置、吸引敌人
+          if (target.hp <= 0) sfxKill(target.x, target.y); else sfxHit(target.x, target.y);
+          m.fireCd = 0.8;
+          m.aimTimer = 0.2;
+        }
+      }
+    } else {
+      /* --- 无敌情：移动到理想站位 --- */
+      m.aimTimer = 0;
+      let tx, ty;
+      if (squadMode === 'move' && squadMoveTarget){
+        // 前往指示点：两名队友在指示点左右侧分开站位
+        tx = squadMoveTarget.x + m.side * 26;
+        ty = squadMoveTarget.y;
+        if (!canStand(tx, ty, m.r)){ tx = squadMoveTarget.x; ty = squadMoveTarget.y; }
+      } else if (squadMode === 'follow'){
+        // 跟随：在玩家侧后方约 100px 处扇形散开（一左一右）
+        const off = player.angle + m.side * (Math.PI * 0.75);
+        tx = player.x + Math.cos(off) * 100;
+        ty = player.y + Math.sin(off) * 100;
+        if (!canStand(tx, ty, m.r)){ tx = player.x; ty = player.y; } // 站位在墙里则靠拢玩家
+      } else {
+        tx = m.holdX; ty = m.holdY;   // 警戒：驻守原地
+      }
+      const d = dist(m.x, m.y, tx, ty);
+      if (d > 8){
+        navMove(m, tx, ty, MATE_SPEED, dt, true);   // 网格寻路，不再撞墙
+        stepTrigger(m, dt, 'mate', 0.36);
+      } else {
+        // 待机时面向玩家朝向的斜前方，扩大小队视野覆盖
+        const ideal = player.angle + m.side * 0.5;
+        m.angle += normAng(ideal - m.angle) * Math.min(1, 5*dt);
+      }
+    }
+  }
+}
+
+/* ============================================================
+ * 更新：敌人 AI（静止扫视 → 发现目标 → 追踪 → 1.5s 后开火）
+ * ============================================================ */
+function updateEnemies(dt){
+  for (const en of enemies){
+    if (en.hp <= 0) continue;
+    if (en.detected > 0) en.detected -= dt;   // 探测车标记衰减
+
+    /* --- 索敌：玩家和队友中视野内最近者 --- */
+    let target = null, bd = Infinity;
+    const candidates = (net.connected && net.host && remotePlayer) ? [player, ...mates, remotePlayer] : [player, ...mates];
+    for (const u of candidates){
+      if (u.hp <= 0) continue;
+      if (inVision(en, u.x, u.y, ENEMY_VIEW_R)){
+        const d = dist(en.x, en.y, u.x, u.y);
+        if (d < bd){ target = u; bd = d; }
+      }
+    }
+
+    if (target){
+      const justSpotted = en.target === null;
+      en.target = target; en.loseTimer = 0;
+      if (justSpotted) sfxAlarm(en.x, en.y);
+      // 转向目标
+      const ta = Math.atan2(target.y - en.y, target.x - en.x);
+      en.angle += Math.max(-enemyTurn*dt, Math.min(enemyTurn*dt, normAng(ta - en.angle)));
+      // 追踪（保持距离；途中遇门自动开）
+      if (bd > 90){
+        if (!enemyTryOpenDoor(en)){
+          navMove(en, target.x, target.y, enemySpeed, dt, false);
+          stepTrigger(en, dt, 'enemy', 0.42);
+        }
+      }
+      // 持续锁定后开火（命中即扣血，反应已加快 2 倍）
+      en.sightTimer += dt;
+      if (en.sightTimer >= enemyAimTime){
+        en.sightTimer = Math.max(0.2, enemyAimTime - 0.3);   // 之后短暂间隔再发
+        addTracer(en.x, en.y, target.x, target.y, '#ff5555');
+        target.hp--;
+        sfxShootEnemy(en.x, en.y);
+        emitNoise(en.x, en.y, 300, en);   // 敌人枪声会暴露自己并吸引同伴赶来
+        if (target === player){ if (player.hp > 0) sfxHurt(); }
+        else if (target.hp <= 0) sfxKill(target.x, target.y);
+        if (target === player && player.hp <= 0){
+          endGame(false, '你被击杀了！任务失败');
+        }
+      }
+    } else {
+      /* --- 未发现目标：短暂追忆 → 噪声调查 → 随机游荡 --- */
+      en.sightTimer = Math.max(0, en.sightTimer - dt);
+      if (en.target){
+        en.loseTimer += dt;
+        if (en.loseTimer > 1.2){ en.target = null; en.wanderX = 0; en.wanderY = 0; }
+      } else if (en.investTimer > 0){
+        // 被噪声吸引：前往噪声点查看（途中遇门自动开）
+        en.investTimer -= dt;
+        const d = dist(en.x, en.y, en.investX, en.investY);
+        if (!enemyTryOpenDoor(en) && d > 22){
+          navMove(en, en.investX, en.investY, enemySpeed, dt, true);
+          stepTrigger(en, dt, 'enemy', 0.42);
+        } else if (d <= 22){
+          en.angle += en.scanDir * 1.0 * dt;   // 抵达：原地环顾
+        }
+      } else {
+        // 随机游荡：前往随机房间，途中遇门直接推开（会发声）
+        en.wanderTimer = (en.wanderTimer||0) - dt;
+        if (en.wanderTimer <= 0 || (en.wanderX === 0 && en.wanderY === 0) ||
+            dist(en.x, en.y, en.wanderX, en.wanderY) < 20){
+          const cell = Math.floor(Math.random() * (COLS*ROWS));
+          const p = randPointInCell(cell, 12);
+          en.wanderX = p.x; en.wanderY = p.y; en.wanderTimer = rand(3.5, 6.5);
+        }
+        if (!enemyTryOpenDoor(en)){
+          navMove(en, en.wanderX, en.wanderY, enemySpeed * 0.7, dt, true);
+          stepTrigger(en, dt, 'enemy', 0.5);
+          const want = Math.atan2(en.wanderY - en.y, en.wanderX - en.x);
+          en.angle += normAng(want - en.angle) * Math.min(1, 2.5*dt);
+        }
+      }
+    }
+  }
+}
+
+/* ============================================================
+ * 交互门：按 F 开门（连点加进度，停手回落）+ 噪声吸引敌人
+ * ============================================================ */
+/* 玩家附近可交互的关闭门（返回最近的一个） */
+function nearestDoor(px, py, range){
+  let best = null, bd = range;
+  for (const d of doors){
+    if (d.open) continue;
+    const nx = Math.max(d.x, Math.min(px, d.x + d.w));
+    const ny = Math.max(d.y, Math.min(py, d.y + d.h));
+    const dd = dist(px, py, nx, ny);
+    if (dd < bd){ best = d; bd = dd; }
+  }
+  return best;
+}
+
+/* 发出噪声：半径内的敌人被吸引前往噪声点（穿墙传播） */
+function emitNoise(x, y, radius, except){
+  noisePings.push({x, y, r:radius, t:0.5, max:0.5});
+  for (const en of enemies){
+    if (en.hp <= 0 || en === except) continue;   // 声源自身不会被自己的声音吸引
+    if (dist(en.x, en.y, x, y) <= radius){
+      en.investX = x; en.investY = y; en.investTimer = investTime;
+    }
+  }
+}
+
+/* 敌人自动开门：靠近且大致在前进方向的关闭门会被推开，并制造噪声 */
+function enemyTryOpenDoor(en){
+  const d = nearestDoor(en.x, en.y, 80);
+  if (!d) return false;
+  const cx = d.x + d.w/2, cy = d.y + d.h/2;
+  const dd = dist(en.x, en.y, cx, cy);
+  let gx = en.wanderX, gy = en.wanderY;
+  if (en.investTimer > 0){ gx = en.investX; gy = en.investY; }
+  if (en.target){ gx = en.target.x; gy = en.target.y; }
+  const heading = Math.atan2(gy - en.y, gx - en.x);
+  // 门很近（<45px）直接开；否则需在前进方向 ±1.5 弧度内才开（放宽判定，避免开不了门）
+  if (dd > 45 && Math.abs(normAng(Math.atan2(cy - en.y, cx - en.x) - heading)) > 1.5) return false;
+  d.open = true;
+  sfxDoorOpen(cx, cy);
+  emitNoise(cx, cy, 220, en);   // 开门声会暴露位置（排除开门者自身）
+  rebuildDoorSegs();
+  return true;
+}
+
+/* ============================================================
+ * 道具系统：手榴弹 / 烟雾弹 / 探测车（按 1 / 2 / 3 使用，朝鼠标方向投掷/部署）
+ * ============================================================ */
+const GRENADE_R = 95, SMOKE_R = 78, SMOKE_LIFE = 9, FLARE_R = 170, FLARE_LIFE = 10;
+const DRONE_SPEED = 150, DRONE_LIFE = 10, DRONE_VIEW_R = 230;
+
+function sfxExplosion(x, y){
+  const w = worldGain(x, y, 0.45);
+  noiseBurst(0.28, w.vol, 220, 50, w.pan);     // 轰鸣
+  tone(70, 0.32, 'sine', w.vol * 0.9, 40, w.pan);
+}
+
+/* 使用道具：朝当前朝向（鼠标方向）投掷/部署。
+ * pl 缺省为本地玩家；联机中 host 收到 guest 的上行请求时，用 remotePlayer 作为 pl 权威执行。 */
+function useItem(type, pl){
+  pl = pl || player;
+  if (!pl || pl.hp <= 0 || gameOver || paused) return;
+  if (!pl.items[type] || pl.items[type] <= 0) return;
+  pl.items[type]--;
+  const a = pl.angle;
+  const dx = Math.cos(a), dy = Math.sin(a);
+  const reach = Math.max(45, Math.min(240, castRay(pl.x, pl.y, a, 240) - 8));
+  const tx = pl.x + dx * reach, ty = pl.y + dy * reach;
+  if (type === 'smoke'){
+    projectiles.push({ x:pl.x, y:pl.y, sx:pl.x, sy:pl.y, tx, ty, t:0, dur:0.4 + reach/600, type });
+  } else if (type === 'grenade'){
+    // 手榴弹：定时引信(0.85s) + 速度模型；飞行途中撞墙/门/家具会反弹，最多 1 次（第 2 次撞击立即引爆）
+    const gs = 240;   // 手榴弹飞行速度(px/s)，0.85s 约投出 200px
+    projectiles.push({ x:pl.x, y:pl.y, vx:dx*gs, vy:dy*gs, t:0, dur:0.85, type:'grenade', bounces:0 });
+  } else if (type === 'drone'){
+    // 出生点保证可站立：若落点落在墙/家具里，沿射线回退找最近安全点，杜绝一出生就卡死/倒走
+    let sx = tx, sy = ty;
+    if (!canStand(sx, sy, 5)){
+      for (let r = reach; r > 8; r -= 8){
+        const cx = pl.x + dx*r, cy = pl.y + dy*r;
+        if (canStand(cx, cy, 5)){ sx = cx; sy = cy; break; }
+      }
+      if (!canStand(sx, sy, 5)){ sx = pl.x; sy = pl.y; }
+    }
+    drones.push({ x:sx, y:sy, angle:a, vx:dx*DRONE_SPEED, vy:dy*DRONE_SPEED, t:0, life:DRONE_LIFE });
+  } else if (type === 'flare'){
+    // 照明弹：朝准星方向抛出，落地后形成一片 10 秒的照明区（显示敌人与人质，无阴影）
+    projectiles.push({ x:pl.x, y:pl.y, sx:pl.x, sy:pl.y, tx, ty, t:0, dur:0.35 + reach/600, type:'flare' });
+  }
+  sfxClick();
+}
+
+function updateProjectiles(dt){
+  for (const p of projectiles){
+    p.t += dt;
+    if (p.type === 'grenade'){
+      // 分离轴碰撞：某轴前进被挡则该轴速度反向（镜面反弹）。最多反弹 1 次，第 2 次撞击立即引爆。
+      const R = 5;
+      let bounced = false;
+      const nx = p.x + p.vx * dt;
+      if (canStand(nx, p.y, R)) p.x = nx; else { p.vx = -p.vx; bounced = true; }
+      const ny = p.y + p.vy * dt;
+      if (canStand(p.x, ny, R)) p.y = ny; else { p.vy = -p.vy; bounced = true; }
+      if (bounced){
+        p.bounces++;
+        emitNoise(p.x, p.y, 70, player);   // 磕碰轻响，可能惊动附近敌人
+        if (p.bounces >= 2){ explodeGrenade(p.x, p.y); p.dead = true; continue; }
+      }
+      if (p.t >= p.dur){ explodeGrenade(p.x, p.y); p.dead = true; }
+    } else if (p.type === 'smoke'){ // 烟雾弹：线性飞抵落点后生成烟雾
+      const k = Math.min(1, p.t / p.dur);
+      p.x = p.sx + (p.tx - p.sx) * k;
+      p.y = p.sy + (p.ty - p.sy) * k;
+      if (p.t >= p.dur){ smokes.push({ x:p.x, y:p.y, r:0, t:0, life:SMOKE_LIFE }); p.dead = true; }
+    } else if (p.type === 'flare'){ // 照明弹：飞抵落点后形成照明区
+      const k = Math.min(1, p.t / p.dur);
+      p.x = p.sx + (p.tx - p.sx) * k;
+      p.y = p.sy + (p.ty - p.sy) * k;
+      if (p.t >= p.dur){ flares.push({ x:p.x, y:p.y, r:FLARE_R, t:0, life:FLARE_LIFE }); p.dead = true; }
+    } else { p.dead = true; }
+  }
+  projectiles = projectiles.filter(p => !p.dead);
+}
+
+function explodeGrenade(x, y){
+  effects.push({ x, y, r:0, max:GRENADE_R, t:0, life:0.45 });
+  emitNoise(x, y, 280, player);     // 爆炸巨响会吸引附近敌人
+  sfxExplosion(x, y);
+  // 炸门：爆炸范围内的关闭门被直接炸开（重建遮挡线段，联机时随快照同步给对方）
+  let doorBlasted = false;
+  for (const d of doors){
+    if (d.open) continue;
+    const dnx = Math.max(d.x, Math.min(x, d.x + d.w));
+    const dny = Math.max(d.y, Math.min(y, d.y + d.h));
+    if (dist(x, y, dnx, dny) <= GRENADE_R){ d.open = true; d.progress = 1; doorBlasted = true; }
+  }
+  if (doorBlasted){ sfxDoorOpen(x, y); rebuildDoorSegs(); }
+  for (const e of enemies){
+    if (e.hp <= 0) continue;
+    if (dist(e.x, e.y, x, y) <= GRENADE_R){ e.hp = 0; sfxKill(e.x, e.y); }
+  }
+  // 玩家/队友若太近也会被波及
+  if (dist(player.x, player.y, x, y) <= GRENADE_R){
+    player.hp--; if (player.hp > 0) sfxHurt(); else endGame(false, '你被炸死了！任务失败');
+  }
+  for (const m of mates){ if (m.hp > 0 && dist(m.x, m.y, x, y) <= GRENADE_R) m.hp--; }
+}
+
+function updateSmokes(dt){
+  for (const s of smokes){ s.t += dt; if (s.r < SMOKE_R) s.r = Math.min(SMOKE_R, s.r + dt * 90); }
+  smokes = smokes.filter(s => s.t < s.life);
+}
+
+/* 探测车自动开门：靠近且大致在前进方向前方的关闭门会被静默推开，从而全图穿行 */
+function droneTryOpenDoor(d){
+  const dr = nearestDoor(d.x, d.y, 60);
+  if (!dr) return false;
+  const cx = dr.x + dr.w/2, cy = dr.y + dr.h/2;
+  const toDoor = Math.atan2(cy - d.y, cx - d.x);
+  if (Math.abs(normAng(toDoor - d.angle)) > 1.5) return false;   // 门不在前进方向就不动它
+  dr.open = true;
+  sfxDoorOpen(cx, cy);
+  rebuildDoorSegs();
+  return true;
+}
+
+function updateDrones(dt){
+  for (const d of drones){
+    d.t += dt;
+    droneTryOpenDoor(d);   // 先尝试开前方门，得以穿越各房间、全地图自由移动
+    const step = DRONE_SPEED * dt;   // 本帧前进量（约 2.4px）
+    const R = 5;            // 探测车碰撞半径（小，减少贴墙卡死）
+    // 寻路铁律：永远「朝当前朝向前进」，绝不倒退 —— 这是修复「只会倒着走」的核心。
+    // 1) 正前方可走 → 直行（朝向不变）
+    const fx = d.x + Math.cos(d.angle)*step, fy = d.y + Math.sin(d.angle)*step;
+    if (canStand(fx, fy, R)){
+      d.x = fx; d.y = fy;
+    } else {
+      // 2) 前方被挡 → 右手贴墙绕行：沿右侧逐步增大偏转找第一个可走方向（小角优先，绝不一步掉头）
+      const cand = [0.3, 0.6, 1.0, 1.5, 2.1, -0.3, -0.6, -1.0, -1.5, -2.1];
+      let turned = false;
+      for (const off of cand){
+        const a2 = d.angle + off;
+        const px = d.x + Math.cos(a2)*step, py = d.y + Math.sin(a2)*step;
+        if (canStand(px, py, R)){
+          d.angle = a2;     // 平滑转向该可走方向（朝向即前进方向，不会倒走）
+          d.x = px; d.y = py;
+          turned = true;
+          break;
+        }
+      }
+      // 3) 极端死角兜底：原地缓慢转头寻找出口，绝不开倒车（彻底告别「倒着走」）
+      if (!turned) d.angle += 0.5;
+    }
+    for (const e of enemies){
+      if (e.hp <= 0) continue;
+      if (inVision(d, e.x, e.y, DRONE_VIEW_R)) e.detected = 3.0;  // 持续标记视野内敌人，显示 3 秒
+    }
+  }
+  drones = drones.filter(d => d.t < d.life);
+}
+
+function updateEffects(dt){
+  for (const f of effects) f.t += dt;
+  effects = effects.filter(f => f.t < f.life);
+}
+function updateFlares(dt){
+  for (const f of flares) f.t += dt;
+  flares = flares.filter(f => f.t < f.life);
+}
+
+/* F 键连点：给最近的门加进度。开越快（连点越密）→ 噪声半径越大 */
+function crankDoor(){
+  if (net.connected && !net.host){ netSend({ t:'door' }); return; }  // guest：开门请求上行，host 权威执行后随快照回传
+  crankDoorBy(player);
+}
+function crankDoorBy(u){
+  const d = nearestDoor(u.x, u.y, 55);
+  if (!d) return;
+  const now = performance.now() / 1000;
+  const gap = now - (d.lastPress || now - 1);
+  d.lastPress = now;
+  // 连点速率（次/秒），平滑处理
+  const rate = Math.min(12, 1 / Math.max(0.06, gap));
+  d.speed = d.speed * 0.5 + rate * 0.5;
+  d.progress = Math.min(1, d.progress + 0.5);   // 约 2 下开满（玩家与队友同一速度）
+  sfxDoor(d.x + d.w/2, d.y + d.h/2);
+  // 噪声半径随开门速度增大：慢开 ~100，狂点 ~460
+  const cx = d.x + d.w / 2, cy = d.y + d.h / 2;
+  emitNoise(cx, cy, 90 + d.speed * 32);
+  if (d.progress >= 1){
+    d.open = true;
+    sfxDoorOpen(cx, cy);
+    rebuildDoorSegs();
+    // 开门瞬间的额外大噪声
+    emitNoise(cx, cy, 120 + d.speed * 34);
+  }
+}
+
+/* 每帧更新：门进度回落 + 噪声波纹寿命 */
+function updateDoors(dt){
+  for (const d of doors){
+    if (d.open) continue;
+    // 停手时进度下降（0.25/s）
+    d.progress = Math.max(0, d.progress - 0.25 * dt);
+    d.speed = Math.max(0, d.speed - 6 * dt);
+  }
+  for (const p of noisePings) p.t -= dt;
+  noisePings = noisePings.filter(p => p.t > 0);
+}
+
+/* ============================================================
+ * 胜负判定
+ * ============================================================ */
+function endGame(win, msg){
+  if (gameOver) return;
+  gameOver = true;
+  gameMsg = msg;
+  lastWin = win;
+  if (win){ sfxWin(); sfxRescue(); } else sfxLose();
+  const rb = document.getElementById('btnReset');
+  if (win){ rb.textContent = level < MAX_LEVEL ? '下一关 ▶' : '再玩一次'; }
+  else { rb.textContent = '重试本关'; }
+}
+function checkWinLose(){
+  if (gameOver) return;
+  if (net.connected){
+    // 联机胜负一律由 host 单端权威判定，再把结果发给 guest；guest 只等 'end' 消息，避免双端冲突
+    if (!net.host) return;
+    const meDead  = player.hp <= 0;
+    const foeDead = remotePlayer && remotePlayer.hp <= 0;
+    if (net.mode === 'pvp'){
+      if (meDead)  { netEndH(false, true,  '你阵亡了，对手获胜', '你击败了对手，胜利！'); return; }
+      if (foeDead) { netEndH(true,  false, '你击败了对手，胜利！', '你阵亡了，对手获胜'); return; }
+    } else { // pve 合作：任一方阵亡 → 双方失败；敌人清空/人质全灭 → 共同结算
+      if (meDead || foeDead){ netEndH(false, false, '有队员阵亡，任务失败', '有队员阵亡，任务失败'); return; }
+      if (enemies.length && enemies.every(e => e.hp <= 0)){ netEndH(true, true, '敌人已肃清，任务成功！', '敌人已肃清，任务成功！'); return; }
+      if (hostages.length && hostages.every(h => h.hp <= 0)){ netEndH(false, false, '所有人质死亡，任务失败', '所有人质死亡，任务失败'); return; }
+    }
+    return;
+  }
+  const aliveHostages = hostages.filter(h => h.hp > 0).length;
+  if (aliveHostages === 0){ endGame(false, '所有人质死亡！任务失败'); return; }
+  const aliveEnemies = enemies.filter(e => e.hp > 0).length;
+  if (aliveEnemies === 0){
+    if (level < MAX_LEVEL) endGame(true, `第 ${level} 关肃清！人质获救，准备进入第 ${level+1} 关`);
+    else endGame(true, '全部 10 关通关！所有人质获救，任务圆满完成！');
+  }
+}
+
+/* ============================================================
+ * 视野多边形：视野锥 + 射线投射（含墙角补射线，消除锯齿盲区）
+ * ============================================================ */
+function visionPolygon(x, y, facing, R){
+  const das = [];
+  const N = 40;                                   // 基础扇形采样
+  for (let i = 0; i <= N; i++) das.push(-HALF_FOV + FOV * i / N);
+  // 向锥内的墙角/门角额外投射（±微小偏移，让边缘锐利）
+  for (const s of segments.concat(doorSegs)){
+    for (const [cx, cy] of [[s.x1, s.y1], [s.x2, s.y2]]){
+      const dx = cx - x, dy = cy - y;
+      if (dx*dx + dy*dy > (R + 6) * (R + 6)) continue;
+      const da = normAng(Math.atan2(dy, dx) - facing);
+      if (Math.abs(da) <= HALF_FOV + 0.02){
+        das.push(da - 0.001, da, da + 0.001);
+      }
+    }
+  }
+  das.sort((a, b) => a - b);
+
+  const pts = [[x, y]];
+  for (const da of das){
+    if (da < -HALF_FOV || da > HALF_FOV) continue;
+    const a = facing + da;
+    const d = castRay(x, y, a, R);
+    pts.push([x + Math.cos(a) * d, y + Math.sin(a) * d]);
+  }
+  return pts;
+}
+
+/* 收集所有己方单位的视野多边形（并集 = 可见区域） */
+function squadVisionPolys(){
+  const polys = [];
+  const own = [player, ...mates];
+  // 仅合作模式共享远端玩家视野；对战模式各看各的（否则会替对手揭开迷雾，视野混乱）
+  if (net.connected && net.mode === 'pve' && remotePlayer && remotePlayer.hp > 0) own.push(remotePlayer);
+  for (const u of own){
+    if (u.hp <= 0) continue;
+    polys.push(visionPolygon(u.x, u.y, u.angle, VIEW_R));
+  }
+  for (const d of drones){        // 探测车视野也计入已探索区域
+    if (d.hp !== undefined && d.hp <= 0) continue;
+    polys.push(visionPolygon(d.x, d.y, d.angle, DRONE_VIEW_R));
+  }
+  return polys;
+}
+
+/* ============================================================
+ * 渲染
+ * ============================================================ */
+function drawUnit(c, u, color, drawArrow){
+  c.beginPath();
+  c.arc(u.x, u.y, u.r, 0, Math.PI * 2);
+  c.fillStyle = color;
+  c.fill();
+  c.lineWidth = 2;
+  c.strokeStyle = 'rgba(0,0,0,0.45)';
+  c.stroke();
+  if (drawArrow){
+    // 朝向箭头
+    const a = u.angle;
+    c.beginPath();
+    c.moveTo(u.x + Math.cos(a) * (u.r + 10), u.y + Math.sin(a) * (u.r + 10));
+    c.lineTo(u.x + Math.cos(a + 2.5) * (u.r + 2), u.y + Math.sin(a + 2.5) * (u.r + 2));
+    c.lineTo(u.x + Math.cos(a - 2.5) * (u.r + 2), u.y + Math.sin(a - 2.5) * (u.r + 2));
+    c.closePath();
+    c.fillStyle = '#fff';
+    c.fill();
+  }
+}
+
+/* 绘制交互门：关闭=实心门扇+开启进度条；开启=淡色门框 */
+function drawDoors(c){
+  for (const d of doors){
+    if (d.open){
+      // 已开：门扇收到两侧，画淡色框提示
+      c.fillStyle = 'rgba(181,121,59,0.35)';
+      if (d.vert){
+        c.fillRect(d.x, d.y, d.w, 5);
+        c.fillRect(d.x, d.y + d.h - 5, d.w, 5);
+      } else {
+        c.fillRect(d.x, d.y, 5, d.h);
+        c.fillRect(d.x + d.w - 5, d.y, 5, d.h);
+      }
+      continue;
+    }
+    // 关闭：门扇本体
+    c.fillStyle = '#b5793b';
+    c.fillRect(d.x, d.y, d.w, d.h);
+    c.strokeStyle = '#5e3d1c';
+    c.lineWidth = 2;
+    c.strokeRect(d.x + 1, d.y + 1, d.w - 2, d.h - 2);
+    // 门缝纹理
+    c.strokeStyle = 'rgba(94,61,28,0.6)';
+    c.lineWidth = 1;
+    c.beginPath();
+    if (d.vert){ c.moveTo(d.x + d.w/2, d.y+3); c.lineTo(d.x + d.w/2, d.y + d.h-3); }
+    else       { c.moveTo(d.x+3, d.y + d.h/2); c.lineTo(d.x + d.w-3, d.y + d.h/2); }
+    c.stroke();
+    // 开门进度条（门中心上方）
+    if (d.progress > 0.001){
+      const cx = d.x + d.w/2, cy = d.y + d.h/2;
+      const bw = 44, bh = 6;
+      c.fillStyle = 'rgba(0,0,0,0.6)';
+      c.fillRect(cx - bw/2, cy - bh/2 - 22, bw, bh);
+      c.fillStyle = '#ffd166';
+      c.fillRect(cx - bw/2, cy - bh/2 - 22, bw * d.progress, bh);
+      c.strokeStyle = '#000';
+      c.lineWidth = 1;
+      c.strokeRect(cx - bw/2, cy - bh/2 - 22, bw, bh);
+    }
+  }
+}
+
+function render(){
+  updateCamera();
+  /* 1. 视口黑底 —— 战争迷雾 */
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+
+  const polys = squadVisionPolys();
+
+  /* 2. 累积到"已探索"遮罩（供小地图使用） */
+  expCtx.fillStyle = '#fff';
+  for (const poly of polys){
+    expCtx.beginPath();
+    expCtx.moveTo(poly[0][0], poly[0][1]);
+    for (let i = 1; i < poly.length; i++) expCtx.lineTo(poly[i][0], poly[i][1]);
+    expCtx.closePath();
+    expCtx.fill();
+  }
+
+  ctx.save();
+  ctx.translate(VIEW_W/2, VIEW_H/2);   // 原点移到视口中央
+  ctx.scale(ZOOM, ZOOM);               // 放大世界，更有真实感
+  ctx.translate(-camX, -camY);         // 摄像机居中跟随玩家（世界坐标）
+  /* 2.5 已探明区域：显示灰色滤镜版地图（探明遮罩 ∩ 灰色地图） */
+  dimCtx.globalCompositeOperation = 'source-over';
+  dimCtx.clearRect(0, 0, W, H);
+  dimCtx.drawImage(exploredCanvas, 0, 0);
+  dimCtx.globalCompositeOperation = 'source-in';
+  dimCtx.drawImage(grayMapCanvas, 0, 0, W, H);
+  dimCtx.globalCompositeOperation = 'source-over';
+  ctx.drawImage(dimCanvas, 0, 0);
+
+  /* 2.5 起始房间（安全屋）常亮：无视视野与阴影，开局即全亮，且已用门/墙隔断，防止被邻房敌人秒掉 */
+  if (startRoomRect){
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(startRoomRect.x, startRoomRect.y, startRoomRect.w, startRoomRect.h);
+    ctx.clip();
+    ctx.drawImage(mapCanvas, 0, 0, W, H);     // 全彩地图
+    ctx.fillStyle = 'rgba(255,244,210,0.12)';
+    ctx.fillRect(0, 0, W, H);
+    // 起始房间内的人质/队友也直接可见
+    for (const h of hostages) if (h.hp > 0 && h.x >= startRoomRect.x && h.x <= startRoomRect.x + startRoomRect.w && h.y >= startRoomRect.y && h.y <= startRoomRect.y + startRoomRect.h) drawUnit(ctx, h, '#22c55e', false);
+    for (const m of mates) if (m.hp > 0 && m.x >= startRoomRect.x && m.x <= startRoomRect.x + startRoomRect.w && m.y >= startRoomRect.y && m.y <= startRoomRect.y + startRoomRect.h) drawUnit(ctx, m, '#7cf', true);
+    ctx.restore();
+  }
+
+  /* 3. 用视野并集裁剪，露出离屏地图与可见单位 */
+  ctx.save();
+  ctx.beginPath();
+  for (const poly of polys){
+    ctx.moveTo(poly[0][0], poly[0][1]);
+    for (let i = 1; i < poly.length; i++) ctx.lineTo(poly[i][0], poly[i][1]);
+    ctx.closePath();
+  }
+  ctx.clip();
+
+  ctx.drawImage(mapCanvas, 0, 0, W, H);    // 地图（离屏高分辨率缓存，缩回世界尺寸）
+  ctx.fillStyle = 'rgba(255,255,210,0.05)'; // 视野内微光
+  ctx.fillRect(0, 0, W, H);
+
+  drawDoors(ctx);   // 交互门
+
+  // 开门噪声波纹（扩散圆环）
+  for (const p of noisePings){
+    const k = 1 - p.t / p.max;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r * k, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(255,209,102,' + (p.t / p.max * 0.7).toFixed(3) + ')';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+
+  // 人质（裁剪区域即可见性判定：迷雾外自动被遮住）
+  for (const h of hostages){
+    if (h.hp > 0) drawUnit(ctx, h, '#22c55e', false);
+  }
+  // 敌人 + 视野锥提示
+  for (const e of enemies){
+    if (e.hp <= 0) continue;
+    // 敌人视野锥（淡红扇形，提示威胁方向）
+    ctx.beginPath();
+    ctx.moveTo(e.x, e.y);
+    ctx.arc(e.x, e.y, 40, e.angle - HALF_FOV, e.angle + HALF_FOV);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(255,70,70,0.14)';
+    ctx.fill();
+    drawUnit(ctx, e, '#ef4444', true);
+    // 敌人正在锁定：显示警示与充能环
+    if (e.sightTimer > 0.05){
+      ctx.beginPath();
+      ctx.arc(e.x, e.y, e.r + 5, -Math.PI/2, -Math.PI/2 + Math.PI*2 * Math.min(1, e.sightTimer/enemyAimTime));
+      ctx.strokeStyle = '#ffae42';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+      ctx.fillStyle = '#ffae42';
+      ctx.font = 'bold 14px sans-serif';
+      ctx.fillText('!', e.x - 2, e.y - e.r - 8);
+    }
+  }
+  // 队友瞄准线
+  for (const m of mates){
+    if (m.hp > 0 && m.target && m.aimTimer > 0){
+      ctx.beginPath();
+      ctx.setLineDash([4, 6]);
+      ctx.moveTo(m.x, m.y);
+      ctx.lineTo(m.target.x, m.target.y);
+      ctx.strokeStyle = 'rgba(126,240,255,0.35)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+  }
+  // 弹道（0.2s 渐隐黄色/红色射线）
+  for (const t of tracers){
+    ctx.beginPath();
+    ctx.moveTo(t.x1, t.y1);
+    ctx.lineTo(t.x2, t.y2);
+    ctx.strokeStyle = t.color;
+    ctx.globalAlpha = Math.max(0, t.t / 0.2);
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+
+  // 道具：飞行中的手雷 / 烟雾弹
+  for (const p of projectiles){
+    drawUnit(ctx, { x:p.x, y:p.y, r:6, angle:0 }, p.type === 'grenade' ? '#2b2b2b' : '#9aa0a6', false);
+  }
+  // 探测车
+  for (const d of drones){
+    drawUnit(ctx, { x:d.x, y:d.y, r:7, angle:d.angle }, '#fbbf24', true);
+    ctx.beginPath(); ctx.arc(d.x, d.y, 3, 0, Math.PI*2); ctx.fillStyle = '#fff'; ctx.fill();
+  }
+  // 烟雾云（径向渐变，遮挡视线）
+  for (const s of smokes){
+    const a = s.t < s.life - 1 ? 0.55 : Math.max(0, (s.life - s.t) * 0.55);
+    const g = ctx.createRadialGradient(s.x, s.y, s.r*0.2, s.x, s.y, s.r);
+    g.addColorStop(0, 'rgba(200,205,210,' + a.toFixed(3) + ')');
+    g.addColorStop(1, 'rgba(170,176,182,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI*2); ctx.fill();
+  }
+  // 爆炸特效（扩张火光环）
+  for (const f of effects){
+    const k = f.t / f.life;
+    ctx.beginPath(); ctx.arc(f.x, f.y, f.max * k, 0, Math.PI*2);
+    ctx.fillStyle = 'rgba(255,150,40,' + (0.5*(1-k)).toFixed(3) + ')';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,220,120,' + (1-k).toFixed(3) + ')';
+    ctx.lineWidth = 3; ctx.stroke();
+  }
+  ctx.restore();
+
+  /* 4.0 照明弹：被照亮区域（10s）显示敌人/人质与全彩地图，无视阴影与视线遮挡 */
+  for (const fl of flares){
+    const fade = fl.t < fl.life - 1 ? 1 : Math.max(0, fl.life - fl.t);   // 末 1 秒渐隐
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(fl.x, fl.y, fl.r, 0, Math.PI * 2);
+    ctx.clip();                          // 仅在照明弹范围内可见，且全彩无阴影
+    ctx.drawImage(mapCanvas, 0, 0, W, H);
+    ctx.fillStyle = 'rgba(255,238,170,' + (0.10 * fade).toFixed(3) + ')';
+    ctx.fillRect(0, 0, W, H);
+    // 该范围内的人质
+    for (const h of hostages) if (h.hp > 0 && dist(fl.x, fl.y, h.x, h.y) <= fl.r) drawUnit(ctx, h, '#22c55e', false);
+    // 该范围内的敌人（含视野锥与锁定警示）
+    for (const e of enemies){
+      if (e.hp <= 0) continue;
+      if (dist(fl.x, fl.y, e.x, e.y) > fl.r) continue;
+      ctx.beginPath();
+      ctx.moveTo(e.x, e.y);
+      ctx.arc(e.x, e.y, 40, e.angle - HALF_FOV, e.angle + HALF_FOV);
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(255,70,70,0.14)';
+      ctx.fill();
+      drawUnit(ctx, e, '#ef4444', true);
+      if (e.sightTimer > 0.05){
+        ctx.beginPath();
+        ctx.arc(e.x, e.y, e.r + 5, -Math.PI/2, -Math.PI/2 + Math.PI*2 * Math.min(1, e.sightTimer/enemyAimTime));
+        ctx.strokeStyle = '#ffae42'; ctx.lineWidth = 3; ctx.stroke();
+        ctx.fillStyle = '#ffae42'; ctx.font = 'bold 14px sans-serif';
+        ctx.fillText('!', e.x - 2, e.y - e.r - 8);
+      }
+    }
+    // 照明弹本体光点
+    const fg = ctx.createRadialGradient(fl.x, fl.y, 0, fl.x, fl.y, 12);
+    fg.addColorStop(0, 'rgba(255,250,210,0.95)');
+    fg.addColorStop(1, 'rgba(255,230,120,0)');
+    ctx.fillStyle = fg;
+    ctx.beginPath(); ctx.arc(fl.x, fl.y, 12, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+
+  /* 4. 己方单位始终可见 */
+  for (const m of mates){
+    if (m.hp > 0) drawUnit(ctx, m, '#22d3ee', true);
+    else { // 阵亡标记
+      ctx.strokeStyle = '#5b6570'; ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(m.x-8, m.y-8); ctx.lineTo(m.x+8, m.y+8);
+      ctx.moveTo(m.x+8, m.y-8); ctx.lineTo(m.x-8, m.y+8);
+      ctx.stroke();
+    }
+  }
+  if (player.hp > 0) drawUnit(ctx, player, '#3b82f6', true);
+  if (remotePlayer && remotePlayer.hp > 0){
+    // 合作：队友常显（橙）；对战：对手只有进入我方视野才可见（红）
+    if (net.mode !== 'pvp') drawUnit(ctx, remotePlayer, '#f59e0b', true);
+    else if (player.hp > 0 && inVision(player, remotePlayer.x, remotePlayer.y, VIEW_R)) drawUnit(ctx, remotePlayer, '#ef4444', true);
+  }
+
+  /* 4.1 探测车标记：被探测到的敌人（即使在迷雾中也显示红点 + "敌"） */
+  for (const e of enemies){
+    if (e.hp > 0 && e.detected > 0){
+      const sx = (e.x - camX) * ZOOM + VIEW_W/2;
+      const sy = (e.y - camY) * ZOOM + VIEW_H/2;
+      if (sx > -20 && sx < VIEW_W + 20 && sy > -20 && sy < VIEW_H + 20){
+        ctx.beginPath(); ctx.arc(sx, sy, 8, 0, Math.PI*2);
+        ctx.strokeStyle = '#ff3b3b'; ctx.lineWidth = 2; ctx.stroke();
+        ctx.fillStyle = '#ff3b3b'; ctx.font = 'bold 12px sans-serif';
+        ctx.fillText('敌', sx + 10, sy + 4);
+      }
+    }
+  }
+
+  /* 4.4 队友移动指示点标记（脉动青色环，UI 层始终可见） */
+  if (squadMode === 'move' && squadMoveTarget){
+    const t = performance.now() / 1000;
+    const pulse = 12 + (Math.sin(t * 5) + 1) * 5;   // 12~22 之间脉动
+    ctx.save();
+    ctx.strokeStyle = '#22d3ee';
+    ctx.lineWidth = 2;
+    ctx.globalAlpha = 0.85;
+    ctx.beginPath();
+    ctx.arc(squadMoveTarget.x, squadMoveTarget.y, pulse, 0, Math.PI * 2);
+    ctx.stroke();
+    // 十字准心
+    ctx.beginPath();
+    ctx.moveTo(squadMoveTarget.x - 16, squadMoveTarget.y);
+    ctx.lineTo(squadMoveTarget.x + 16, squadMoveTarget.y);
+    ctx.moveTo(squadMoveTarget.x, squadMoveTarget.y - 16);
+    ctx.lineTo(squadMoveTarget.x, squadMoveTarget.y + 16);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  /* 4.5 靠近关闭门时的操作提示 */
+  if (player.hp > 0){
+    const nd = nearestDoor(player.x, player.y, 55);
+    if (nd){
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#ffd166';
+      ctx.font = 'bold 13px "Microsoft YaHei"';
+      ctx.fillText('连点 F 开门（越快噪声越大）', player.x, player.y - 22);
+      ctx.textAlign = 'left';
+    }
+  }
+
+  /* 5. 玩家视野锥轮廓（淡蓝描边） */
+  if (polys.length > 0){
+    ctx.beginPath();
+    const p0 = polys[0];
+    ctx.moveTo(p0[0][0], p0[0][1]);
+    for (let i = 1; i < p0.length; i++) ctx.lineTo(p0[i][0], p0[i][1]);
+    ctx.closePath();
+  ctx.strokeStyle = 'rgba(90,150,255,0.25)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+}
+
+  ctx.restore();   // 结束世界坐标绘制（小地图/覆盖层用屏幕坐标）
+
+  /* 6. 小地图：只显示已探索区域 */
+  miniCtx.globalCompositeOperation = 'source-over';
+  miniCtx.clearRect(0, 0, MINI_W, MINI_H);
+  miniCtx.drawImage(mapCanvas, 0, 0, MINI_W, MINI_H);
+  miniCtx.globalCompositeOperation = 'destination-in';
+  miniCtx.drawImage(exploredCanvas, 0, 0, MINI_W, MINI_H);
+  miniCtx.globalCompositeOperation = 'source-over';
+  const sx = MINI_W / W, sy = MINI_H / H;
+  miniCtx.fillStyle = '#3b82f6';
+  miniCtx.fillRect(player.x*sx - 2, player.y*sy - 2, 4, 4);
+  miniCtx.fillStyle = '#22d3ee';
+  for (const m of mates) if (m.hp > 0) miniCtx.fillRect(m.x*sx - 1.5, m.y*sy - 1.5, 3, 3);
+  miniCtx.fillStyle = '#ff3b3b';
+  for (const e of enemies) if (e.hp > 0 && e.detected > 0) miniCtx.fillRect(e.x*sx - 1.5, e.y*sy - 1.5, 3, 3);
+
+  ctx.fillStyle = 'rgba(0,0,0,0.6)';
+  ctx.fillRect(VIEW_W - MINI_W - 12, 8, MINI_W + 4, MINI_H + 4);
+  ctx.drawImage(miniCanvas, VIEW_W - MINI_W - 10, 10);
+  ctx.strokeStyle = '#4a5462';
+  ctx.strokeRect(VIEW_W - MINI_W - 12.5, 8.5, MINI_W + 4, MINI_H + 4);
+
+  /* 7. 暂停 / 结算覆盖层 */
+  if (paused && !gameOver){
+    overlayText('已暂停', '#dfe3ea', '点击"继续"按钮恢复游戏');
+  }
+  if (gameOver){
+    overlayText(gameMsg, gameMsg.includes('成功') ? '#4ade80' : '#f87171', '点击"重置"按钮重新开始');
+  }
+}
+
+function overlayText(main, color, sub){
+  ctx.fillStyle = 'rgba(0,0,0,0.65)';
+  ctx.fillRect(0, VIEW_H/2 - 60, VIEW_W, 120);
+  ctx.textAlign = 'center';
+  ctx.fillStyle = color;
+  ctx.font = 'bold 30px "Microsoft YaHei"';
+  ctx.fillText(main, VIEW_W/2, VIEW_H/2 - 5);
+  ctx.fillStyle = '#aab2be';
+  ctx.font = '15px "Microsoft YaHei"';
+  ctx.fillText(sub, VIEW_W/2, VIEW_H/2 + 30);
+  ctx.textAlign = 'left';
+}
+
+/* ============================================================
+ * HUD
+ * ============================================================ */
+function updateHUD(){
+  document.getElementById('enemyCount').textContent  = enemies.filter(e => e.hp > 0).length;
+  document.getElementById('hostageCount').textContent = hostages.filter(h => h.hp > 0).length;
+  document.getElementById('playerHp').textContent = Math.max(0, player.hp);
+  document.getElementById('squadMode').textContent =
+    squadMode === 'follow' ? '跟随' : (squadMode === 'move' ? '移动' : '警戒');
+  document.getElementById('levelNum').textContent = level + ' / ' + MAX_LEVEL;
+  document.getElementById('items').textContent =
+    `道具: 雷${player.items.grenade} 烟${player.items.smoke} 车${player.items.drone} 照${player.items.flare}`;
+  // 鼠标坐标反馈：仅在可见区域显示
+  const el = document.getElementById('coords');
+  const mw = mouseWorld();
+  if (!gameOver && visibleToSquad(mw.x, mw.y)){
+    el.textContent = `坐标: (${Math.round(mw.x)}, ${Math.round(mw.y)})`;
+  } else {
+    el.textContent = '坐标: —';
+  }
+}
+
+/* ============================================================
+ * 游戏主循环：requestAnimationFrame + deltaTime
+ * ============================================================ */
+let hostageCryT = 3;   // 人质周期性呼救计时
+function updateAmbient(dt){
+  if (gameOver) return;
+  hostageCryT -= dt;
+  if (hostageCryT <= 0){
+    const alive = hostages.filter(h => h.hp > 0);
+    if (alive.length){
+      const h = alive[Math.floor(Math.random() * alive.length)];
+      sfxHostageCry(h.x, h.y);
+    }
+    hostageCryT = 2.5 + Math.random() * 2.5;
+  }
+}
+let lastTime = 0;
+function loop(ts){
+  const dt = Math.min(0.05, (ts - lastTime) / 1000 || 0);
+  lastTime = ts;
+
+  if (!paused && !gameOver){
+    updateCamera();
+    if (net.connected){
+      if (net.host){
+        // host：完整模拟，并用 guest 上行状态驱动 remotePlayer
+        updatePlayer(dt);
+        updateRemoteFromInput(dt);
+        updateMates(dt);
+        updateEnemies(dt);
+        updateDoors(dt);
+        updateAmbient(dt);
+        updateProjectiles(dt);
+        updateSmokes(dt);
+        updateDrones(dt);
+        updateEffects(dt);
+        updateFlares(dt);
+      } else {
+        // guest：镜像端，只更新本地玩家，世界由 host 快照驱动；上行自身状态
+        updatePlayer(dt);
+        netSend({ t:'p', x:player.x, y:player.y, angle:player.angle, hp:player.hp });
+      }
+      for (const t of tracers) t.t -= dt;
+      tracers = tracers.filter(t => t.t > 0);
+      checkWinLose();
+    } else {
+      // 单人：完整模拟
+      updatePlayer(dt);
+      updateMates(dt);
+      updateEnemies(dt);
+      updateDoors(dt);
+      updateAmbient(dt);
+      updateProjectiles(dt);
+      updateSmokes(dt);
+      updateDrones(dt);
+      updateEffects(dt);
+      updateFlares(dt);
+      for (const t of tracers) t.t -= dt;
+      tracers = tracers.filter(t => t.t > 0);
+      checkWinLose();
+    }
+  }
+  render();
+  updateHUD();
+  requestAnimationFrame(loop);
+}
+
+/* host 端：用 guest 上行状态维护 remotePlayer（开火冷却递减） */
+function updateRemoteFromInput(dt){
+  if (!remotePlayer) return;
+  remotePlayer.fireCd = Math.max(0, (remotePlayer.fireCd || 0) - dt);
+}
+
+/* ============================================================
+ * 输入
+ * ============================================================ */
+/* 开火入口（鼠标左键 / 触屏开火键 / 右摇杆推满共用） */
+function fireInput(){
+  if (paused || gameOver) return;
+  if (net.connected && !net.host){
+    // guest 镜像：本地只画 tracer 反馈，开火判定与扣血由 host 在其权威世界完成
+    const d = castRay(player.x, player.y, player.angle, VIEW_R);
+    addTracer(player.x, player.y, player.x + Math.cos(player.angle)*d, player.y + Math.sin(player.angle)*d, '#ffe066');
+    netSend({ t:'fire', x:player.x, y:player.y, angle:player.angle });
+  } else {
+    fireForward();
+  }
+}
+canvas.addEventListener('mousemove', e => {
+  const rect = canvas.getBoundingClientRect();
+  mouse.x = (e.clientX - rect.left) * (VIEW_W / rect.width);
+  mouse.y = (e.clientY - rect.top) * (VIEW_H / rect.height);
+});
+canvas.addEventListener('contextmenu', e => e.preventDefault());
+canvas.addEventListener('mousedown', e => {
+  resumeAudio();
+  if (paused || gameOver) return;
+  if (e.button === 0) fireInput();   // 左键：朝准星方向射击
+  if (e.button === 2){                 // 右键：指挥队友前往指示区域
+    const rect = canvas.getBoundingClientRect();
+    const sx = (e.clientX - rect.left) * (VIEW_W / rect.width);
+    const sy = (e.clientY - rect.top) * (VIEW_H / rect.height);
+    const wp = screenToWorld(sx, sy);
+    if (canStand(wp.x, wp.y, 11)){      // 指示点须可站立（不在墙/关门内）
+      squadMoveTarget = { x: wp.x, y: wp.y };
+      squadMode = 'move';
+    }
+  }
+});
+window.addEventListener('keydown', e => {
+  resumeAudio();
+  const k = e.key.toLowerCase();
+  if (k === 'arrowup' || k === 'arrowdown' || k === 'arrowleft' || k === 'arrowright') e.preventDefault(); // 阻止方向键滚动页面
+  if (k === 'm'){ muted = !muted; sfxClick(); return; }
+  if (paused || gameOver){ keys[k] = true; return; }
+  if (k === 'f'){                      // F：连点开门（边沿触发，按住只算一次）
+    if (!fHeld){ fHeld = true; crankDoor(); }
+  }
+  keys[k] = true;
+  if (k === 'g'){                      // G：切换队友 跟随/警戒
+    squadMode = squadMode === 'follow' ? 'hold' : 'follow';
+    if (squadMode === 'hold'){
+      for (const m of mates){ m.holdX = m.x; m.holdY = m.y; }
+    }
+    sfxClick();
+  }
+  if (k === '1' || k === '2' || k === '3' || k === '4'){   // 1 手榴弹 / 2 烟雾弹 / 3 探测车 / 4 照明弹
+    if (!itemHeld[k]){ itemHeld[k] = true;
+      const itype = k === '1' ? 'grenade' : k === '2' ? 'smoke' : k === '3' ? 'drone' : 'flare';
+      if (net.connected && !net.host){
+        // guest：装备使用请求上行 host 权威执行（本地不模拟，避免被快照覆盖导致"加入方用不了装备"）
+        netSend({ t:'item', type: itype });
+      } else {
+        useItem(itype);
+      }
+    }
+  }
+});
+window.addEventListener('keyup', e => {
+  const k = e.key.toLowerCase();
+  keys[k] = false;
+  if (k === 'f') fHeld = false;
+  itemHeld[k] = false;
+});
+
+/* ============================================================
+ * 移动端触控：双摇杆（左移动 / 右瞄准+推满开火）+ 功能按钮
+ * ============================================================ */
+/* 按操控模式显示/隐藏触控层（auto=触屏设备才显示） */
+function applyCtrlMode(){
+  const tu = document.getElementById('touchUI');
+  if (!tu) return;
+  const on = ctrlMode === 'touch' || (ctrlMode === 'auto' && IS_TOUCH);
+  tu.style.display = on ? 'block' : 'none';
+  if (!on){ touchMove.x = 0; touchMove.y = 0; touchAim.active = false; touchAim.dist = 0; }
+}
+applyCtrlMode();
+function bindStick(el, onMove, onEnd){
+  let pid = null;
+  const knob = el.querySelector('.knob');
+  function handle(e){
+    const r = el.getBoundingClientRect();
+    let vx = (e.clientX - (r.left + r.width/2)) / (r.width/2);
+    let vy = (e.clientY - (r.top + r.height/2)) / (r.height/2);
+    const len = Math.hypot(vx, vy);
+    if (len > 1){ vx /= len; vy /= len; }
+    knob.style.transform = 'translate(' + (vx*36).toFixed(1) + 'px,' + (vy*36).toFixed(1) + 'px)';
+    onMove(vx, vy, Math.min(1, len));
+  }
+  el.addEventListener('pointerdown', e => {
+    e.preventDefault(); resumeAudio();
+    pid = e.pointerId;
+    try { el.setPointerCapture(pid); } catch(_){}
+    handle(e);
+  });
+  el.addEventListener('pointermove', e => { if (e.pointerId === pid) handle(e); });
+  const up = e => { if (e.pointerId === pid){ pid = null; knob.style.transform = ''; onEnd(); } };
+  el.addEventListener('pointerup', up);
+  el.addEventListener('pointercancel', up);
+}
+const _stickL = document.getElementById('stickL'), _stickR = document.getElementById('stickR');
+if (_stickL) bindStick(_stickL,
+  (x, y) => { touchMove.x = x; touchMove.y = y; },
+  () => { touchMove.x = 0; touchMove.y = 0; });
+if (_stickR) bindStick(_stickR,
+  (x, y, d) => { touchAim.active = true; touchAim.ang = Math.atan2(y, x); touchAim.dist = d; },
+  () => { touchAim.dist = 0; });   // 松开保持最后朝向（active 不清），避免朝向跳回鼠标位置
+function bindTouchBtn(id, fn){
+  const b = document.getElementById(id); if (!b) return;
+  b.addEventListener('pointerdown', e => { e.preventDefault(); resumeAudio(); if (!paused && !gameOver) fn(); });
+}
+bindTouchBtn('tFire', () => fireInput());
+bindTouchBtn('tDoor', () => crankDoor());
+bindTouchBtn('tSquad', () => {
+  squadMode = squadMode === 'follow' ? 'hold' : 'follow';
+  if (squadMode === 'hold') for (const m of mates){ m.holdX = m.x; m.holdY = m.y; }
+  sfxClick();
+});
+document.querySelectorAll('#tItems .ti').forEach(b => {
+  b.addEventListener('pointerdown', e => {
+    e.preventDefault(); resumeAudio();
+    if (paused || gameOver) return;
+    const itype = b.dataset.item;
+    if (net.connected && !net.host) netSend({ t:'item', type: itype });   // guest：上行 host 权威执行
+    else useItem(itype);
+  });
+});
+
+document.getElementById('btnPause').addEventListener('click', function(){
+  resumeAudio();
+  if (gameOver) return;
+  paused = !paused;
+  this.textContent = paused ? '继续' : '暂停';
+});
+document.getElementById('btnReset').addEventListener('click', function(){
+  resumeAudio();
+  if (net.connected){          // 联机对局结束 → 断开并返回开始菜单
+    netLeave();
+    showMenu();
+    return;
+  }
+  if (gameOver){
+    // 胜利且未通关 → 进入下一关；否则（失败 / 通关后）重玩本关
+    if (lastWin && level < MAX_LEVEL) startLevel(level + 1);
+    else startLevel(level);
+  } else {
+    startLevel(level);   // 游戏中点击 = 重玩本关
+  }
+  document.getElementById('btnPause').textContent = '暂停';
+});
+
+/* 启动：先显示开始菜单，由按钮触发进入游戏 */
+showMenu();
+initMenu();
+
+/* ============================================================
+ * 联机 P2P 模块（WebRTC DataChannel + 局域网 BroadcastChannel 同机发现）
+ * 架构：host 权威 —— host 跑完整模拟并每帧广播世界快照；guest 镜像渲染 + 上行自身状态
+ * ============================================================ */
+const ICE = { iceServers:[{ urls:'stun:stun.l.google.com:19302' }] };  // STUN 仅用于跨 NAT 候选；局域网内 host 候选即可直连
+
+function netSend(obj){ if (net.ch && net.ch.readyState === 'open'){ try { net.ch.send(JSON.stringify(obj)); } catch(_){} } }
+function setStatus(s){ const el = document.getElementById('netStatus'); if (el) el.textContent = s; }
+
+function serializeWorld(){
+  return {
+    W, H, COLS, ROWS, level, mode: net.mode,
+    cellTypes: cellTypes.slice(),                   // 房间类型（用于 guest 绘制地板标签）
+    wallRects: wallRects.map(r => ({...r})),
+    doors: doors.map(d => ({...d})),
+    props: props.map(p => ({...p})),
+    segments: segments.map(s => ({...s})),
+    doorSegs: doorSegs.map(s => ({...s})),
+    enemies: enemies.map(e => ({ x:e.x, y:e.y, r:e.r, hp:e.hp, angle:e.angle,
+      sightTimer:0, target:null, loseTimer:0, scanDir:e.scanDir||1, investX:0, investY:0, investTimer:0, wanderX:0, wanderY:0, wanderTimer:0 })),
+    hostages: hostages.map(h => ({ x:h.x, y:h.y, r:h.r, hp:h.hp })),
+    mates: mates.map(m => ({ x:m.x, y:m.y, r:m.r, hp:m.hp, angle:m.angle, side:m.side, holdX:m.x, holdY:m.y }))
+  };
+}
+function applyWorld(w){
+  W = w.W; H = w.H; COLS = w.COLS; ROWS = w.ROWS;
+  cellTypes = w.cellTypes ? w.cellTypes.slice() : [];
+  wallRects = w.wallRects.map(r => ({...r}));
+  doors    = w.doors.map(d => ({...d}));
+  props    = w.props.map(p => ({...p}));
+  segments = w.segments.map(s => ({...s}));
+  doorSegs = w.doorSegs.map(s => ({...s}));
+  enemies  = w.enemies.map(e => ({...e}));
+  hostages = w.hostages.map(h => ({...h}));
+  mates    = w.mates.map(m => ({...m, aimTimer:0, fireCd:0, target:null }));
+  net.worldApplied = true;
+  renderMapImage();   // 关键：guest 用 host 的墙/家具重绘离屏地图，修复"无地板、只见幽灵蓝光"
+}
+
+function waitIce(pc){
+  return new Promise(res => {
+    if (pc.iceGatheringState === 'complete'){ res(); return; }
+    const f = () => { if (pc.iceGatheringState === 'complete'){ pc.removeEventListener('icegatheringstatechange', f); res(); } };
+    pc.addEventListener('icegatheringstatechange', f);
+    setTimeout(res, 2500);
+  });
+}
+function setupChannel(ch){
+  net.ch = ch;
+  ch.onopen = onNetOpen;
+  ch.onclose = () => {
+    const wasConnected = net.connected;
+    net.connected = false;
+    setStatus('连接已断开');
+    // 对局中掉线：直接结算为"连接断开"，绝不落入单机"人质全灭"分支
+    if (wasConnected && loopRunning && !gameOver) endGame(false, '连接已断开，对局结束');
+  };
+  ch.onmessage = e => { try { onNetMsg(JSON.parse(e.data)); } catch(_){} };
+}
+async function netCreate(){
+  try {
+    net.peer = new RTCPeerConnection(ICE);
+    net.ch = net.peer.createDataChannel('game');
+    setupChannel(net.ch);
+    net.host = true; net.roomId = Math.floor(Math.random() * 1e9);
+    const offer = await net.peer.createOffer();
+    await net.peer.setLocalDescription(offer);
+    await waitIce(net.peer);
+    const sdp = JSON.stringify(net.peer.localDescription);
+    document.getElementById('myCode').value = sdp;
+    setStatus('邀请码已生成，复制发给好友；收到他的应答码后粘贴到②并点“完成连接”');
+    net.mySdp = sdp;   // 供局域网信标携带本端 offer（房间发现）
+    if (net.connMethod === 'lan' && net.bc){
+      clearInterval(net.lanTimer);
+      net.lanTimer = setInterval(netBeacon, 1500);   // 周期广播「我正在搜索/已建房间」
+      netBeacon();
+    }
+  } catch(e){ setStatus('创建失败：' + e.message); }
+}
+async function netJoin(sdpText){
+  try {
+    net.peer = new RTCPeerConnection(ICE);
+    net.peer.ondatachannel = e => setupChannel(e.channel);
+    net.host = false;
+    await net.peer.setRemoteDescription(JSON.parse(sdpText));
+    const answer = await net.peer.createAnswer();
+    await net.peer.setLocalDescription(answer);
+    await waitIce(net.peer);
+    const sdp = JSON.stringify(net.peer.localDescription);
+    document.getElementById('joinMine').value = sdp;
+    setStatus('应答码已生成，复制发回给主机；主机点“完成连接”后即进入战场');
+    if (net.connMethod === 'lan' && net.bc && net.roomId) net.bc.postMessage({ t:'answer', rid:net.roomId, sdp });
+  } catch(e){ setStatus('加入失败：' + e.message); }
+}
+async function netAccept(sdpText){
+  try { await net.peer.setRemoteDescription(JSON.parse(sdpText)); setStatus('正在建立连接…'); }
+  catch(e){ setStatus('连接失败：' + e.message); }
+}
+
+function onNetOpen(){
+  net.connected = true;
+  net.pendingPeer = null;
+  clearInterval(net.lanTimer);   // 停止局域网房间重播
+  setStatus('已连接，进入战场…');
+  if (net.host){
+    net.worldApplied = false;
+    startLevel(1);
+    netSend({ t:'world-init', level:1, mode:net.mode, data: serializeWorld() });
+    hideMenu();
+    if (!loopRunning){ loopRunning = true; requestAnimationFrame(loop); }
+  }
+  // guest 端等待 world-init
+}
+function onNetMsg(msg){
+  if (msg.t === 'world-init'){
+    net.mode = msg.mode;
+    level = msg.data.level;
+    startLevel(level, msg.data);   // startLevel 内先 resizeBuffers 再 applyWorld(重绘地图) 再 init
+    hideMenu();
+    if (!loopRunning){ loopRunning = true; requestAnimationFrame(loop); }
+  } else if (msg.t === 'world'){
+    // guest：用 host 快照覆盖动态世界（用于渲染）
+    enemies  = msg.enemies.map(e => ({ x:e.x, y:e.y, r:e.r, hp:e.hp, angle:e.angle, detected:e.detected,
+      sightTimer:0, target:null, loseTimer:0, scanDir:1, investX:0, investY:0, investTimer:0, wanderX:0, wanderY:0, wanderTimer:0 }));
+    hostages = msg.hostages.map(h => ({ x:h.x, y:h.y, r:h.r, hp:h.hp }));
+    mates    = msg.mates.map(m => ({ x:m.x, y:m.y, r:m.r, hp:m.hp, angle:m.angle, aimTimer:0, fireCd:0, target: m.target ? {} : null, side:m.side||1, holdX:m.x, holdY:m.y }));
+    drones   = msg.drones.map(d => ({ x:d.x, y:d.y, angle:d.angle, vx:0, vy:0, t:0, life:DRONE_LIFE }));
+    projectiles = msg.projectiles.map(p => ({ x:p.x, y:p.y, type:p.type }));
+    flares = (msg.flares || []).map(f => ({ x:f.x, y:f.y, r:f.r, t:f.t, life:f.life }));
+    tracers  = msg.tracers.map(t => ({ x1:t.x1, y1:t.y1, x2:t.x2, y2:t.y2, color:t.color, t:t.t }));
+    if (!remotePlayer) remotePlayer = { r:12, fireCd:0, items:{ grenade:2, smoke:2, drone:1, flare:1 } };
+    remotePlayer.x = msg.player.x; remotePlayer.y = msg.player.y;
+    remotePlayer.angle = msg.player.angle; remotePlayer.hp = msg.player.hp;
+    // 门状态同步：open/progress 变化时重建视线遮挡线段（修复"host 开门后 guest 视野仍被挡"）
+    if (msg.doors && msg.doors.length === doors.length){
+      let changed = false;
+      for (let i = 0; i < doors.length; i++){
+        if (doors[i].open !== msg.doors[i].o) changed = true;
+        doors[i].open = msg.doors[i].o;
+        doors[i].progress = msg.doors[i].p;
+      }
+      if (changed) rebuildDoorSegs();
+    }
+    if (typeof msg.myHp === 'number') player.hp = msg.myHp;   // host 权威回传 guest 自身血量
+    if (msg.gItems) player.items = msg.gItems;   // host 权威回传 guest 装备数量（用掉后同步扣减）
+    playNetSfx(msg.sfx);   // 播放 host 同步来的枪声/开门/爆炸等音效（按 guest 自身坐标定位声像）
+  } else if (msg.t === 'p'){
+    if (!remotePlayer) remotePlayer = { x:msg.x, y:msg.y, r:12, angle:msg.angle, hp:1, fireCd:0, items:{ grenade:2, smoke:2, drone:1, flare:1 } };
+    remotePlayer.x = msg.x; remotePlayer.y = msg.y; remotePlayer.angle = msg.angle;
+  } else if (msg.t === 'fire'){
+    if (remotePlayer){
+      remotePlayer.x = msg.x; remotePlayer.y = msg.y;   // 用开火瞬间坐标，保证弹道起点准确
+      remotePlayer.angle = msg.angle;
+      fireForwardAs(remotePlayer);
+    }
+  } else if (msg.t === 'door'){
+    if (net.host && remotePlayer) crankDoorBy(remotePlayer);   // guest 的开门请求由 host 权威执行
+  } else if (msg.t === 'item'){
+    if (net.host && remotePlayer) useItem(msg.type, remotePlayer);   // guest 装备使用请求由 host 权威执行
+  } else if (msg.t === 'sfx'){
+    const fn = SFX_PLAY[msg.n]; if (fn) fn(msg.x, msg.y, msg.a);   // guest 上行的音效（脚步/衣料声等），host 按坐标播放
+  } else if (msg.t === 'end'){
+    endGame(msg.win, msg.msg);
+  }
+}
+
+/* host 权威广播世界快照（每 50ms） */
+function netTick(){
+  if (!net.connected || !net.host || gameOver) return;
+  netSend({ t:'world',
+    enemies: enemies.map(e => ({ x:e.x, y:e.y, r:e.r, hp:e.hp, angle:e.angle, detected:e.detected||0 })),
+    hostages: hostages.map(h => ({ x:h.x, y:h.y, r:h.r, hp:h.hp })),
+    mates: mates.map(m => ({ x:m.x, y:m.y, r:m.r, hp:m.hp, angle:m.angle, target: m.target||null })),
+    drones: drones.map(d => ({ x:d.x, y:d.y, angle:d.angle })),
+    projectiles: projectiles.map(p => ({ x:p.x, y:p.y, type:p.type })),
+    flares: flares.map(f => ({ x:f.x, y:f.y, r:f.r, t:f.t, life:f.life })),
+    tracers: tracers.map(t => ({ x1:t.x1, y1:t.y1, x2:t.x2, y2:t.y2, color:t.color, t:t.t })),
+    doors: doors.map(d => ({ o:d.open, p:d.progress||0 })),
+    sfx: netSfxQ.splice(0),   // 本帧攒下的音效事件，随快照发给 guest
+    player: { x:player.x, y:player.y, angle:player.angle, hp:player.hp },
+    myHp: remotePlayer ? remotePlayer.hp : 1,
+    gItems: remotePlayer ? remotePlayer.items : null
+  });
+}
+setInterval(netTick, 50);
+
+/* ===== 联机音效同步：host 把关键战斗/开门音效随快照发给 guest，guest 按自身坐标播放 =====
+ * guest 不模拟世界，本地不会触发这些声音；这里做事件级转发，两端都能"听到"对方与敌人的动静。*/
+let netSfxQ = [];
+function relaySfx(n, x, y, a){
+  if (!net.connected) return;
+  const ev = { n, x:Math.round(x), y:Math.round(y) };
+  if (a !== undefined) ev.a = a;
+  if (net.host) netSfxQ.push(ev);                                   // host：攒进队列随快照下发
+  else netSend({ t:'sfx', n:ev.n, x:ev.x, y:ev.y, a:ev.a });        // guest：实时上行，让对方听到我的脚步/动静
+}
+const _sfShoot=sfxShoot, _sfMate=sfxShootMate, _sfEnemy=sfxShootEnemy, _sfKill=sfxKill,
+      _sfHit=sfxHit, _sfDoor=sfxDoor, _sfDoorO=sfxDoorOpen, _sfAlarm=sfxAlarm, _sfBoom=sfxExplosion,
+      _sfStep=sfxStep, _sfTurn=sfxTurn;
+sfxShoot      = (x,y) => { _sfShoot(x,y);  relaySfx('shoot',x,y); };
+sfxShootMate  = (x,y) => { _sfMate(x,y);   relaySfx('mate',x,y); };
+sfxShootEnemy = (x,y) => { _sfEnemy(x,y);  relaySfx('enemy',x,y); };
+sfxKill       = (x,y) => { _sfKill(x,y);   relaySfx('kill',x,y); };
+sfxHit        = (x,y) => { _sfHit(x,y);    relaySfx('hit',x,y); };
+sfxDoor       = (x,y) => { _sfDoor(x,y);   relaySfx('door',x,y); };
+sfxDoorOpen   = (x,y) => { _sfDoorO(x,y);  relaySfx('dooropen',x,y); };
+sfxAlarm      = (x,y) => { _sfAlarm(x,y);  relaySfx('alarm',x,y); };
+sfxExplosion  = (x,y) => { _sfBoom(x,y);   relaySfx('boom',x,y); };
+sfxStep       = (x,y,k) => { _sfStep(x,y,k); relaySfx('step',x,y,k); };   // 脚步声也同步（对方能听到我在走动）
+sfxTurn       = (x,y,s) => { _sfTurn(x,y,s); relaySfx('turn',x,y,s); };   // 转身/衣料声也同步
+const SFX_PLAY = { shoot:_sfShoot, mate:_sfMate, enemy:_sfEnemy, kill:_sfKill, hit:_sfHit,
+                   door:_sfDoor, dooropen:_sfDoorO, alarm:_sfAlarm, boom:_sfBoom, step:_sfStep, turn:_sfTurn };
+function playNetSfx(list){ if (!list) return; for (const s of list){ const fn = SFX_PLAY[s.n]; if (fn) fn(s.x, s.y, s.a); } }
+
+/* 联机胜负（host 权威）：winH/msgH=主机侧结果，winG/msgG=Guest 侧结果 */
+function netEndH(winH, winG, msgH, msgG){
+  endGame(winH, msgH);
+  if (net.host) netSend({ t:'end', win:winG, msg: msgG });
+}
+function netLeave(){
+  try { if (net.ch) net.ch.close(); } catch(_){}
+  try { if (net.peer) net.peer.close(); } catch(_){}
+  clearInterval(net.lanTimer);
+  net.connected = false; net.ch = null; net.peer = null; remotePlayer = null;
+  net.host = false; net.worldApplied = false; net.mySdp = null; net.myAnnounce = null; net.pendingPeer = null;
+  const rl = document.getElementById('roomList'); if (rl) rl.innerHTML = '';
+}
+
+/* 局域网发现：BroadcastChannel（同机/同浏览器多标签可靠；跨机受浏览器限制，请用「手动交换」）。
+ * 模型：所有处于局域网面板的玩家周期性广播「搜索」信标（含本端 pid/模式；房主附带 offer）。
+ * 收到他人信标即在其列表显示「正在搜索的玩家」，点击即可连接 —— 两端都可主动发起。 */
+function netStartLAN(){
+  if (!net.bc){
+    try { net.bc = new BroadcastChannel('tactical_p2p'); } catch(e){ net.bc = null; setStatus('本浏览器不支持局域网发现，请用手动交换'); return; }
+    net.bc.onmessage = e => {
+      const m = e.data; if (!m) return;
+      if (m.t === 'search' && m.pid !== net.pid) onPeerSearch(m);
+      else if (m.t === 'request' && m.to === net.pid) onRequest(m);       // 收到加入申请
+      else if (m.t === 'host-offer' && m.to === net.pid) onHostOffer(m);  // 房主发来回约
+      else if (m.t === 'answer' && m.rid === net.roomId) netAccept(m.sdp);
+    };
+  }
+  clearInterval(net.lanTimer);
+  net.lanTimer = setInterval(netBeacon, 1500);   // 周期广播「我正在搜索」
+  netBeacon();
+}
+/* 广播本端「搜索」信标：让同样在搜索的玩家发现我（房主标记仅用于显示） */
+function netBeacon(){
+  if (!net.bc || net.connected) return;
+  net.bc.postMessage({ t:'search', pid:net.pid, mode:net.mode, host: net.host });
+}
+function netScan(){
+  netStartLAN();
+  const rl2 = document.getElementById('reqList'); if (rl2) rl2.innerHTML = '';   // 刷新收到的申请列表
+  netBeacon();
+  setStatus('正在搜索局域网内同样在搜索的玩家…点击对方头像发送加入申请，待对方「同意」后一起游戏');
+}
+/* 收到他人「搜索」信标：在列表显示该玩家 */
+function onPeerSearch(m){ addPeerCard(m); }
+/* 在列表里显示「正在搜索的玩家」，点击 → 向对方发送加入申请 */
+function addPeerCard(m){
+  const list = document.getElementById('roomList'); if (!list) return;
+  const id = 'pr' + m.pid;
+  let div = document.getElementById(id);
+  if (!div){
+    div = document.createElement('div');
+    div.className = 'rm'; div.id = id;
+    div.onclick = () => {
+      if (net.connected || net.pendingPeer) return;   // 已连或已申请，避免重复
+      const mm = div._m;
+      net.pendingPeer = mm.pid;
+      net.bc.postMessage({ t:'request', from:net.pid, to:mm.pid, mode:net.mode });
+      setStatus('已向玩家#' + (mm.pid % 10000) + ' 发送加入申请，等待对方同意…');
+      const st = div.querySelector('.st'); if (st) st.textContent = '申请已发送';
+    };
+    list.appendChild(div);
+  }
+  div._m = m;
+  const label = net.pendingPeer === m.pid ? '申请已发送' : '点击申请加入';
+  div.innerHTML = '<span>玩家#' + (m.pid % 10000) + '（' + (m.mode === 'pvp' ? '对战' : '合作') + '）</span><span class="st" style="color:#22d3ee">' + label + '</span>';
+}
+/* 收到他人发来的加入申请：弹「同意」按钮（双方都发了申请时，按 pid 大者当房主避免冲突） */
+function onRequest(m){
+  if (net.connected) return;
+  if (net.pendingPeer && m.from < net.pid) return;   // 本端已先申请且 pid 较小 → 让对方当房主
+  const list = document.getElementById('reqList'); if (!list) return;
+  const id = 'rq' + m.from;
+  if (document.getElementById(id)) return;
+  const div = document.createElement('div');
+  div.className = 'rm'; div.id = id;
+  div.innerHTML = '<span>玩家#' + (m.from % 10000) + ' 申请一起玩（' + (m.mode === 'pvp' ? '对战' : '合作') + '）</span>';
+  const btn = document.createElement('button');
+  btn.textContent = '同意';
+  btn.style.cssText = 'margin-left:8px;padding:2px 10px;border-radius:8px;border:none;background:#22d3ee;color:#06202a;cursor:pointer;font-weight:bold';
+  btn.onclick = () => {
+    if (net.connected) return;
+    net.pendingPeer = m.from;
+    netHostAccept(m.from, m.mode);
+    div.remove();
+  };
+  div.appendChild(btn);
+  list.appendChild(div);
+}
+/* 作为房主：收到申请后建立 offer 并发回（若已是房主则复用现有 offer） */
+async function netHostAccept(fromPid, mode){
+  net.connMethod = 'lan'; net.mode = mode;
+  try {
+    if (!(net.host && net.peer && net.mySdp)){
+      net.peer = new RTCPeerConnection(ICE);
+      net.ch = net.peer.createDataChannel('game');
+      setupChannel(net.ch);
+      net.host = true; net.roomId = Math.floor(Math.random() * 1e9);
+      const offer = await net.peer.createOffer();
+      await net.peer.setLocalDescription(offer);
+      await waitIce(net.peer);
+      net.mySdp = JSON.stringify(net.peer.localDescription);
+    }
+    if (net.bc) net.bc.postMessage({ t:'host-offer', to:fromPid, rid:net.roomId, mode, sdp:net.mySdp });
+    setStatus('已同意，等待对方连接…');
+  } catch(e){ setStatus('连接失败：' + e.message); }
+}
+/* 作为加入方：收到房主发来的 offer → 生成应答并连接 */
+function onHostOffer(m){
+  if (net.connected) return;
+  net.connMethod = 'lan'; net.mode = m.mode; net.roomId = m.rid;
+  setStatus('对方已同意，正在建立连接…');
+  netJoin(m.sdp);
+}
+
+/* 菜单控制 */
+function showMenu(){ const m = document.getElementById('menu'); if (m) m.classList.remove('hidden'); }
+function hideMenu(){ const m = document.getElementById('menu'); if (m) m.classList.add('hidden'); }
+function bootGame(){
+  net.connected = false; net.host = false; net.worldApplied = false; remotePlayer = null; net.pendingPeer = null;
+  hideMenu();
+  startLevel(1);
+  if (!loopRunning){ loopRunning = true; requestAnimationFrame(loop); }
+}
+function copyText(id){
+  const el = document.getElementById(id); if (!el || !el.value) return;
+  el.select();
+  try { navigator.clipboard.writeText(el.value); } catch(_){ document.execCommand('copy'); }
+  setStatus('已复制到剪贴板');
+}
+function initMenu(){
+  net.connMethod = 'manual';
+  document.getElementById('btnSolo').onclick = bootGame;
+  // 玩法模式
+  document.querySelectorAll('#modeSeg button').forEach(b => b.onclick = () => {
+    document.querySelectorAll('#modeSeg button').forEach(x => x.classList.remove('active'));
+    b.classList.add('active'); net.mode = b.dataset.v;
+  });
+  // 操控模式：自动 / 键鼠 / 触屏
+  document.querySelectorAll('#ctrlSeg button').forEach(b => b.onclick = () => {
+    document.querySelectorAll('#ctrlSeg button').forEach(x => x.classList.remove('active'));
+    b.classList.add('active'); ctrlMode = b.dataset.v; applyCtrlMode();
+  });
+  // 连接方式：手动 / 局域网
+  document.querySelectorAll('#connSeg button').forEach(b => b.onclick = () => {
+    document.querySelectorAll('#connSeg button').forEach(x => x.classList.remove('active'));
+    b.classList.add('active'); net.connMethod = b.dataset.v;
+    document.getElementById('manualPanel').style.display = (b.dataset.v === 'manual') ? 'block' : 'none';
+    document.getElementById('lanPanel').style.display = (b.dataset.v === 'lan') ? 'block' : 'none';
+    if (b.dataset.v === 'lan') netStartLAN();
+  });
+  // 手动交换：主机/加入方角色切换
+  document.querySelectorAll('#roleSeg button').forEach(b => b.onclick = () => {
+    document.querySelectorAll('#roleSeg button').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    const host = b.dataset.r === 'host';
+    document.getElementById('hostFlow').style.display = host ? 'block' : 'none';
+    document.getElementById('joinFlow').style.display = host ? 'none' : 'block';
+  });
+  // 主机流程
+  document.getElementById('btnCreate').onclick   = () => netCreate();
+  document.getElementById('btnCopyMine').onclick = () => copyText('myCode');
+  document.getElementById('btnAccept').onclick   = () => netAccept(document.getElementById('peerCode').value.trim());
+  // 加入方流程
+  document.getElementById('btnJoin').onclick    = () => netJoin(document.getElementById('joinPeer').value.trim());
+  document.getElementById('btnCopyAns').onclick = () => copyText('joinMine');
+  // 局域网扫描
+  document.getElementById('btnScan').onclick = () => netScan();
+}
+</script>
+</body>
+</html>

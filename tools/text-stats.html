@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+<head>
+<!-- text stats -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>📊 文本统计</title>
+<meta name="description" content="实时统计中文字符、字符数、行数、段落数与预计阅读时间。">
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                colors: {
+                    space: { 900: '#010409', 800: '#0d1117', 700: '#161b22', 600: '#21262d', border: '#30363d', text: '#f0f6fc', muted: '#8b949e' },
+                    glow: { purple: '#8957e5', blue: '#58a6ff', pink: '#da3633', green: '#3fb950' }
+                },
+                fontFamily: {
+                    sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Helvetica', 'Arial', 'sans-serif'],
+                    mono: ['"JetBrains Mono"', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace'],
+                }
+            }
+        }
+    }
+</script>
+<style>
+    * { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+    #textarea { transition: border-color 0.15s; }
+    .save-hint { transition: opacity 0.3s; }
+</style>
+</head>
+<body class="bg-space-900 text-space-text font-sans antialiased min-h-screen flex flex-col">
+    <main class="flex-1 flex flex-col items-center justify-start w-full p-4 md:p-6">
+        <div class="w-full max-w-2xl">
+            <p class="text-xs text-space-muted font-mono uppercase tracking-wider mb-2">// text stats</p>
+            <div class="bg-space-700 border border-space-border rounded-xl p-6 shadow-2xl">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h1 class="text-2xl font-bold mb-1">📊 文本统计</h1>
+                        <p class="text-sm text-space-muted">输入或粘贴文本，各项指标实时更新</p>
+                    </div>
+                    <span id="saveHint" class="save-hint text-xs text-space-muted font-mono opacity-0">已保存</span>
+                </div>
+
+                <!-- 文本输入 -->
+                <textarea id="textarea" placeholder="在这里粘贴或输入你的文本…"
+                    class="w-full bg-space-900 border border-space-border rounded-lg p-4 text-sm leading-relaxed outline-none focus:border-glow-blue resize-y h-56 md:h-64 font-sans"></textarea>
+
+                <!-- 操作栏 -->
+                <div class="flex items-center gap-2 mt-3">
+                    <button onclick="clearText()"
+                        class="unit-btn bg-glow-pink/20 text-glow-pink border border-glow-pink/50 px-4 py-2 rounded-md text-sm font-medium hover:bg-glow-pink/30">清空</button>
+                    <button onclick="copyText()" id="copyBtn"
+                        class="unit-btn bg-space-600 border border-space-border px-4 py-2 rounded-md text-sm font-medium hover:bg-space-border">复制文本</button>
+                    <button onclick="loadSample()"
+                        class="unit-btn bg-space-600 border border-space-border px-4 py-2 rounded-md text-sm font-medium text-space-muted hover:bg-space-border">载入示例</button>
+                    <span class="ml-auto text-xs text-space-muted font-mono">按 300 字 / 分钟估算</span>
+                </div>
+
+                <!-- 统计卡 -->
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mt-6">
+                    <div class="bg-space-800 border border-space-border rounded-lg p-4">
+                        <div class="text-xs text-space-muted font-mono uppercase tracking-wider mb-1">中文字符</div>
+                        <div class="text-2xl font-mono font-bold text-glow-blue"><span id="statChinese">0</span></div>
+                        <div class="text-xs text-space-muted mt-1">字数 · 仅汉字</div>
+                    </div>
+                    <div class="bg-space-800 border border-space-border rounded-lg p-4">
+                        <div class="text-xs text-space-muted font-mono uppercase tracking-wider mb-1">英文词数</div>
+                        <div class="text-2xl font-mono font-bold text-glow-purple"><span id="statWords">0</span></div>
+                        <div class="text-xs text-space-muted mt-1">连续字母数字</div>
+                    </div>
+                    <div class="bg-space-800 border border-space-border rounded-lg p-4">
+                        <div class="text-xs text-space-muted font-mono uppercase tracking-wider mb-1">字符数</div>
+                        <div class="text-2xl font-mono font-bold"><span id="statCharsAll">0</span></div>
+                        <div class="text-xs text-space-muted mt-1">含空格</div>
+                    </div>
+                    <div class="bg-space-800 border border-space-border rounded-lg p-4">
+                        <div class="text-xs text-space-muted font-mono uppercase tracking-wider mb-1">字符数</div>
+                        <div class="text-2xl font-mono font-bold"><span id="statCharsNoSpace">0</span></div>
+                        <div class="text-xs text-space-muted mt-1">不含空格</div>
+                    </div>
+                    <div class="bg-space-800 border border-space-border rounded-lg p-4">
+                        <div class="text-xs text-space-muted font-mono uppercase tracking-wider mb-1">行数</div>
+                        <div class="text-2xl font-mono font-bold"><span id="statLines">0</span></div>
+                        <div class="text-xs text-space-muted mt-1">按换行符</div>
+                    </div>
+                    <div class="bg-space-800 border border-space-border rounded-lg p-4">
+                        <div class="text-xs text-space-muted font-mono uppercase tracking-wider mb-1">段落数</div>
+                        <div class="text-2xl font-mono font-bold"><span id="statParagraphs">0</span></div>
+                        <div class="text-xs text-space-muted mt-1">空行分隔</div>
+                    </div>
+                    <div class="col-span-2 md:col-span-3 bg-space-800 border border-glow-green/40 rounded-lg p-4">
+                        <div class="text-xs text-space-muted font-mono uppercase tracking-wider mb-1">预计阅读时间</div>
+                        <div class="text-2xl font-mono font-bold text-glow-green"><span id="statReading">—</span></div>
+                        <div class="text-xs text-space-muted mt-1">按 (中文字符 + 英文词数) ÷ 300 每分钟</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+<script>
+    const STORE_KEY = 'lunar_text_stats';
+    const WPM = 300;
+
+    const ta = document.getElementById('textarea');
+    const saveHint = document.getElementById('saveHint');
+    const el = {
+        chinese: document.getElementById('statChinese'),
+        words: document.getElementById('statWords'),
+        charsAll: document.getElementById('statCharsAll'),
+        charsNoSpace: document.getElementById('statCharsNoSpace'),
+        lines: document.getElementById('statLines'),
+        paragraphs: document.getElementById('statParagraphs'),
+        reading: document.getElementById('statReading'),
+    };
+
+    // 中文字符：CJK 统一汉字 + 扩展A + 兼容汉字（含 emoji 时不会误计为字数）
+    const RE_CJK = /[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]/g;
+    // 英文词：拉丁字母 / 数字组成的连续片段（含西文与西里尔字母）
+    const RE_WORD = /[A-Za-z0-9\u00c0-\u024f\u0400-\u04ff]+/g;
+
+    function countChinese(text) {
+        const m = text.match(RE_CJK);
+        return m ? m.length : 0;
+    }
+
+    function countWords(text) {
+        const m = text.match(RE_WORD);
+        return m ? m.length : 0;
+    }
+
+    // 按码点计数，emoji 等超出 BMP 的字符不会被算成 2 个字符
+    function codePointCount(text) {
+        return [...text].length;
+    }
+
+    function countLines(text) {
+        return text.length === 0 ? 0 : text.split('\n').length;
+    }
+
+    function countParagraphs(text) {
+        if (text.trim() === '') return 0;
+        return text.split(/\n\s*\n/).filter(p => p.trim().length > 0).length;
+    }
+
+    function formatReading(chinese, words) {
+        const total = chinese + words;
+        if (total === 0) return '—';
+        const minutes = total / WPM;
+        if (minutes < 1) return '不到 1 分钟';
+        if (minutes < 60) return `约 ${minutes < 10 ? minutes.toFixed(1) : Math.round(minutes)} 分钟`;
+        const h = Math.floor(minutes / 60);
+        const m = Math.round(minutes % 60);
+        return `约 ${h} 小时 ${m} 分钟`;
+    }
+
+    function update() {
+        const text = ta.value;
+        const chinese = countChinese(text);
+        const words = countWords(text);
+
+        el.chinese.textContent = chinese;
+        el.words.textContent = words;
+        el.charsAll.textContent = codePointCount(text);
+        el.charsNoSpace.textContent = codePointCount(text.replace(/\s/g, ''));
+        el.lines.textContent = countLines(text);
+        el.paragraphs.textContent = countParagraphs(text);
+        el.reading.textContent = formatReading(chinese, words);
+    }
+
+    // saveTimer 负责防抖，flashTimer 只负责提示的淡出，两者互不干扰
+    let saveTimer = null;
+    let flashTimer = null;
+    function persist() {
+        clearTimeout(saveTimer);
+        saveTimer = setTimeout(() => {
+            try { localStorage.setItem(STORE_KEY, ta.value); } catch (e) {}
+            saveHint.style.opacity = '1';
+            clearTimeout(flashTimer);
+            flashTimer = setTimeout(() => { saveHint.style.opacity = '0'; }, 1200);
+        }, 400);
+    }
+
+    function clearText() {
+        ta.value = '';
+        update();
+        persist();
+        ta.focus();
+    }
+
+    let copyTimer = null;
+    function copyText() {
+        if (ta.value === '') return;
+        const btn = document.getElementById('copyBtn');
+        const done = () => {
+            btn.textContent = '已复制';
+            btn.classList.add('border-glow-green/50', 'text-glow-green');
+            clearTimeout(copyTimer);
+            copyTimer = setTimeout(() => {
+                btn.textContent = '复制文本';
+                btn.classList.remove('border-glow-green/50', 'text-glow-green');
+            }, 1200);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(ta.value).then(done).catch(() => fallbackCopy(ta.value, done));
+        } else {
+            fallbackCopy(ta.value, done);
+        }
+    }
+
+    // file:// 直开时 clipboard API 不可用，走 execCommand 兜底
+    function fallbackCopy(text, done) {
+        const temp = document.createElement('textarea');
+        temp.value = text;
+        temp.style.position = 'fixed';
+        temp.style.opacity = '0';
+        document.body.appendChild(temp);
+        temp.select();
+        try { document.execCommand('copy'); done(); } catch (e) {}
+        document.body.removeChild(temp);
+    }
+
+    function loadSample() {
+        ta.value = `月光落在窗台上，猫蜷成一团睡着了。
+我给自己倒了一杯水，读了几行旧诗。
+
+Silence is not emptiness, it is a kind of listening. 窗外的风把树影摇得很轻，像有人在整理一整天的记忆。`;
+        update();
+        persist();
+    }
+
+    ta.addEventListener('input', () => { update(); persist(); });
+
+    // 启动：恢复上次的内容
+    try {
+        ta.value = localStorage.getItem(STORE_KEY) || '';
+    } catch (e) {}
+    update();
+</script>
+</body>
+</html>

@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⏱️ 秒表</title>
+    <meta name="description" content="精确到毫秒的秒表，支持计次（圈数）记录。">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <script>
+      tailwind.config = {
+          theme: {
+              extend: {
+                  colors: {
+                      space: { 900: '#010409', 800: '#0d1117', 700: '#161b22', 600: '#21262d', border: '#30363d', text: '#f0f6fc', muted: '#8b949e' },
+                      glow: { purple: '#8957e5', blue: '#58a6ff', pink: '#da3633', green: '#3fb950' }
+                  },
+                  fontFamily: {
+                      sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Helvetica', 'Arial', 'sans-serif'],
+                      mono: ['"JetBrains Mono"', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace'],
+                  }
+              }
+          }
+      }
+  </script>
+    <style>
+        * { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+        .lap-btn { transition: all 0.1s; }
+        .lap-btn:active { transform: scale(0.95); }
+        .lap-item { animation: lap-in 0.2s ease; }
+        @keyframes lap-in { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+        #laps::-webkit-scrollbar { width: 6px; }
+        #laps::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
+        .tab-active { color: #f0f6fc; border-color: #58a6ff; background: rgba(88,166,255,0.10); }
+    </style>
+
+
+
+</head>
+<body class="bg-space-900 text-space-text font-sans antialiased min-h-screen flex flex-col">
+    <main class="flex-1 flex flex-col items-center justify-start w-full p-4 md:p-6">
+        <div class="w-full max-w-md">
+            <p class="text-xs text-space-muted font-mono uppercase tracking-wider mb-2">// stopwatch</p>
+            <div class="bg-space-700 border border-space-border rounded-xl p-6 shadow-2xl">
+
+                <!-- 标题栏 -->
+                <div class="flex items-center justify-between mb-6">
+                    <h1 class="text-lg font-bold">⏱️ 秒表</h1>
+                    <span id="state-tag" class="text-[11px] font-mono px-2 py-1 rounded border border-space-border text-space-muted">已暂停</span>
+                </div>
+
+                <!-- 计时显示 -->
+                <div class="flex flex-col items-center justify-center py-6">
+                    <div class="font-mono font-bold flex items-baseline tracking-tight">
+                        <span id="h" class="text-4xl text-space-muted w-11 text-right">0</span>
+                        <span class="text-4xl text-space-muted mx-1">:</span>
+                        <span id="m" class="text-4xl text-space-muted w-11 text-right">00</span>
+                        <span class="text-4xl text-space-muted mx-1">:</span>
+                        <span id="s" class="text-6xl text-glow-blue w-16 text-right tabular-nums">00</span>
+                        <span class="text-2xl text-space-muted ml-1">.<span id="ms" class="text-glow-blue/70 w-9 inline-block text-right tabular-nums">000</span></span>
+                    </div>
+                    <p class="text-xs text-space-muted font-mono mt-3">
+                        <span id="lap-count">0</span> 次计次 &nbsp;·&nbsp; 最快 <span id="fastest">--</span> &nbsp;·&nbsp; 最慢 <span id="slowest">--</span>
+                    </p>
+                </div>
+
+                <!-- 控制按钮 -->
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                    <button id="main-btn" onclick="toggle()" class="col-span-2 bg-glow-green/20 text-glow-green border border-glow-green/50 rounded-lg py-3 font-bold text-base hover:bg-glow-green/30 lap-btn">开始</button>
+                    <button onclick="recordLap()" class="bg-glow-blue/20 text-glow-blue border border-glow-blue/50 rounded-lg py-2.5 font-bold text-sm hover:bg-glow-blue/30 lap-btn">🏁 计次</button>
+                    <button onclick="reset()" class="bg-space-600 border border-space-border rounded-lg py-2.5 font-bold text-sm hover:bg-space-border lap-btn">重置</button>
+                </div>
+
+                <!-- 计次列表 -->
+                <div class="border-t border-space-border pt-4">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex gap-1 text-xs font-mono">
+                            <button id="tab-total" onclick="setMode('total')" class="px-2.5 py-1 rounded border border-space-border tab-active">总用时</button>
+                            <button id="tab-split" onclick="setMode('split')" class="px-2.5 py-1 rounded border border-space-border text-space-muted hover:text-space-text">分段</button>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <button onclick="exportLaps()" class="text-xs font-mono text-space-muted hover:text-glow-blue transition">导出</button>
+                            <button onclick="clearLaps()" class="text-xs font-mono text-space-muted hover:text-glow-pink transition">清空计次</button>
+                        </div>
+                    </div>
+                    <ul id="laps" class="space-y-1.5 max-h-56 overflow-y-auto pr-1">
+                        <li id="laps-empty" class="text-center text-xs text-space-muted py-6">暂无计次记录，点击「计次」记录一组时间</li>
+                    </ul>
+                </div>
+            </div>
+
+            <p class="text-center text-xs text-space-muted font-mono mt-4">Space 开始 / 暂停 &nbsp;·&nbsp; R 计次 &nbsp;·&nbsp; X 重置</p>
+        </div>
+    </main>
+
+    <script>
+        // stopwatch —— 用 performance.now() 累积，避免 setInterval 抖动造成毫秒误差
+        let running = false;
+        let accumulated = 0;   // 累计毫秒（不含本轮进行中的部分）
+        let startTime = 0;     // 本轮开始时的 performance.now()
+        let laps = [];         // [{ total, split }]
+        let rafId = null;
+        let mode = 'total';
+
+        const elH = document.getElementById('h');
+        const elM = document.getElementById('m');
+        const elS = document.getElementById('s');
+        const elMs = document.getElementById('ms');
+        const elMain = document.getElementById('main-btn');
+        const elState = document.getElementById('state-tag');
+        const elLaps = document.getElementById('laps');
+        const elCount = document.getElementById('lap-count');
+        const elFast = document.getElementById('fastest');
+        const elSlow = document.getElementById('slowest');
+
+        function elapsed() {
+            return accumulated + (running ? performance.now() - startTime : 0);
+        }
+
+        function fmt(ms, withMs) {
+            const t = Math.max(0, Math.floor(ms));
+            const h = Math.floor(t / 3600000);
+            const m = Math.floor(t / 60000) % 60;
+            const s = Math.floor(t / 1000) % 60;
+            const cs = t % 1000;
+            const core = (h > 0
+                ? h.toString() + ':' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0')
+                : String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0'));
+            return withMs === false ? core : core + '.' + String(cs).padStart(3, '0');
+        }
+
+        function paint() {
+            const t = Math.max(0, Math.floor(elapsed()));
+            const h = Math.floor(t / 3600000);
+            const m = Math.floor(t / 60000) % 60;
+            const s = Math.floor(t / 1000) % 60;
+            const cs = t % 1000;
+            elH.textContent = String(h).padStart(2, '0');
+            elM.textContent = String(m).padStart(2, '0');
+            elS.textContent = String(s).padStart(2, '0');
+            elMs.textContent = String(cs).padStart(3, '0');
+        }
+
+        function tick() {
+            paint();
+            if (running) rafId = requestAnimationFrame(tick);
+        }
+
+        function setTag(text, cls) {
+            elState.textContent = text;
+            elState.className = 'text-[11px] font-mono px-2 py-1 rounded border ' + cls;
+        }
+
+        function toggle() {
+            if (running) {
+                accumulated = elapsed();
+                running = false;
+                cancelAnimationFrame(rafId);
+                paint();
+                setTag('已暂停', 'border-space-border text-space-muted');
+                elMain.textContent = '继续';
+                elMain.className = 'col-span-2 bg-glow-blue/20 text-glow-blue border border-glow-blue/50 rounded-lg py-3 font-bold text-base hover:bg-glow-blue/30 lap-btn';
+            } else {
+                startTime = performance.now();
+                running = true;
+                tick();
+                setTag('计时中', 'border-glow-green/50 text-glow-green');
+                elMain.textContent = '暂停';
+                elMain.className = 'col-span-2 bg-glow-purple/20 text-glow-purple border border-glow-purple/50 rounded-lg py-3 font-bold text-base hover:bg-glow-purple/30 lap-btn';
+            }
+        }
+
+        function reset() {
+            running = false;
+            cancelAnimationFrame(rafId);
+            accumulated = 0;
+            paint();
+            setTag('已暂停', 'border-space-border text-space-muted');
+            elMain.textContent = '开始';
+            elMain.className = 'col-span-2 bg-glow-green/20 text-glow-green border border-glow-green/50 rounded-lg py-3 font-bold text-base hover:bg-glow-green/30 lap-btn';
+        }
+
+        function recordLap() {
+            const total = elapsed();
+            if (!total) return;              // 还没开始计时不计次
+            const lastTotal = laps.length ? laps[laps.length - 1].total : 0;
+            laps.unshift({ total, split: total - lastTotal });
+            renderLaps();
+            // 记一次次就把当前进度也刷新一遍（暂停状态也能看）
+            paint();
+        }
+
+        function setMode(m) {
+            mode = m;
+            document.getElementById('tab-total').className = 'px-2.5 py-1 rounded border border-space-border ' + (m === 'total' ? 'tab-active' : 'text-space-muted hover:text-space-text');
+            document.getElementById('tab-split').className = 'px-2.5 py-1 rounded border border-space-border ' + (m === 'split' ? 'tab-active' : 'text-space-muted hover:text-space-text');
+            renderLaps();
+        }
+
+        function renderLaps() {
+            elCount.textContent = laps.length;
+            if (!laps.length) {
+                elFast.textContent = '--';
+                elSlow.textContent = '--';
+                elLaps.innerHTML = '<li id="laps-empty" class="text-center text-xs text-space-muted py-6">暂无计次记录，点击「计次」记录一组时间</li>';
+                return;
+            }
+            const splits = laps.map(l => l.split);
+            elFast.textContent = fmt(Math.min(...splits), false);
+            elSlow.textContent = fmt(Math.max(...splits), false);
+            elLaps.innerHTML = laps.map((l, i) => {
+                const n = laps.length - i;
+                const isFastest = l.split === Math.min(...splits);
+                const isSlowest = l.split === Math.max(...splits) && laps.length > 1;
+                const val = mode === 'total' ? l.total : l.split;
+                return `
+                    <li class="lap-item flex items-center justify-between gap-3 bg-space-800 border border-space-border rounded-md px-3 py-2">
+                        <div class="flex items-center gap-2 min-w-0">
+                            <span class="text-xs font-mono text-space-muted shrink-0">第 ${n} 次</span>
+                            <span class="text-sm font-mono font-medium truncate ${isFastest ? 'text-glow-green' : isSlowest ? 'text-glow-pink' : ''}">${fmt(val)}</span>
+                            ${isFastest ? '<span class="text-[10px] text-glow-green shrink-0">最快</span>' : ''}
+                            ${isSlowest ? '<span class="text-[10px] text-glow-pink shrink-0">最慢</span>' : ''}
+                        </div>
+                        <button onclick="removeLap(${i})" title="删除这条记录" class="text-space-muted hover:text-glow-pink transition shrink-0">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        </button>
+                    </li>`;
+            }).join('');
+        }
+
+        function removeLap(i) {
+            laps.splice(i, 1);
+            renderLaps();
+        }
+
+        function clearLaps() {
+            if (!laps.length) return;
+            if (!confirm('确定清空全部 ' + laps.length + ' 条计次记录吗？')) return;
+            laps = [];
+            renderLaps();
+        }
+
+        function exportLaps() {
+            if (!laps.length) { alert('还没有计次记录可以导出'); return; }
+            const n = laps.length;
+            const lines = ['次别\t' + (mode === 'total' ? '总用时' : '分段') + '\t分段用时', ...laps.map((l, i) => `${n - i}\t${fmt(l.total)}\t${fmt(l.split)}`)].join('\n');
+            const url = URL.createObjectURL(new Blob([lines], { type: 'text/plain;charset=utf-8' }));
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'stopwatch-laps.txt';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // 键盘支持
+        document.addEventListener('keydown', (e) => {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+            if (e.code === 'Space') { e.preventDefault(); toggle(); return; }
+            if (e.key === 'r' || e.key === 'R') { recordLap(); return; }
+            if (e.key === 'x' || e.key === 'X') { reset(); return; }
+        });
+
+        paint();
+    </script>
+</body>
+</html>

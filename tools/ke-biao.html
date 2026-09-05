@@ -1,0 +1,607 @@
+<!--
+Tool: 课表
+Author: lunarHope
+Date: 2026-09-01
+-->
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>2407班课表（初三·夏季作息）</title>
+<meta name="description" content="2407班（初三）智能手机端课程表，支持今日课程实时追踪、全周课表速览与作息时间查询。">
+<meta name="theme-color" content="#0f0c29">
+<style>
+  :root{
+    --bg-deep:#0f0c29;
+    --bg-card:#16142a;
+    --bg-elevated:#1e1b36;
+    --surface:rgba(255,255,255,.04);
+    --surface-hover:rgba(255,255,255,.07);
+    --accent-1:#8b5cf6;
+    --accent-2:#3b82f6;
+    --accent-3:#ec4899;
+    --text-primary:#f8fafc;
+    --text-secondary:#94a3b8;
+    --text-tertiary:#64748b;
+    --success:#34d399;
+    --warning:#fbbf24;
+    --glass-border:rgba(255,255,255,.08);
+    --glass-bg:rgba(255,255,255,.03);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0}
+  html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",Roboto,Helvetica,Arial,sans-serif;background:var(--bg-deep);color:var(--text-primary);-webkit-font-smoothing:antialiased;overflow:hidden}
+
+  /* 背景装饰 */
+  .ambient{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+  .ambient .orb{position:absolute;border-radius:50%;filter:blur(80px);opacity:.25}
+  .ambient .orb:nth-child(1){width:300px;height:300px;background:var(--accent-1);top:-100px;right:-80px;animation:float1 20s ease-in-out infinite}
+  .ambient .orb:nth-child(2){width:250px;height:250px;background:var(--accent-2);bottom:-60px;left:-60px;animation:float2 25s ease-in-out infinite}
+  .ambient .orb:nth-child(3){width:200px;height:200px;background:var(--accent-3);top:40%;left:30%;opacity:.1;animation:float3 30s ease-in-out infinite}
+  @keyframes float1{0%,100%{transform:translate(0,0)}50%{transform:translate(-30px,20px)}}
+  @keyframes float2{0%,100%{transform:translate(0,0)}50%{transform:translate(20px,-30px)}}
+  @keyframes float3{0%,100%{transform:translate(0,0)}50%{transform:translate(-20px,20px)}}
+
+  /* 主容器 */
+  .app{position:relative;z-index:1;height:100%;max-width:430px;margin:0 auto;display:flex;flex-direction:column}
+
+  /* 顶部导航栏 */
+  .topnav{
+    display:flex;align-items:center;justify-content:space-between;padding:16px 20px 8px;
+    background:linear-gradient(180deg,rgba(15,12,41,.9) 0%,rgba(15,12,41,0) 100%);position:relative;z-index:10;
+  }
+  .topnav .brand{display:flex;align-items:center;gap:12px}
+  .topnav .avatar{
+    width:36px;height:36px;border-radius:12px;background:linear-gradient(135deg,var(--accent-1),var(--accent-2));
+    display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 4px 15px rgba(139,92,246,.3);
+  }
+  .topnav .brand-text h1{font-size:15px;font-weight:700;letter-spacing:-.2px}
+  .topnav .brand-text span{font-size:11px;color:var(--text-secondary);margin-top:1px;display:block}
+  .topnav .share{
+    width:36px;height:36px;border-radius:12px;border:1px solid var(--glass-border);background:var(--glass-bg);
+    display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;font-size:16px;
+  }
+  .topnav .share:active{transform:scale(.95);background:var(--surface-hover)}
+
+  /* 实时状态卡 - 玻璃拟态 */
+  .hero-card{
+    margin:0 16px 16px;padding:20px;border-radius:24px;position:relative;overflow:hidden;
+    background:linear-gradient(135deg,rgba(139,92,246,.15) 0%,rgba(59,130,246,.1) 100%);
+    border:1px solid var(--glass-border);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  }
+  .hero-card::before{
+    content:'';position:absolute;top:0;left:0;right:0;height:1px;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,.2),transparent);
+  }
+  .hero-card .hero-glow{
+    position:absolute;top:-40px;right:-40px;width:150px;height:150px;border-radius:50%;
+    background:radial-gradient(circle,rgba(139,92,246,.3) 0%,transparent 70%);pointer-events:none;
+  }
+  .hero-card .hero-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+  .hero-card .live-pill{
+    display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:20px;
+    background:rgba(52,211,153,.15);border:1px solid rgba(52,211,153,.2);font-size:11px;font-weight:600;color:var(--success);
+  }
+  .hero-card .live-pill .pulse{width:6px;height:6px;border-radius:50%;background:var(--success);position:relative}
+  .hero-card .live-pill .pulse::after{
+    content:'';position:absolute;inset:-3px;border-radius:50%;background:var(--success);opacity:.5;animation:pulse-ring 2s ease-out infinite;
+  }
+  @keyframes pulse-ring{0%{transform:scale(.5);opacity:.7}100%{transform:scale(2.5);opacity:0}}
+  .hero-card .day-pill{
+    display:flex;align-items:center;gap:6px;padding:4px 12px;border-radius:20px;
+    background:rgba(255,255,255,.06);border:1px solid var(--glass-border);font-size:11px;color:var(--text-secondary);
+  }
+  .hero-card .hero-main{display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
+  .hero-card .hero-main .left{flex:1;min-width:0}
+  .hero-card .hero-main .label{font-size:11px;color:var(--text-secondary);margin-bottom:4px;text-transform:uppercase;letter-spacing:1px}
+  .hero-card .hero-main .value{font-size:22px;font-weight:800;letter-spacing:-.5px;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .hero-card .hero-main .value .tag{
+    display:inline-block;margin-left:8px;padding:2px 8px;border-radius:6px;background:rgba(255,255,255,.1);
+    font-size:10px;font-weight:600;color:var(--text-secondary);vertical-align:middle;letter-spacing:0;
+  }
+  .hero-card .hero-main .right{text-align:right;flex-shrink:0}
+  .hero-card .hero-main .right .timer{font-size:28px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1;background:linear-gradient(135deg,var(--accent-1),var(--accent-2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .hero-card .hero-main .right .timer-label{font-size:10px;color:var(--text-tertiary);margin-top:2px}
+  .hero-card .progress-track{
+    height:4px;border-radius:999px;background:rgba(255,255,255,.06);margin-top:16px;overflow:hidden;
+  }
+  .hero-card .progress-track .progress-fill{
+    height:100%;border-radius:999px;background:linear-gradient(90deg,var(--accent-1),var(--accent-2),var(--accent-3));
+    transition:width .6s cubic-bezier(.4,0,.2,1);width:0%;
+  }
+
+  /* 星期选择器 */
+  .day-picker{margin:0 16px 12px}
+  .day-picker .day-row{display:flex;gap:6px}
+  .day-picker .day-row button{
+    flex:1;padding:10px 2px;border:none;border-radius:16px;background:transparent;cursor:pointer;
+    display:flex;flex-direction:column;align-items:center;gap:3px;transition:all .2s;position:relative;
+  }
+  .day-picker .day-row button .cn{font-size:12px;font-weight:600;color:var(--text-secondary);transition:color .2s}
+  .day-picker .day-row button .en{font-size:9px;color:var(--text-tertiary);transition:color .2s}
+  .day-picker .day-row button.active{background:var(--bg-elevated);box-shadow:0 4px 20px rgba(0,0,0,.2)}
+  .day-picker .day-row button.active .cn{color:var(--text-primary)}
+  .day-picker .day-row button.active .en{color:var(--accent-1)}
+  .day-picker .day-row button.today .cn{color:var(--success)}
+  .day-picker .day-row button .today-dot{
+    position:absolute;top:6px;right:6px;width:5px;height:5px;border-radius:50%;background:var(--success);box-shadow:0 0 6px var(--success);
+  }
+
+  /* 筛选器 */
+  .filter-bar{margin:0 16px 12px}
+  .filter-bar .filter-row{display:flex;gap:8px;overflow-x:auto;padding:2px 0;scrollbar-width:none}
+  .filter-bar .filter-row::-webkit-scrollbar{display:none}
+  .filter-bar .filter-row button{
+    flex:0 0 auto;padding:8px 14px;border-radius:12px;border:1px solid var(--glass-border);
+    background:var(--surface);color:var(--text-secondary);font-size:12px;font-weight:500;cursor:pointer;transition:all .2s;white-space:nowrap;
+  }
+  .filter-bar .filter-row button.active{background:var(--accent-1);border-color:var(--accent-1);color:#fff;box-shadow:0 4px 15px rgba(139,92,246,.3)}
+  .filter-bar .filter-row button:active{transform:scale(.96)}
+
+  /* 主内容区 */
+  .content{flex:1;overflow-y:auto;padding:0 16px 100px;scroll-behavior:smooth}
+  .content::-webkit-scrollbar{width:3px}
+  .content::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:999px}
+
+  /* 列表项 - 现代卡片 */
+  .item-list{display:flex;flex-direction:column;gap:10px}
+  .item-card{
+    display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:20px;
+    background:var(--bg-card);border:1px solid var(--glass-border);cursor:pointer;transition:all .2s;
+    position:relative;overflow:hidden;
+  }
+  .item-card::before{
+    content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:999px;
+    background:linear-gradient(180deg,var(--accent-1),var(--accent-2));opacity:0;transition:opacity .2s;
+  }
+  .item-card:hover::before,.item-card:active::before{opacity:1}
+  .item-card:active{transform:scale(.98)}
+  .item-card .icon-wrap{
+    width:48px;height:48px;border-radius:16px;display:flex;align-items:center;justify-content:center;
+    font-size:22px;flex-shrink:0;position:relative;overflow:hidden;
+  }
+  .item-card .icon-wrap::after{
+    content:'';position:absolute;inset:0;border-radius:16px;box-shadow:inset 0 1px 2px rgba(255,255,255,.1);
+  }
+  .item-card .item-info{flex:1;min-width:0}
+  .item-card .item-info .item-title{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .item-card .item-info .item-title .subj-name{font-size:15px;font-weight:700;color:var(--text-primary)}
+  .item-card .item-info .item-title .item-badge{
+    padding:2px 8px;border-radius:6px;font-size:10px;font-weight:600;background:rgba(139,92,246,.15);color:var(--accent-1);
+  }
+  .item-card .item-info .item-time{font-size:11px;color:var(--text-tertiary);margin-top:3px;font-variant-numeric:tabular-nums}
+  .item-card .item-right{text-align:right;flex-shrink:0}
+  .item-card .item-right .clock{font-size:13px;font-weight:700;color:var(--text-secondary);font-variant-numeric:tabular-nums}
+  .item-card .item-right .clock-label{font-size:10px;color:var(--text-tertiary);margin-top:1px}
+
+  /* 休息卡 */
+  .break-card{
+    display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:16px;
+    background:var(--surface);border:1px solid var(--glass-border);position:relative;overflow:hidden;
+  }
+  .break-card .break-icon{
+    width:36px;height:36px;border-radius:12px;display:flex;align-items:center;justify-content:center;
+    font-size:16px;flex-shrink:0;
+  }
+  .break-card .break-info{flex:1}
+  .break-card .break-info .break-name{font-size:13px;font-weight:600;color:var(--text-secondary)}
+  .break-card .break-info .break-desc{font-size:10px;color:var(--text-tertiary);margin-top:1px}
+  .break-card .break-time{font-size:12px;font-weight:600;color:var(--text-secondary);font-variant-numeric:tabular-nums}
+
+  /* 空状态 */
+  .empty-state{text-align:center;padding:60px 20px;color:var(--text-tertiary)}
+  .empty-state .empty-icon{font-size:48px;margin-bottom:12px;opacity:.5}
+  .empty-state .empty-title{font-size:16px;font-weight:600;color:var(--text-secondary);margin-bottom:4px}
+  .empty-state .empty-desc{font-size:13px}
+
+  /* 整周表格视图 */
+  .week-view{padding-bottom:80px}
+  .week-view .week-table-wrap{
+    border-radius:20px;border:1px solid var(--glass-border);overflow:hidden;background:var(--bg-card);
+  }
+  .week-view .week-table-wrap .week-table{overflow-x:auto}
+  .week-view table{width:100%;border-collapse:collapse;font-size:12px;min-width:420px}
+  .week-view thead th{position:sticky;top:0;background:var(--bg-elevated);color:var(--text-secondary);font-weight:600;padding:12px 8px;border-bottom:1px solid var(--glass-border);white-space:nowrap}
+  .week-view thead th:first-child{position:sticky;left:0;z-index:2;background:var(--bg-elevated);text-align:left;padding-left:16px;width:100px}
+  .week-view tbody td{padding:10px 6px;text-align:center;border-bottom:1px solid var(--glass-border);vertical-align:middle;color:var(--text-secondary)}
+  .week-view tbody td:first-child{position:sticky;left:0;background:var(--bg-card);text-align:left;padding-left:16px;font-weight:600;color:var(--text-primary);white-space:nowrap}
+  .week-view tbody tr:last-child td{border-bottom:none}
+  .week-view tbody tr:hover td{background:var(--surface-hover)}
+  .week-view .cell{display:inline-flex;align-items:center;justify-content:center;gap:2px;padding:4px 10px;border-radius:10px;font-weight:600;font-size:11px}
+  .week-view .cell.none{color:var(--text-tertiary);opacity:.3}
+
+  /* 时间轴视图 */
+  .timeline-view{padding-bottom:80px}
+  .timeline-view .tl-section{margin-bottom:16px}
+  .timeline-view .tl-section .tl-label{
+    display:flex;align-items:center;gap:8px;margin-bottom:10px;padding:0 4px;
+    font-size:11px;font-weight:700;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:1.5px;
+  }
+  .timeline-view .tl-section .tl-label::before{
+    content:'';width:4px;height:4px;border-radius:50%;background:var(--accent-1);
+  }
+  .timeline-view .tl-row{
+    display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--bg-card);
+    border:1px solid var(--glass-border);border-radius:16px;margin-bottom:8px;transition:all .2s;
+  }
+  .timeline-view .tl-row:hover{background:var(--surface-hover)}
+  .timeline-view .tl-row .tl-name{font-size:14px;font-weight:600;color:var(--text-primary);flex:0 0 auto}
+  .timeline-view .tl-row .tl-line{flex:1;height:1px;background:linear-gradient(90deg,var(--glass-border),transparent)}
+  .timeline-view .tl-row .tl-time{font-size:13px;font-weight:700;color:var(--accent-1);font-variant-numeric:tabular-nums;flex:0 0 auto}
+
+  /* 底部导航 */
+  .bottom-nav{
+    position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;
+    padding:12px 24px calc(12px + env(safe-area-inset-bottom));z-index:100;
+    display:flex;align-items:center;justify-content:space-around;
+    background:linear-gradient(0deg,rgba(15,12,41,.95) 0%,rgba(15,12,41,.8) 60%,transparent 100%);
+    backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  }
+  .bottom-nav .nav-btn{
+    display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 16px;border:none;background:none;cursor:pointer;
+    color:var(--text-tertiary);font-size:10px;position:relative;transition:all .2s;border-radius:16px;
+  }
+  .bottom-nav .nav-btn .nav-icon{font-size:22px;line-height:1;margin-bottom:1px;transition:transform .2s}
+  .bottom-nav .nav-btn.active{color:var(--text-primary)}
+  .bottom-nav .nav-btn.active .nav-icon{transform:translateY(-2px)}
+  .bottom-nav .nav-btn .nav-indicator{
+    position:absolute;bottom:0;width:20px;height:3px;border-radius:999px;background:linear-gradient(90deg,var(--accent-1),var(--accent-2));
+    opacity:0;transition:opacity .2s;
+  }
+  .bottom-nav .nav-btn.active .nav-indicator{opacity:1}
+
+  /* Toast */
+  .toast{
+    position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-60px);padding:10px 20px;border-radius:12px;
+    background:var(--bg-elevated);border:1px solid var(--glass-border);color:var(--text-primary);font-size:13px;font-weight:500;
+    z-index:200;opacity:0;transition:all .3s cubic-bezier(.4,0,.2,1);pointer-events:none;white-space:nowrap;
+    box-shadow:0 10px 30px rgba(0,0,0,.3);
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+  /* 入场动画 */
+  @keyframes fadeInUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+  .animate-in{animation:fadeInUp .5s ease-out forwards}
+  .stagger-1{animation-delay:.05s}.stagger-2{animation-delay:.1s}.stagger-3{animation-delay:.15s}.stagger-4{animation-delay:.2s}
+
+  /* 桌面端 */
+  @media(min-width:768px){
+    body{background:#0a0918;display:flex;align-items:center;justify-content:center;padding:24px}
+    .app{height:auto;max-height:90vh;border-radius:40px;box-shadow:0 25px 80px rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.05)}
+    .bottom-nav{border-radius:0 0 40px 40px}
+    .ambient{display:none}
+    .app::before{
+      content:'';position:absolute;top:0;left:0;right:0;height:200px;
+      background:linear-gradient(180deg,rgba(139,92,246,.08) 0%,transparent 100%);pointer-events:none;border-radius:40px 40px 0 0;
+    }
+  }
+</style>
+
+
+
+</head>
+<body>
+<div class="ambient"><div class="orb"></div><div class="orb"></div><div class="orb"></div></div>
+
+<div class="app">
+  <!-- 顶部栏 -->
+  <header class="topnav">
+    <div class="brand">
+      <div class="avatar">📅</div>
+      <div class="brand-text">
+        <h1>2407班课表</h1>
+        <span>初三 · 夏季作息</span>
+      </div>
+    </div>
+    <button class="share" id="shareBtn" title="分享课表">🔗</button>
+  </header>
+
+  <!-- 实时状态 -->
+  <div class="hero-card animate-in" id="heroCard">
+    <div class="hero-glow"></div>
+    <div class="hero-top">
+      <span class="live-pill"><span class="pulse"></span>实时状态 · <span id="clock">--:--:--</span></span>
+      <span class="day-pill">🗓 <span id="heroDay">星期二</span></span>
+    </div>
+    <div class="hero-main">
+      <div class="left">
+        <div class="label" id="nowLabel">当前进行中</div>
+        <div class="value" id="nowValue">—</div>
+      </div>
+      <div class="right">
+        <div class="timer" id="countdown">--</div>
+        <div class="timer-label" id="countdownLabel">距离下课</div>
+      </div>
+    </div>
+    <div class="progress-track"><div class="progress-fill" id="progress" style="width:0%"></div></div>
+  </div>
+
+  <!-- 星期选择 -->
+  <div class="day-picker" id="dayPicker"></div>
+
+  <!-- 筛选 -->
+  <div class="filter-bar" id="filterBar">
+    <div class="filter-row">
+      <button data-f="all" class="active">全部</button>
+      <button data-f="morning">上午</button>
+      <button data-f="afternoon">下午</button>
+      <button data-f="after">课后服务</button>
+    </div>
+  </div>
+
+  <!-- 内容区 -->
+  <main class="content" id="content">
+    <div id="view"></div>
+  </main>
+
+  <!-- 底部导航 -->
+  <nav class="bottom-nav" id="bottomNav">
+    <button class="nav-btn active" data-v="today">
+      <span class="nav-icon">📅</span><span>今日</span><span class="nav-indicator"></span>
+    </button>
+    <button class="nav-btn" data-v="week">
+      <span class="nav-icon">🗓</span><span>整周</span><span class="nav-indicator"></span>
+    </button>
+    <button class="nav-btn" data-v="time">
+      <span class="nav-icon">⏰</span><span>时间</span><span class="nav-indicator"></span>
+    </button>
+  </nav>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============ 数据 ============ */
+const DAYS = [
+  {key:1,name:"星期一",short:"周一",en:"Mon"},
+  {key:2,name:"星期二",short:"周二",en:"Tue"},
+  {key:3,name:"星期三",short:"周三",en:"Wed"},
+  {key:4,name:"星期四",short:"周四",en:"Thu"},
+  {key:5,name:"星期五",short:"周五",en:"Fri"},
+];
+
+const SUB = {
+  "升旗":{full:"升旗仪式",short:"升旗",emoji:"🚩",color:"#fca5a5",bg:"linear-gradient(135deg,#7f1d1d,#991b1b)"},
+  "语":{full:"语文",short:"语",emoji:"📖",color:"#fecdd3",bg:"linear-gradient(135deg,#be123c,#9f1239)"},
+  "数":{full:"数学",short:"数",emoji:"📐",color:"#bfdbfe",bg:"linear-gradient(135deg,#1d4ed8,#1e3a8a)"},
+  "英":{full:"英语",short:"英",emoji:"🔤",color:"#c7d2fe",bg:"linear-gradient(135deg,#4338ca,#3730a3)"},
+  "物":{full:"物理",short:"物",emoji:"⚛️",color:"#a5f3fc",bg:"linear-gradient(135deg,#0891b2,#0e7490)"},
+  "化":{full:"化学",short:"化",emoji:"🧪",color:"#a7f3d0",bg:"linear-gradient(135deg,#059669,#047857)"},
+  "体":{full:"体育",short:"体",emoji:"🏀",color:"#fed7aa",bg:"linear-gradient(135deg,#ea580c,#c2410c)"},
+  "史":{full:"历史",short:"史",emoji:"🏺",color:"#fde68a",bg:"linear-gradient(135deg,#d97706,#b45309)"},
+  "道":{full:"道德与法治",short:"道法",emoji:"⚖️",color:"#fbcfe8",bg:"linear-gradient(135deg,#db2777,#be185d)"},
+  "音":{full:"音乐",short:"音",emoji:"🎵",color:"#f5d0fe",bg:"linear-gradient(135deg,#c026d3,#a21caf)"},
+  "美":{full:"美术",short:"美",emoji:"🎨",color:"#e9d5ff",bg:"linear-gradient(135deg,#9333ea,#7e22ce)"},
+  "政":{full:"政治",short:"政",emoji:"🏛️",color:"#d6d3d1",bg:"linear-gradient(135deg,#57534e,#44403c)"},
+};
+
+const ROWS = [
+  {name:"自主晨读", time:"07:20 - 07:50", kind:"morning", sub:["升旗","语","英","语","英"]},
+  {name:"第一节",   time:"08:00 - 08:45", kind:"period",  sub:["升旗","语","英","物","英"]},
+  {name:"第二节",   time:"09:00 - 09:45", kind:"period",  sub:["数","英","数","语","物"]},
+  {name:"眼保健操", time:"09:45 - 09:50", kind:"eye",     sub:["","","","",""]},
+  {name:"第三节",   time:"10:00 - 10:45", kind:"period",  sub:["数","数","语","英","体"]},
+  {name:"大课间",   time:"10:45 - 11:15", kind:"break",   sub:["","","","",""]},
+  {name:"第四节",   time:"11:15 - 12:15", kind:"period",  sub:["语","体","语","化","数"]},
+  {name:"午休",     time:"12:50 - 13:40", kind:"lunch",   sub:["体","语","化","英","政"]},
+  {name:"第五节",   time:"13:50 - 14:35", kind:"period",  sub:["体","史","化","史","音"]},
+  {name:"第六节",   time:"14:50 - 15:35", kind:"period",  sub:["英","道","物","数","化"]},
+  {name:"眼保健操", time:"15:35 - 15:40", kind:"eye",     sub:["","","","",""]},
+  {name:"第七节",   time:"15:50 - 16:35", kind:"period",  sub:["物","化","美","道","语"]},
+  {name:"课后服务一",time:"16:45 - 17:30", kind:"after",  sub:["英","道","语","物","数"]},
+  {name:"课后服务二",time:"17:30 - 18:10", kind:"after",  sub:["英","化","语","史","数"]},
+];
+
+function parseRange(t){
+  const m = t.replace(/\s/g,"").match(/(\d{1,2}):(\d{2})-(\d{1,2}):(\d{2})/);
+  if(!m) return [0,0];
+  return [(+m[1])*60+(+m[2]), (+m[3])*60+(+m[4])];
+}
+ROWS.forEach(r=>{ const [s,e]=parseRange(r.time); r.start=s; r.end=e; });
+
+const KIND_META = {
+  morning:{desc:"到校晨读，整理状态，开启新一天",emoji:"🌅"},
+  lunch:{desc:"午间休整，补充精力，安静自习",emoji:"🍱"},
+  after:{desc:"课后答疑、社团与体育锻炼",emoji:"📚"},
+  eye:{desc:"闭目做操，保护视力",emoji:"👀"},
+  break:{desc:"课间休息，放松身心",emoji:"🏃"},
+};
+
+/* ============ 状态 ============ */
+let currentView = "today";
+let selectedDay = 1;
+let filter = "all";
+
+/* ============ 工具 ============ */
+const $ = s=>document.querySelector(s);
+function todayKey(){
+  const d = new Date().getDay();
+  return d>=1 && d<=5 ? d : 1;
+}
+function todayName(){ return DAYS.find(d=>d.key===todayKey()).name; }
+function showToast(msg){
+  const t=$('#toast'); t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2000);
+}
+
+/* ============ 渲染 ============ */
+function renderDayPicker(){
+  const box=$('#dayPicker'); box.innerHTML='<div class="day-row"></div>';
+  const row=box.querySelector('.day-row');
+  DAYS.forEach(d=>{
+    const b=document.createElement('button');
+    b.className=(d.key===selectedDay?'active':'')+(d.key===todayKey()?' today':'');
+    b.innerHTML=`<span class="cn">${d.short}</span><span class="en">${d.en}</span>${d.key===todayKey()?'<span class="today-dot"></span>':''}`;
+    b.onclick=()=>{ selectedDay=d.key; renderDayPicker(); renderList(); };
+    row.appendChild(b);
+  });
+}
+
+function subjectCard(name, time, kind, index){
+  const s=SUB[name];
+  const div=document.createElement('div');
+  div.className='item-card animate-in stagger-'+(index%4+1);
+  div.innerHTML=`
+    <div class="icon-wrap" style="background:${s.bg};color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.2)">${s.emoji}</div>
+    <div class="item-info">
+      <div class="item-title"><span class="subj-name">${s.full}</span><span class="item-badge">${kind==='period'?'课程':kind==='morning'?'晨读':kind==='after'?'课后':kind==='lunch'?'午间':''}</span></div>
+      <div class="item-time">${time}</div>
+    </div>
+    <div class="item-right"><div class="clock">${time.split(' - ')[0]}</div><div class="clock-label">开始</div></div>`;
+  return div;
+}
+
+function breakCard(name, time, kind, index){
+  const meta=KIND_META[kind]||{emoji:'⏸️',desc:'休息时间'};
+  const div=document.createElement('div');
+  div.className='break-card animate-in stagger-'+(index%4+1);
+  div.innerHTML=`
+    <div class="break-icon" style="background:var(--surface);border:1px solid var(--glass-border)">${meta.emoji}</div>
+    <div class="break-info"><div class="break-name">${name}</div><div class="break-desc">${meta.desc}</div></div>
+    <div class="break-time">${time}</div>`;
+  return div;
+}
+
+function renderList(){
+  const v=$('#view');
+  let rows=ROWS;
+  if(filter==="morning") rows=ROWS.filter(r=>r.start<770);
+  if(filter==="afternoon") rows=ROWS.filter(r=>r.start>=770 && r.start<1005);
+  if(filter==="after") rows=ROWS.filter(r=>r.kind==="after");
+
+  const frag=document.createDocumentFragment();
+  const wrap=document.createElement('div'); wrap.className='item-list';
+  let hasAny=false;
+  rows.forEach((r,i)=>{
+    const sub=r.sub[selectedDay-1];
+    if(!sub) wrap.appendChild(breakCard(r.name,r.time,r.kind,i));
+    else{ hasAny=true; wrap.appendChild(subjectCard(sub,r.time,r.kind,i)); }
+  });
+  frag.appendChild(wrap);
+
+  if(!hasAny && filter!=='all'){
+    const empty=document.createElement('div'); empty.className='empty-state animate-in';
+    empty.innerHTML='<div class="empty-icon">📝</div><div class="empty-title">该时段暂无课程</div><div class="empty-desc">切换筛选条件查看更多内容</div>';
+    frag.appendChild(empty);
+  }
+
+  v.innerHTML=''; v.appendChild(frag);
+}
+
+function renderWeek(){
+  const v=$('#view');
+  const wrap=document.createElement('div'); wrap.className='week-view animate-in';
+  let html='<div class="week-table-wrap"><div class="week-table"><table><thead><tr><th>节次 / 时间</th>';
+  DAYS.forEach(d=>{ html+=`<th>${d.short}</th>`; });
+  html+='</tr></thead><tbody>';
+  ROWS.forEach(r=>{
+    const isBreak=!r.sub.some(x=>x);
+    html+=`<tr><td><div style="font-weight:600">${r.name}</div><div style="font-size:10px;color:var(--text-tertiary);margin-top:2px">${r.time}</div></td>`;
+    r.sub.forEach(sn=>{
+      if(!sn) html+=`<td><span class="cell none">·</span></td>`;
+      else{ const s=SUB[sn]; html+=`<td><span class="cell" style="background:${s.bg};color:#fff">${s.short}</span></td>`; }
+    });
+    html+='</tr>';
+  });
+  html+='</tbody></table></div></div>';
+  wrap.innerHTML=html;
+  v.innerHTML=''; v.appendChild(wrap);
+}
+
+function renderTimeline(){
+  const v=$('#view');
+  const wrap=document.createElement('div'); wrap.className='timeline-view animate-in';
+  let html='';
+  const groups=[
+    {label:'上午 · 晨读与课程', filter:r=>r.start<770},
+    {label:'午间 · 午休', filter:r=>r.start>=770 && r.start<830},
+    {label:'下午 · 课程', filter:r=>r.start>=830 && r.start<1005},
+    {label:'课后 · 课后服务', filter:r=>r.kind==='after'},
+  ];
+  groups.forEach(g=>{
+    const items=ROWS.filter(g.filter);
+    if(!items.length) return;
+    html+=`<div class="tl-section"><div class="tl-label">${g.label}</div>`;
+    items.forEach(r=>{
+      html+=`<div class="tl-row"><span class="tl-name">${r.name}</span><span class="tl-line"></span><span class="tl-time">${r.time}</span></div>`;
+    });
+    html+='</div>';
+  });
+  wrap.innerHTML=html;
+  v.innerHTML=''; v.appendChild(wrap);
+}
+
+function switchView(vw){
+  currentView=vw;
+  document.querySelectorAll('#bottomNav .nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.v===vw));
+  $('#dayPicker').style.display=vw==='today'?'block':'none';
+  $('#filterBar').style.display=vw==='today'?'block':'none';
+  $('#heroCard').style.display=vw==='today'?'block':'none';
+  if(vw==='today') renderList();
+  else if(vw==='week') renderWeek();
+  else renderTimeline();
+}
+
+/* ============ 实时状态 ============ */
+function pad(n){return n<10?'0'+n:''+n;}
+function tick(){
+  const now=new Date();
+  const h=pad(now.getHours()), m=pad(now.getMinutes()), s=pad(now.getSeconds());
+  $('#clock').textContent=`${h}:${m}:${s}`;
+  const mins=now.getHours()*60+now.getMinutes()+now.getSeconds()/60;
+
+  let cur=null, next=null;
+  ROWS.forEach(r=>{
+    if(mins>=r.start && mins<r.end) cur=r;
+    if(!next && r.start>mins) next=r;
+  });
+
+  const isToday=todayKey()===selectedDay;
+  if(cur && isToday){
+    const sub=cur.sub[selectedDay-1];
+    if(sub){ $('#nowValue').innerHTML=`${SUB[sub].full}<span class="tag">${cur.name}</span>`; }
+    else { $('#nowValue').innerHTML=`${cur.name}<span class="tag">休息</span>`; }
+    const total=cur.end-cur.start;
+    const remain=Math.max(0,Math.round(cur.end-mins));
+    $('#countdownLabel').textContent='距离下课';
+    $('#countdown').innerHTML=`<span style="font-size:20px">${remain}</span>`;
+    $('#progress').style.width=Math.min(100,((mins-cur.start)/total*100)).toFixed(1)+'%';
+  }else{
+    if(isToday && next){
+      $('#nowValue').innerHTML=`${next.name}<span class="tag">即将开始</span>`;
+      $('#countdownLabel').textContent='距离开始';
+      $('#countdown').innerHTML=`<span style="font-size:20px">${Math.max(0,Math.round(next.start-mins))}</span>`;
+      $('#progress').style.width='0%';
+    }else{
+      $('#nowValue').textContent=isToday?'今日课程已结束':'查看中';
+      $('#countdown').innerHTML='—';
+      $('#countdownLabel').textContent=isToday?'已完成':'选择今日';
+      $('#progress').style.width='0%';
+    }
+  }
+  $('#heroDay').textContent=todayName();
+}
+
+/* ============ 事件 ============ */
+$('#shareBtn').onclick=()=>{
+  let txt='【2407班课表 · 初三夏季作息】\n';
+  ROWS.forEach(r=>{ txt+=`${r.name} ${r.time} → ${r.sub.map(x=>x?SUB[x].full:'—').join(' | ')}\n`; });
+  if(navigator.clipboard?.writeText){
+    navigator.clipboard.writeText(txt).then(()=>showToast('课表已复制到剪贴板'));
+  }else{ showToast(txt); }
+};
+
+document.querySelectorAll('#filterBar button').forEach(b=>{
+  b.onclick=()=>{ document.querySelectorAll('#filterBar button').forEach(x=>x.classList.remove('active')); b.classList.add('active'); filter=b.dataset.f; renderList(); };
+});
+document.querySelectorAll('#bottomNav .nav-btn').forEach(b=>{ b.onclick=()=>switchView(b.dataset.v); });
+
+/* ============ 初始化 ============ */
+selectedDay=todayKey();
+renderDayPicker();
+switchView('today');
+tick();
+setInterval(tick,1000);
+</script>
+</body>
+</html>

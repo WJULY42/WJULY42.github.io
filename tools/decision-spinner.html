@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎯 决策转盘</title>
+    <meta name="description" content="用彩色转盘随机选出决策，告别纠结。">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        space: { 900: '#010409', 800: '#0d1117', 700: '#161b22', 600: '#21262d', border: '#30363d', text: '#f0f6fc', muted: '#8b949e' },
+                        glow: { purple: '#8957e5', blue: '#58a6ff', pink: '#da3633', green: '#3fb950' }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Helvetica', 'Arial', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        * { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+        .option-item { transition: all 0.25s ease; }
+        .option-item.winner {
+            background: rgba(88, 166, 255, 0.15) !important;
+            border-color: #58a6ff !important;
+            box-shadow: 0 0 20px rgba(88, 166, 255, 0.35), inset 0 0 12px rgba(88, 166, 255, 0.15);
+            transform: translateX(4px);
+        }
+        .wheel-wrap { position: relative; }
+        .spin-glow { animation: pulse 1.4s ease-in-out infinite; }
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 0 rgba(88, 166, 255, 0); }
+            50%      { box-shadow: 0 0 32px rgba(88, 166, 255, 0.35); }
+        }
+        .result-pop { animation: pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        @keyframes pop {
+            0%   { transform: scale(0.6); opacity: 0; }
+            100% { transform: scale(1);   opacity: 1; }
+        }
+        .toast { transition: opacity 0.25s ease, transform 0.25s ease; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
+    </style>
+</head>
+<body class="bg-space-900 text-space-text font-sans antialiased min-h-screen flex flex-col">
+    <main class="flex-1 flex flex-col items-center justify-start w-full p-4 md:p-6">
+        <div class="w-full max-w-2xl">
+            <p class="text-xs text-space-muted font-mono uppercase tracking-wider mb-2">// decision spinner</p>
+            <div class="bg-space-700 border border-space-border rounded-xl p-6 shadow-2xl">
+                <div class="flex items-center justify-between mb-4">
+                    <h1 class="text-2xl font-bold">🎯 决策转盘</h1>
+                    <span id="countBadge" class="text-xs font-mono text-space-muted bg-space-600 border border-space-border px-2 py-1 rounded">0 项</span>
+                </div>
+
+                <!-- 选项输入 -->
+                <div class="mb-4">
+                    <textarea id="optionsInput" rows="5" placeholder="每行一个选项，例如：&#10;吃火锅&#10;吃日料&#10;吃烧烤" class="w-full bg-space-900 border border-space-border rounded-md px-3 py-2 text-sm outline-none focus:border-glow-blue font-mono resize-y" spellcheck="false"></textarea>
+                    <div class="flex gap-2 mt-2">
+                        <button id="updateBtn" class="bg-glow-blue/20 text-glow-blue border border-glow-blue/50 px-3 py-1.5 rounded-md text-sm hover:bg-glow-blue/30 transition">🔄 更新转盘</button>
+                        <button id="clearBtn" class="bg-glow-pink/20 text-glow-pink border border-glow-pink/50 px-3 py-1.5 rounded-md text-sm hover:bg-glow-pink/30 transition">🗑 清除选项</button>
+                        <button id="examplesBtn" class="bg-space-600 border border-space-border px-3 py-1.5 rounded-md text-sm hover:border-glow-blue transition text-space-muted">💡 示例</button>
+                    </div>
+                </div>
+
+                <!-- 转盘 -->
+                <div class="flex flex-col items-center mb-4">
+                    <div class="wheel-wrap" id="wheelWrap">
+                        <canvas id="wheel" width="320" height="320" class="rounded-full shadow-2xl"></canvas>
+                    </div>
+                    <button id="spinBtn" class="mt-4 bg-glow-green/20 text-glow-green border border-glow-green/50 rounded-lg px-10 py-3 font-bold hover:bg-glow-green/30 transition disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-glow-green/20">🎰 转动</button>
+                </div>
+
+                <!-- 结果 -->
+                <div id="result" class="hidden mb-4 p-4 bg-space-800 border border-glow-blue/50 rounded-lg text-center">
+                    <p class="text-xs text-space-muted mb-1 font-mono uppercase tracking-wider">🎉 决策结果</p>
+                    <p id="resultText" class="text-2xl font-bold text-glow-blue"></p>
+                </div>
+
+                <!-- 选项列表 -->
+                <div id="optionsList" class="space-y-2 max-h-48 overflow-y-auto pr-1"></div>
+
+                <p class="text-xs text-space-muted mt-6 text-center">点击“转动”随机选中一个选项 · 支持键盘 <kbd class="px-1 py-0.5 bg-space-600 border border-space-border rounded text-[10px]">Space</kbd> 快捷转动</p>
+            </div>
+        </div>
+    </main>
+
+    <div id="toast" class="toast fixed bottom-6 left-1/2 -translate-x-1/2 bg-space-800 border border-space-border px-4 py-2 rounded-lg shadow-xl opacity-0 pointer-events-none z-50 text-sm translate-y-2"></div>
+
+    <script>
+        // decision spinner
+        const STORAGE_KEY = 'lunar_spinner_v1';
+
+        const EXAMPLES = [
+            ['吃火锅', '吃日料', '吃烧烤', '吃拉面'],
+            ['健身', '看电影', '打游戏', '读书'],
+            ['A 方案', 'B 方案', 'C 方案'],
+            ['周一', '周二', '周三', '周四', '周五'],
+        ];
+
+        let options = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+        if (!Array.isArray(options) || options.length === 0) {
+            options = EXAMPLES[0];
+        }
+
+        let rotation = 0;
+        let spinning = false;
+        let winnerIdx = -1;
+
+        const canvas = document.getElementById('wheel');
+        const ctx = canvas.getContext('2d');
+        const input = document.getElementById('optionsInput');
+        const spinBtn = document.getElementById('spinBtn');
+        const resultEl = document.getElementById('result');
+        const resultText = document.getElementById('resultText');
+        const optionsListEl = document.getElementById('optionsList');
+        const countBadge = document.getElementById('countBadge');
+
+        function save() {
+            try { localStorage.setItem(STORAGE_KEY, JSON.stringify(options)); } catch {}
+        }
+
+        function readFromInput() {
+            return input.value.split('\n').map(s => s.trim()).filter(Boolean);
+        }
+
+        function writeToInput() {
+            input.value = options.join('\n');
+        }
+
+        function escapeHtml(s) {
+            return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+        }
+
+        function drawWheel() {
+            const size = canvas.width;
+            const cx = size / 2;
+            const cy = size / 2;
+            const radius = size / 2 - 6;
+            ctx.clearRect(0, 0, size, size);
+
+            const n = options.length;
+
+            if (n === 0) {
+                // 空占位
+                ctx.beginPath();
+                ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+                ctx.fillStyle = '#161b22';
+                ctx.fill();
+                ctx.strokeStyle = '#30363d';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // 虚线内圈
+                ctx.beginPath();
+                ctx.arc(cx, cy, radius - 12, 0, Math.PI * 2);
+                ctx.setLineDash([4, 6]);
+                ctx.strokeStyle = '#21262d';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                ctx.fillStyle = '#8b949e';
+                ctx.font = '500 13px Inter, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('输入选项后', cx, cy - 8);
+                ctx.fillText('点击「更新转盘」', cx, cy + 10);
+            } else {
+                const seg = (Math.PI * 2) / n;
+
+                ctx.save();
+                ctx.translate(cx, cy);
+                ctx.rotate(rotation);
+
+                for (let i = 0; i < n; i++) {
+                    const hue = (i * 360 / n + 20) % 360;
+                    ctx.beginPath();
+                    ctx.moveTo(0, 0);
+                    ctx.arc(0, 0, radius, i * seg, (i + 1) * seg);
+                    ctx.closePath();
+                    ctx.fillStyle = `hsl(${hue}, 68%, 50%)`;
+                    ctx.fill();
+                    ctx.strokeStyle = '#010409';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                }
+
+                // 扇区外圈描边
+                ctx.beginPath();
+                ctx.arc(0, 0, radius, 0, Math.PI * 2);
+                ctx.strokeStyle = '#21262d';
+                ctx.lineWidth = 4;
+                ctx.stroke();
+
+                // 扇区标签（超过 12 项就不画）
+                if (n <= 12) {
+                    for (let i = 0; i < n; i++) {
+                        ctx.save();
+                        ctx.rotate(i * seg + seg / 2);
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillStyle = '#f0f6fc';
+                        const fontSize = n <= 4 ? 16 : n <= 8 ? 13 : n <= 10 ? 11 : 10;
+                        ctx.font = `600 ${fontSize}px Inter, sans-serif`;
+                        let text = options[i];
+                        const maxChars = n <= 4 ? 14 : n <= 8 ? 10 : 7;
+                        if (text.length > maxChars) text = text.slice(0, maxChars - 1) + '…';
+                        ctx.fillText(text, radius * 0.58, 0);
+                        ctx.restore();
+                    }
+                }
+
+                ctx.restore();
+            }
+
+            // 中心圆盘
+            ctx.beginPath();
+            ctx.arc(cx, cy, 22, 0, Math.PI * 2);
+            ctx.fillStyle = '#21262d';
+            ctx.fill();
+            ctx.strokeStyle = '#30363d';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // 中心光点
+            ctx.beginPath();
+            ctx.arc(cx, cy, 8, 0, Math.PI * 2);
+            ctx.fillStyle = '#58a6ff';
+            ctx.fill();
+
+            // 顶部指针
+            ctx.beginPath();
+            ctx.moveTo(cx - 14, 4);
+            ctx.lineTo(cx + 14, 4);
+            ctx.lineTo(cx, 32);
+            ctx.closePath();
+            ctx.fillStyle = '#da3633';
+            ctx.fill();
+            ctx.strokeStyle = '#010409';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+        }
+
+        function spin() {
+            if (spinning) return;
+            if (options.length === 0) {
+                showToast('⚠️ 请先添加选项');
+                return;
+            }
+
+            const n = options.length;
+            const targetIdx = Math.floor(Math.random() * n);
+            const seg = (Math.PI * 2) / n;
+            const pointerAngle = -Math.PI / 2; // 顶部指针位置
+            // 让指针落在目标扇区中偏一点（不要正好压中分割线，感觉更真实）
+            const jitter = (Math.random() - 0.5) * seg * 0.6;
+            let targetR = pointerAngle - targetIdx * seg - seg / 2 + jitter;
+            const extraTurns = 5 + Math.floor(Math.random() * 4);
+            targetR += extraTurns * Math.PI * 2;
+            while (targetR < rotation) targetR += Math.PI * 2;
+
+            const startR = rotation;
+            const duration = 3600;
+            const startTime = performance.now();
+            spinning = true;
+            spinBtn.disabled = true;
+            spinBtn.textContent = '🎰 转动中…';
+            resultEl.classList.add('hidden');
+            document.getElementById('wheelWrap').classList.remove('spin-glow');
+            winnerIdx = -1;
+            renderOptionsList();
+
+            function animate(now) {
+                const t = Math.min(1, (now - startTime) / duration);
+                // easeOutCubic：越到后面越慢
+                const eased = 1 - Math.pow(1 - t, 3);
+                rotation = startR + (targetR - startR) * eased;
+                drawWheel();
+                if (t < 1) {
+                    requestAnimationFrame(animate);
+                } else {
+                    rotation = targetR;
+                    spinning = false;
+                    spinBtn.disabled = false;
+                    spinBtn.textContent = '🎰 转动';
+                    winnerIdx = targetIdx;
+                    resultText.textContent = options[targetIdx];
+                    resultEl.classList.remove('hidden');
+                    resultEl.classList.remove('result-pop');
+                    // 触发重播动画
+                    void resultEl.offsetWidth;
+                    resultEl.classList.add('result-pop');
+                    document.getElementById('wheelWrap').classList.add('spin-glow');
+                    renderOptionsList();
+                }
+            }
+            requestAnimationFrame(animate);
+        }
+
+        function updateOptions() {
+            options = readFromInput();
+            winnerIdx = -1;
+            resultEl.classList.add('hidden');
+            document.getElementById('wheelWrap').classList.remove('spin-glow');
+            drawWheel();
+            renderOptionsList();
+            save();
+        }
+
+        function clearOptions() {
+            options = [];
+            winnerIdx = -1;
+            resultEl.classList.add('hidden');
+            document.getElementById('wheelWrap').classList.remove('spin-glow');
+            writeToInput();
+            drawWheel();
+            renderOptionsList();
+            save();
+            showToast('已清除所有选项');
+        }
+
+        function loadExamples() {
+            const pick = EXAMPLES[Math.floor(Math.random() * EXAMPLES.length)];
+            options = [...pick];
+            winnerIdx = -1;
+            resultEl.classList.add('hidden');
+            writeToInput();
+            drawWheel();
+            renderOptionsList();
+            save();
+        }
+
+        function renderOptionsList() {
+            countBadge.textContent = `${options.length} 项`;
+            if (options.length === 0) {
+                optionsListEl.innerHTML = '';
+                return;
+            }
+            optionsListEl.innerHTML = options.map((o, i) => {
+                const isWinner = i === winnerIdx;
+                return `
+                    <div class="option-item flex items-center justify-between p-2 border rounded-md ${isWinner ? 'winner' : 'border-space-border bg-space-800'}">
+                        <span class="text-sm truncate pr-2">${escapeHtml(o)}</span>
+                        <span class="text-xs font-mono ${isWinner ? 'text-glow-blue font-bold' : 'text-space-muted'} whitespace-nowrap">
+                            ${isWinner ? '🎯 选中' : `#${i + 1}`}
+                        </span>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        let toastTimer = null;
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.classList.remove('opacity-0', 'translate-y-2');
+            toast.classList.add('opacity-100');
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                toast.classList.remove('opacity-100');
+            }, 1600);
+        }
+
+        spinBtn.addEventListener('click', spin);
+        document.getElementById('updateBtn').addEventListener('click', updateOptions);
+        document.getElementById('clearBtn').addEventListener('click', clearOptions);
+        document.getElementById('examplesBtn').addEventListener('click', loadExamples);
+
+        // 键盘：Space 快捷转动
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' && e.target.tagName !== 'TEXTAREA' && e.target.tagName !== 'INPUT') {
+                e.preventDefault();
+                spin();
+            }
+        });
+
+        // 初始化
+        writeToInput();
+        drawWheel();
+        renderOptionsList();
+    </script>
+</body>
+</html>

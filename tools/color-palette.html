@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎨 调色板</title>
+    <meta name="description" content="随机生成和谐的配色方案，支持锁定颜色与一键复制 HEX。">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        space: { 900: '#010409', 800: '#0d1117', 700: '#161b22', 600: '#21262d', border: '#30363d', text: '#f0f6fc', muted: '#8b949e' },
+                        glow: { purple: '#8957e5', blue: '#58a6ff', pink: '#da3633', green: '#3fb950' }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Helvetica', 'Arial', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        * { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+        .color-card { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+        .color-card:hover { transform: translateY(-4px); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .color-card:active { transform: translateY(-1px); }
+        .swatch { position: relative; transition: filter 0.2s; }
+        .color-card:hover .swatch { filter: brightness(1.05); }
+        .mode-btn { padding: 6px 14px; font-size: 12px; border-radius: 9999px; border: 1px solid #30363d; background: #21262d; color: #8b949e; transition: all 0.15s; cursor: pointer; }
+        .mode-btn:hover { border-color: #58a6ff; color: #f0f6fc; }
+        .mode-btn.active { background: rgba(88, 166, 255, 0.18); border-color: #58a6ff; color: #58a6ff; }
+        .lock-btn { background: rgba(1, 4, 9, 0.55); backdrop-filter: blur(4px); }
+        .lock-btn:hover { background: rgba(1, 4, 9, 0.75); }
+        .toast { transition: opacity 0.25s ease, transform 0.25s ease; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
+    </style>
+</head>
+<body class="bg-space-900 text-space-text font-sans antialiased min-h-screen flex flex-col">
+    <main class="flex-1 flex flex-col items-center justify-start w-full p-4 md:p-6">
+        <div class="w-full max-w-4xl">
+            <p class="text-xs text-space-muted font-mono uppercase tracking-wider mb-2">// color palette</p>
+            <div class="bg-space-700 border border-space-border rounded-xl p-6 shadow-2xl">
+                <div class="flex items-center justify-between mb-6">
+                    <h1 class="text-2xl font-bold">🎨 调色板</h1>
+                    <button id="copyAllBtn" class="bg-space-600 border border-space-border rounded-md px-3 py-1.5 text-xs hover:border-glow-blue hover:text-glow-blue transition">📋 复制全部 HEX</button>
+                </div>
+
+                <!-- 配色策略 -->
+                <div class="flex flex-wrap gap-2 mb-4">
+                    <button data-mode="random" class="mode-btn active">🎲 随机</button>
+                    <button data-mode="analogous" class="mode-btn">🌈 类似色</button>
+                    <button data-mode="complementary" class="mode-btn">⚡ 互补色</button>
+                    <button data-mode="triadic" class="mode-btn">🔺 三色组</button>
+                    <button data-mode="mono" class="mode-btn">🎚 单色调</button>
+                </div>
+
+                <!-- 主操作 -->
+                <button id="generateBtn" class="w-full bg-glow-green/20 text-glow-green border border-glow-green/50 rounded-lg py-3 font-bold hover:bg-glow-green/30 transition mb-6">🎲 生成色板</button>
+
+                <!-- 色卡 -->
+                <div id="palette" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3"></div>
+
+                <p class="text-xs text-space-muted mt-6 text-center">点击色块复制 HEX · 点击 🔒 锁定颜色，生成时保持不变</p>
+            </div>
+        </div>
+    </main>
+
+    <div id="toast" class="toast fixed bottom-6 left-1/2 -translate-x-1/2 bg-space-800 border border-space-border px-4 py-2 rounded-lg shadow-xl opacity-0 pointer-events-none z-50 text-sm translate-y-2"></div>
+
+    <script>
+        // color palette
+        const STORAGE_KEY = 'lunar_palette_v1';
+
+        let mode = 'random';
+        let palette = [
+            { hex: '#8957e5', locked: false },
+            { hex: '#58a6ff', locked: false },
+            { hex: '#da3633', locked: false },
+            { hex: '#3fb950', locked: false },
+            { hex: '#f0f6fc', locked: false },
+        ];
+
+        // HSL -> HEX
+        function hslToHex(h, s, l) {
+            h = ((h % 360) + 360) % 360;
+            s = Math.max(0, Math.min(100, s)) / 100;
+            l = Math.max(0, Math.min(100, l)) / 100;
+            const c = (1 - Math.abs(2 * l - 1)) * s;
+            const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+            const m = l - c / 2;
+            let r, g, b;
+            if (h < 60)       { r = c; g = x; b = 0; }
+            else if (h < 120) { r = x; g = c; b = 0; }
+            else if (h < 180) { r = 0; g = c; b = x; }
+            else if (h < 240) { r = 0; g = x; b = c; }
+            else if (h < 300) { r = x; g = 0; b = c; }
+            else              { r = c; g = 0; b = x; }
+            return '#' + [r, g, b]
+                .map(v => Math.round((v + m) * 255).toString(16).padStart(2, '0'))
+                .join('').toUpperCase();
+        }
+
+        function hexToRgb(hex) {
+            const clean = hex.replace('#', '');
+            return {
+                r: parseInt(clean.slice(0, 2), 16),
+                g: parseInt(clean.slice(2, 4), 16),
+                b: parseInt(clean.slice(4, 6), 16),
+            };
+        }
+
+        function generatePalette() {
+            const baseHue = Math.random() * 360;
+            for (let i = 0; i < palette.length; i++) {
+                if (palette[i].locked) continue;
+                let h, s, l;
+                if (mode === 'random') {
+                    h = Math.random() * 360;
+                    s = 55 + Math.random() * 30;
+                    l = 42 + Math.random() * 22;
+                } else if (mode === 'analogous') {
+                    h = baseHue + (i - 2) * 22;
+                    s = 55 + Math.random() * 25;
+                    l = 40 + Math.random() * 25;
+                } else if (mode === 'complementary') {
+                    const isAlt = i % 2;
+                    h = baseHue + (isAlt ? 180 : 0) + i * 8;
+                    s = 55 + Math.random() * 25;
+                    l = 42 + Math.random() * 22;
+                } else if (mode === 'triadic') {
+                    h = baseHue + (i % 3) * 120 + (i >= 3 ? 40 : 0);
+                    s = 55 + Math.random() * 25;
+                    l = 42 + Math.random() * 22;
+                } else if (mode === 'mono') {
+                    h = baseHue + (i - 2) * 6;
+                    s = 45 + i * 6 + Math.random() * 10;
+                    l = 28 + i * 15;
+                }
+                palette[i] = { hex: hslToHex(h, s, l), locked: false };
+            }
+            save();
+            render();
+        }
+
+        function toggleLock(i) {
+            palette[i].locked = !palette[i].locked;
+            save();
+            render();
+        }
+
+        function copyHex(hex) {
+            navigator.clipboard.writeText(hex)
+                .then(() => showToast(`已复制 ${hex}`))
+                .catch(() => fallbackCopy(hex));
+        }
+
+        function copyAll() {
+            const text = palette.map(c => c.hex).join('\n');
+            navigator.clipboard.writeText(text)
+                .then(() => showToast('✅ 已复制全部 5 个 HEX'))
+                .catch(() => fallbackCopy(text));
+        }
+
+        function fallbackCopy(text) {
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            try {
+                document.execCommand('copy');
+                showToast(text.length > 12 ? '✅ 已复制' : `已复制 ${text}`);
+            } catch {
+                showToast('❌ 复制失败，请手动复制');
+            }
+            document.body.removeChild(ta);
+        }
+
+        let toastTimer = null;
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.classList.remove('opacity-0', 'translate-y-2');
+            toast.classList.add('opacity-100');
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                toast.classList.remove('opacity-100');
+            }, 1600);
+        }
+
+        function save() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify({ mode, palette }));
+            } catch {}
+        }
+
+        function load() {
+            try {
+                const data = JSON.parse(localStorage.getItem(STORAGE_KEY));
+                if (data) {
+                    if (typeof data.mode === 'string') mode = data.mode;
+                    if (Array.isArray(data.palette) && data.palette.length === 5) {
+                        palette = data.palette.map(c => {
+                            let hex = String(c.hex || '#888888').toUpperCase();
+                            if (!hex.startsWith('#')) hex = '#' + hex;
+                            if (hex.length !== 7 || !/^#[0-9A-F]{6}$/.test(hex)) hex = '#888888';
+                            return { hex, locked: !!c.locked };
+                        });
+                    }
+                }
+            } catch {}
+        }
+
+        function render() {
+            const el = document.getElementById('palette');
+            el.innerHTML = palette.map((c, i) => {
+                const rgb = hexToRgb(c.hex);
+                return `
+                    <div class="color-card bg-space-800 border border-space-border rounded-lg overflow-hidden cursor-pointer select-none" onclick="copyHex('${c.hex}')">
+                        <div class="swatch h-24 flex items-start justify-end p-2" style="background-color: ${c.hex}">
+                            <button onclick="event.stopPropagation(); toggleLock(${i})" class="lock-btn w-8 h-8 rounded-md flex items-center justify-center text-base transition ${c.locked ? 'text-glow-blue' : 'text-white/70 hover:text-white'}" title="${c.locked ? '解锁' : '锁定'}">
+                                ${c.locked ? '🔒' : '🔓'}
+                            </button>
+                        </div>
+                        <div class="p-3">
+                            <div class="font-mono font-bold text-sm text-glow-blue tracking-wide">${c.hex}</div>
+                            <div class="font-mono text-[11px] text-space-muted mt-1">rgb(${rgb.r}, ${rgb.g}, ${rgb.b})</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.mode === mode);
+            });
+        }
+
+        document.getElementById('generateBtn').addEventListener('click', generatePalette);
+        document.getElementById('copyAllBtn').addEventListener('click', copyAll);
+        document.querySelectorAll('.mode-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                mode = btn.dataset.mode;
+                save();
+                render();
+            });
+        });
+
+        // 空格键快速生成
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' && e.target.tagName !== 'TEXTAREA' && e.target.tagName !== 'INPUT') {
+                e.preventDefault();
+                generatePalette();
+            }
+        });
+
+        load();
+        render();
+    </script>
+</body>
+</html>

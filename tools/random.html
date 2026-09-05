@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎲 随机数生成器</title>
+    <meta name="description" content="在指定区间生成批量随机整数，支持一键复制。">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        space: { 900: '#010409', 800: '#0d1117', 700: '#161b22', 600: '#21262d', border: '#30363d', text: '#f0f6fc', muted: '#8b949e' },
+                        glow: { purple: '#8957e5', blue: '#58a6ff', pink: '#da3633', green: '#3fb950' }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Helvetica', 'Arial', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        * { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+        .chip { transition: all 0.15s; }
+        .chip:hover { border-color: #8957e5; color: #f0f6fc; }
+        input[type=number]::-webkit-outer-spin-button,
+        input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number] { -moz-appearance: textfield; }
+        .fade-in { animation: fade 0.25s ease-out; }
+        @keyframes fade { from { opacity: 0; transform: translateY(2px); } to { opacity: 1; transform: none; } }
+    </style>
+</head>
+<body class="bg-space-900 text-space-text font-sans antialiased min-h-screen flex flex-col">
+    <main class="flex-1 flex flex-col items-center justify-start w-full p-4 md:p-6">
+        <div class="w-full max-w-lg">
+            <p class="text-xs text-space-muted font-mono uppercase tracking-wider mb-2">// random</p>
+            <h1 class="text-xl font-semibold mb-4">🎲 随机数生成器</h1>
+
+            <div class="bg-space-700 border border-space-border rounded-xl p-6 shadow-2xl">
+                <!-- 参数设置 -->
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                    <label class="block">
+                        <span class="text-xs text-space-muted">最小值</span>
+                        <input type="number" id="min" value="1" class="w-full bg-space-900 border border-space-border rounded-md px-3 py-2 mt-1 outline-none focus:border-glow-blue text-sm font-mono">
+                    </label>
+                    <label class="block">
+                        <span class="text-xs text-space-muted">最大值</span>
+                        <input type="number" id="max" value="100" class="w-full bg-space-900 border border-space-border rounded-md px-3 py-2 mt-1 outline-none focus:border-glow-blue text-sm font-mono">
+                    </label>
+                </div>
+                <label class="block mb-5">
+                    <span class="text-xs text-space-muted">生成数量（1~100）</span>
+                    <input type="number" id="count" value="10" min="1" max="100" class="w-full bg-space-900 border border-space-border rounded-md px-3 py-2 mt-1 outline-none focus:border-glow-blue text-sm font-mono">
+                </label>
+
+                <!-- 操作按钮 -->
+                <div class="grid grid-cols-3 gap-3">
+                    <button onclick="generate()" class="bg-glow-green/20 text-glow-green border border-glow-green/50 rounded-md py-2 text-sm font-medium hover:bg-glow-green/30">生成</button>
+                    <button onclick="copyResults()" id="copyBtn" class="bg-glow-blue/20 text-glow-blue border border-glow-blue/50 rounded-md py-2 text-sm font-medium hover:bg-glow-blue/30">复制</button>
+                    <button onclick="clearResults()" class="bg-glow-pink/20 text-glow-pink border border-glow-pink/50 rounded-md py-2 text-sm font-medium hover:bg-glow-pink/30">清空</button>
+                </div>
+
+                <!-- 提示 / 结果 -->
+                <div id="hint" class="text-xs text-space-muted mt-4 h-4"></div>
+
+                <div id="result" class="mt-2 max-h-72 overflow-y-auto"></div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const STORAGE_KEY = 'lunar_random';
+        let results = [];
+
+        const $min = document.getElementById('min');
+        const $max = document.getElementById('max');
+        const $count = document.getElementById('count');
+        const $result = document.getElementById('result');
+        const $hint = document.getElementById('hint');
+        const $copyBtn = document.getElementById('copyBtn');
+
+        // 页面载入时恢复上次生成的结果
+        try {
+            const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+            if (Array.isArray(saved)) results = saved;
+        } catch {}
+        render();
+
+        function showError(msg) {
+            $hint.textContent = msg;
+            $hint.classList.remove('text-space-muted');
+            $hint.classList.add('text-glow-pink');
+        }
+        function showInfo(msg) {
+            $hint.textContent = msg;
+            $hint.classList.remove('text-glow-pink');
+            $hint.classList.add('text-space-muted');
+        }
+
+        function save() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(results));
+        }
+
+        function generate() {
+            const min = parseInt($min.value, 10);
+            const max = parseInt($max.value, 10);
+            const count = parseInt($count.value, 10);
+
+            if (isNaN(min) || isNaN(max)) return showError('请填写有效的最小值 / 最大值');
+            if (isNaN(count) || count < 1) return showError('数量至少为 1');
+            if (count > 100) return showError('数量最多 100');
+            if (min > max) return showError('最小值不能大于最大值');
+
+            const range = max - min + 1;
+            if (count > range) return showError(`区间内只有 ${range} 个整数，无法无重复生成 ${count} 个`);
+            if (range > 1000000) return showError('区间过大（上限 100 万），请缩小范围');
+
+            // 采用洗牌抽样保证无重复
+            const pool = Array.from({ length: range }, (_, i) => min + i);
+            for (let i = pool.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [pool[i], pool[j]] = [pool[j], pool[i]];
+            }
+            results = pool.slice(0, count);
+            save();
+            render();
+            showInfo(`已生成 ${results.length} 个随机整数`);
+        }
+
+        function clearResults() {
+            results = [];
+            save();
+            render();
+            showInfo('已清空');
+        }
+
+        function render() {
+            if (!results.length) {
+                $result.innerHTML = '<div class="text-center text-xs text-space-muted py-8 border border-dashed border-space-border rounded-md">点击「生成」开始</div>';
+                return;
+            }
+            $result.classList.add('fade-in');
+            $result.innerHTML = results.map(n =>
+                `<span class="chip inline-block bg-space-900 border border-space-border text-glow-purple rounded-md px-3 py-1.5 text-sm font-mono m-1">${n}</span>`
+            ).join('');
+        }
+
+        async function copyResults() {
+            if (!results.length) return showError('还没有可复制的结果');
+            const text = results.join(' ');
+            const ok = await copyToClipboard(text);
+            if (ok) {
+                $hint.textContent = `已复制 ${results.length} 个数字`;
+                $hint.classList.remove('text-glow-pink');
+                $copyBtn.textContent = '已复制 ✓';
+                setTimeout(() => { $copyBtn.textContent = '复制'; }, 1200);
+            } else {
+                showError('复制失败，请手动选择文本');
+            }
+        }
+
+        // 兼容非安全上下文（file:// / 本地访问）
+        async function copyToClipboard(text) {
+            try {
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(text);
+                    return true;
+                }
+            } catch {}
+            try {
+                const ta = document.createElement('textarea');
+                ta.value = text;
+                ta.style.position = 'fixed';
+                ta.style.opacity = '0';
+                document.body.appendChild(ta);
+                ta.select();
+                const ok = document.execCommand('copy');
+                document.body.removeChild(ta);
+                return ok;
+            } catch {
+                return false;
+            }
+        }
+    </script>
+</body>
+</html>
