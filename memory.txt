@@ -1,0 +1,158 @@
+lunarHope GitHub Pages — Project Memory
+=========================================
+
+Last updated: 2026-09-05
+
+## What this project is
+A personal GitHub Pages site built with plain HTML, Tailwind CSS (CDN), and vanilla JavaScript.
+It has a dark "space" theme with an optional light mode.
+
+## Key pages
+- index.html         — Home / landing page
+- explore.html       — Unified content hub (posts + tools + resources)
+- publish.html       — Creator Studio (write/publish posts and tools)
+- view.html          — Reader / tool launcher (view.html?type=post|tool&app=<file>);
+                       sole tool launcher now that tools/use.html is gone
+- blog/index.html    — Redirects to explore.html#posts (legacy)
+- tools/index.html   — Redirects to explore.html#tools (legacy)
+- find.html          — Bluetooth school uniform distance tool
+- jump.html          — "Jump Jump" game
+
+## Vocabulary (UI labels — keep these consistent)
+- Post / Posts     — blog content. Retired words: "Blog", "Blog post", "Article"
+- Tool / Tools
+- Resource / Resources
+- Explore          — the content hub page (explore.html); tabs are All / Posts / Tools / Resources
+- Creator Studio   — publish.html (its two type tabs are "Post" and "Tool")
+- Back link label  — always "Back to Explore", whether you came from a post or a tool
+- index.html's Cmd+K spotlight entries mirror the Explore tabs: All, Posts, Tools
+- Routes and file names were NOT renamed: /blog/ and /tools/ still redirect, and
+  blog/read.html?slug= still works as a legacy reader. Only visible labels changed.
+
+
+## Data files (data/*.json)
+- data/posts.json        — Post metadata, GENERATED from blog/posts/*.md frontmatter
+  - Field order: title, author?, date?, tags, excerpt?, slug, url
+    (same shape publish.html writes, so the two writers cannot drift)
+  - url is always view.html?type=post&slug=<slug>
+  - excerpt = first prose paragraph of the .md body, capped at 150 chars;
+    explore.html shows it as the card description
+  - Written by .github/scripts/generate-posts.js — never edit it by hand
+- data/tools.json        — Web tool metadata, one entry per file in tools/
+  - Fixed 8-field schema, in this order in every entry:
+      name, desc, author, url, emoji, status, lang, langColor
+  - Shared defaults: author "lunarHope", status "Live", lang "HTML", langColor "#e34c26"
+  - desc must say what the code really does — never a promise the implementation
+    does not keep; emoji is a real emoji, never a bare letter; url must resolve
+    to a file directly inside tools/
+  - Live tools: ke-biao.html, zhan-shu.html, sao-lei.html, c-u-t.html,
+    calculator.html, todo.html, snake.html, tomato.html
+  - tools/weather.html (hardcoded demo stub; its "global forecast" desc was never
+    implemented) and tools/use.html (superseded by view.html) were deleted
+  - The tactical shooter was renamed "po- -men- -er- -ru- -h-t-m-l.html" -> zhan-shu.html
+- data/resources.json    — Downloadable resources metadata
+- data/drafts.json       — Draft posts/tools
+
+## Resources module
+- resources/ folder contains downloadable files
+- data/resources.json lists them (name, desc, file, size, type, date, tags)
+- explore.html renders them as download cards
+- When adding new resources:
+  1. Put the file under resources/
+  2. Add an entry in data/resources.json
+  3. Run `python generate_local_data.py` to refresh local-data.js
+
+## Theme system
+- theme.css          — Light-mode overrides
+- theme-toggle.js    — Theme toggle (dark/light), stored in localStorage
+- Every page includes theme.css + theme-toggle.js — EXCEPT tools/*.html, see below
+- Default follows system preference, manual choice is remembered
+
+
+## Tools (tools/*.html)
+- Dark-only. They include neither theme.css, theme-toggle.js nor local-data.js
+  (nothing in tools/ calls loadLocalData, so the ~28 KB snapshot was dead weight).
+- Why no theme: a tool runs inside view.html's iframe, so theme-toggle.js would append
+  its own floating toggle to the iframe and theme its own <html> independently of the
+  parent page. theme.css also overrides 199 selectors but skips opacity variants
+  (bg-glow-green/20, border-glow-blue/50, hover:bg-glow-pink/30 ...), so a tool in
+  light mode rendered half-converted. The parent page owns the theme.
+- A back link inside a tool MUST use target="_top": without it the iframe navigates to
+  explore.html, which lists tools, which open view.html, which opens another iframe —
+  infinite nesting.
+- Otherwise self-contained: each file keeps its own <style> and inline <script>. The four
+  small tools (c-u-t, calculator, todo, tomato) use the Tailwind CDN plus the shared
+  tailwind.config block (space-* / glow-* tokens), with no hardcoded hex outside it.
+
+## Design system (shared visual language)
+- index.html is the reference style; explore.html and publish.html mirror it
+- Shared classes each page defines in its own <style>:
+  - .spotlight-card — hover-follow radial highlight (needs the mousemove --mouse-x/--mouse-y JS)
+  - .text-gradient / .text-gradient-glow
+  - .reveal — scroll-in animation (IntersectionObserver adds .active)
+  - .tab-btn — pill tab (explore.html holds the original definition)
+- Shared layout: fixed blurred header, max-w-7xl container, floating glow blobs
+  (bg-glow-purple/20 + bg-glow-blue/20 with blur-[120px] + animate-float) and the 24px grid
+- Icons are inline stroke SVGs (Heroicons outline). Emoji are data only (tool emoji field)
+  or brand glyphs (footer heart, theme toggle, terminal arrow)
+- publish.html additionally defines .seg-btn (segmented control), .draft-card and .spinner
+- publish.html .reveal uses an .armed state: an element is hidden only after JS arms it,
+  so content stays visible if the script never runs
+
+## Local file:// support
+- Two files, on purpose:
+    - local-data.js      — GENERATED. A single global, `window.__localStore`, holding
+      data/*.json only. Never hand-edit. ~22 KB at 37 posts.
+    - local-loaders.js   — HAND-MAINTAINED, ~2 KB. Defines __normalizeLocalKey,
+      window.loadLocalData and window.loadLocalText.
+- Pages include ONLY what they use:
+    - reads the store (index, explore, publish, view): both scripts, loaders first
+    - calls loadLocalText only (blog/read.html): local-loaders.js alone — that is why
+      read.html loads ~14 KB of local JS instead of ~36 KB
+    - calls nothing (find, jump, every page in tools/): neither script
+- Splitting them is what keeps the ~22 KB index off pages that never read it.
+  loadLocalData looks window.__localStore up at call time, so a page missing the store
+  script just falls through to fetch().
+- Post bodies (blog/posts/*.md) are always fetched, so reading a post needs a local
+  server even for file://: `python -m http.server 8000`. view.html and blog/read.html
+  show an "Offline" panel with that command instead of a misleading 404.
+- Rationale: embedding every post body pushed local-data.js to ~214 KB at 37 posts,
+  and that file is loaded by every page on the site.
+- window.loadLocalData reads JSON from the embedded store under file://;
+  window.loadLocalText is a plain fetch with no local store to look up.
+- Both loaders work over http:// and file://; only the store lookup is file://-specific
+- The GitHub Actions workflow runs this script too and commits local-data.js, so
+  published content shows up offline as well; local-only edits still need a manual run
+- Regenerate local-data.js after changing any data/*.json file:
+  `python generate_local_data.py`
+- For full dynamic behavior (GitHub API publish/delete), a local server is still recommended:
+  `python -m http.server 8000`
+
+## Unified Explore page (explore.html)
+- Merges Posts + Tools + Resources into one page
+- Features:
+  - Type filter: All / Posts / Tools / Resources
+  - Tag filter chips
+  - Search by title/description/tag
+  - Sort newest / A-Z
+  - Push/update mechanism: detects new content since last visit and shows a banner
+  - Download cards for resources
+- Legacy /blog/ and /tools/ redirect to explore.html anchors
+
+## Path conventions
+- Use relative links (no leading "/") so file:// works
+- Root pages: `explore.html`, `tools/index.html`, etc.
+- Subdirectory pages: prefix `../` when linking to root files
+- GitHub API paths (ghFetch('/contents/...')) must stay absolute
+
+## Git / GitHub Actions
+- .github/workflows/generate-posts.yml auto-generates data/posts.json
+- .github/scripts/generate-posts.js scans blog/posts/*.md and parses YAML frontmatter
+  (title, author, date, tags) plus the first prose paragraph as the excerpt
+- It exits 1 without writing when no posts are found, so an empty index can never
+  be committed by accident (the old version silently produced {"posts": []})
+- The workflow also runs `python3 generate_local_data.py`, so the file:// snapshot
+  is committed together with data/posts.json
+- Triggers on blog/posts/*.md, blog/posts/*.html, the script, the workflow and
+  generate_local_data.py; workflow_dispatch also works
+- Keep memory.txt updated when making structural changes

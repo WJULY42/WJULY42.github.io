@@ -1,0 +1,370 @@
+/* Light mode theme overrides for lunarHope */
+html.light {
+  --space-900: #f6f8fa;
+  --space-800: #ffffff;
+  --space-700: #e9edf1;
+  --space-600: #d0d7de;
+  --space-border: #d8dee4;
+  --space-text: #1f2328;
+  --space-muted: #57606a;
+  --glow-purple: #7c3aed;
+  --glow-blue: #2563eb;
+  --glow-pink: #dc2626;
+  --glow-green: #059669;
+}
+
+html.light body {
+  background-color: #ffffff !important;
+  color: #1f2328 !important;
+}
+
+/* Common Tailwind utility overrides used across the site */
+html.light .bg-space-900,
+html.light .bg-space-900\/60,
+html.light .bg-space-900\/80,
+html.light .bg-space-900\/95 {
+  background-color: #f6f8fa !important;
+}
+
+html.light .bg-space-800,
+html.light .bg-space-800\/50,
+html.light .bg-space-800\/80 {
+  background-color: #ffffff !important;
+}
+
+html.light .bg-space-700,
+html.light .bg-space-700\/50 {
+  background-color: #e9edf1 !important;
+}
+
+html.light .bg-space-600 {
+  background-color: #d0d7de !important;
+}
+
+html.light .text-space-text {
+  color: #1f2328 !important;
+}
+
+html.light .text-space-muted {
+  color: #57606a !important;
+}
+
+html.light .border-space-border {
+  border-color: #d8dee4 !important;
+}
+
+html.light .border-white\/5 {
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+html.light .text-glow-purple {
+  color: #7c3aed !important;
+}
+
+html.light .text-glow-blue {
+  color: #2563eb !important;
+}
+
+html.light .text-glow-green {
+  color: #059669 !important;
+}
+
+html.light .text-glow-pink {
+  color: #dc2626 !important;
+}
+
+/* Header */
+html.light header,
+html.light .topnav {
+  background-color: rgba(255, 255, 255, 0.85) !important;
+  border-color: #d8dee4 !important;
+}
+
+/* Cards / panels */
+html.light .spotlight-card,
+html.light .card,
+html.light .bg-space-800.rounded-lg,
+html.light .bg-space-800.rounded-xl,
+html.light .bg-space-800.rounded-2xl {
+  background-color: #ffffff !important;
+  border-color: #d8dee4 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+/* Spotlight */
+html.light .spotlight-card::before {
+  background: radial-gradient(800px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(124, 58, 237, 0.08), transparent 40%);
+}
+
+html.light #spotlight-panel {
+  background: #ffffff !important;
+  border-color: #d8dee4 !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+}
+
+html.light .spotlight-input {
+  color: #1f2328 !important;
+  border-bottom-color: #d8dee4 !important;
+}
+
+html.light .spotlight-input::placeholder,
+html.light .spotlight-group-title,
+html.light .spotlight-item-meta,
+html.light .spotlight-footer {
+  color: #57606a !important;
+}
+
+html.light .spotlight-item:hover,
+html.light .spotlight-item.selected {
+  background: #eef1f4 !important;
+}
+
+html.light .spotlight-item-icon,
+html.light .spotlight-footer kbd,
+html.light kbd {
+  background: #e9edf1 !important;
+  border-color: #d8dee4 !important;
+  color: #1f2328 !important;
+}
+
+/* Text gradients */
+html.light .text-gradient {
+  background: linear-gradient(135deg, #1f2328 0%, #57606a 50%, #1f2328 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  color: transparent !important;
+}
+
+html.light .text-gradient-glow {
+  background: linear-gradient(135deg, #2563eb 0%, #7c3aed 50%, #dc2626 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  color: transparent !important;
+  text-shadow: 0 0 30px rgba(124, 58, 237, 0.25);
+}
+
+/* Terminal */
+html.light .terminal-input,
+html.light .terminal-output,
+html.light .terminal-output p {
+  color: #1f2328 !important;
+}
+
+html.light .terminal-prompt,
+html.light .terminal-path {
+  color: #059669 !important;
+}
+
+/* Scrollbars */
+html.light ::-webkit-scrollbar-track {
+  background: #f6f8fa;
+}
+
+html.light ::-webkit-scrollbar-thumb {
+  background: #d0d7de;
+}
+
+/* ============ Standalone tool page overrides ============ */
+/* Common arbitrary Tailwind dark-color utilities used by small tools */
+html.light [class*="bg-[#010409]"] { background-color: #ffffff !important; }
+html.light [class*="bg-[#0d1117]"] { background-color: #f6f8fa !important; }
+html.light [class*="bg-[#161b22]"] { background-color: #ffffff !important; }
+html.light [class*="bg-[#21262d]"] { background-color: #e9edf1 !important; }
+html.light [class*="border-[#30363d]"] { border-color: #d8dee4 !important; }
+html.light [class*="text-[#58a6ff]"] { color: #2563eb !important; }
+html.light [class*="text-[#8b949e]"] { color: #57606a !important; }
+html.light [class*="text-[#3fb950]"] { color: #059669 !important; }
+html.light [class*="text-[#da3633]"] { color: #dc2626 !important; }
+html.light [class*="border-[#58a6ff]"] { border-color: #2563eb !important; }
+html.light [class*="hover:bg-[#30363d]"]:hover { background-color: #e9edf1 !important; }
+html.light [class*="hover:bg-[#161b22]"]:hover { background-color: #eef1f4 !important; }
+html.light [class*="bg-[#da3633]/"] { background-color: rgba(220, 38, 38, 0.15) !important; }
+
+html.light input,
+html.light textarea,
+html.light select {
+  color: #1f2328 !important;
+  background-color: #ffffff !important;
+  border-color: #d8dee4 !important;
+}
+
+/* Markdown content (view.html / blog/read.html) */
+html.light .markdown-body {
+  color: #1f2328 !important;
+}
+
+html.light .markdown-body h1,
+html.light .markdown-body h2 {
+  border-bottom-color: #d8dee4 !important;
+}
+
+html.light .markdown-body a {
+  color: #2563eb !important;
+}
+
+html.light .markdown-body strong {
+  color: #111111 !important;
+}
+
+html.light .markdown-body blockquote {
+  background: #f6f8fa !important;
+  border-left-color: #7c3aed !important;
+  color: #57606a !important;
+}
+
+html.light .markdown-body code {
+  background: #eef1f4 !important;
+  border-color: #d8dee4 !important;
+  color: #1f2328 !important;
+}
+
+html.light .markdown-body pre {
+  background: #f6f8fa !important;
+  border-color: #d8dee4 !important;
+}
+
+html.light .markdown-body pre code {
+  color: #1f2328 !important;
+}
+
+html.light .markdown-body img,
+html.light .markdown-body table th,
+html.light .markdown-body table td {
+  border-color: #d8dee4 !important;
+}
+
+html.light .markdown-body table th {
+  background: #eef1f4 !important;
+}
+
+html.light .markdown-body table tr {
+  background: #ffffff !important;
+}
+
+html.light .markdown-body hr {
+  border-top-color: #d8dee4 !important;
+}
+
+html.light .copy-btn {
+  background: #e9edf1 !important;
+  border-color: #d8dee4 !important;
+  color: #57606a !important;
+}
+
+html.light .copy-btn:hover {
+  background: #d0d7de !important;
+  color: #1f2328 !important;
+}
+
+/* Highlight.js GitHub-light-ish token colors */
+html.light .hljs {
+  background: #f6f8fa !important;
+  color: #24292e !important;
+}
+
+html.light .hljs-keyword,
+html.light .hljs-selector-tag,
+html.light .hljs-literal {
+  color: #d73a49 !important;
+}
+
+html.light .hljs-string,
+html.light .hljs-regexp,
+html.light .hljs-addition {
+  color: #032f62 !important;
+}
+
+html.light .hljs-title,
+html.light .hljs-section,
+html.light .hljs-name {
+  color: #6f42c1 !important;
+}
+
+html.light .hljs-comment,
+html.light .hljs-quote {
+  color: #6a737d !important;
+}
+
+html.light .hljs-number,
+html.light .hljs-symbol,
+html.light .hljs-bullet {
+  color: #005cc5 !important;
+}
+
+html.light .hljs-attr,
+html.light .hljs-variable,
+html.light .hljs-template-variable,
+html.light .hljs-params {
+  color: #005cc5 !important;
+}
+
+html.light .hljs-built_in,
+html.light .hljs-builtin-name {
+  color: #e36209 !important;
+}
+
+html.light .hljs-meta {
+  color: #6a737d !important;
+}
+
+/* Small standalone tool-specific fixes */
+html.light .task-item:hover {
+  background-color: #eef1f4 !important;
+}
+
+html.light .drop-zone {
+  border-color: #d8dee4 !important;
+}
+
+html.light .drop-zone.dragover {
+  border-color: #2563eb !important;
+  background: #eef1f4 !important;
+}
+
+/* ke-biao custom dark theme variables */
+html.light :root {
+  --bg-deep: #f1f5f9;
+  --bg-card: #ffffff;
+  --bg-elevated: #e2e8f0;
+  --surface: rgba(0, 0, 0, 0.03);
+  --surface-hover: rgba(0, 0, 0, 0.06);
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-tertiary: #64748b;
+  --glass-border: rgba(0, 0, 0, 0.08);
+  --glass-bg: rgba(255, 255, 255, 0.5);
+}
+
+/* Floating theme toggle button */
+#theme-toggle-btn {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 10000;
+  width: 40px;
+  height: 40px;
+  border-radius: 9999px;
+  border: 1px solid var(--space-border, #30363d);
+  background: rgba(13, 17, 23, 0.85);
+  color: #f0f6fc;
+  font-size: 20px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+  transition: transform 0.15s ease, background 0.2s ease;
+}
+
+#theme-toggle-btn:hover {
+  transform: scale(1.08);
+}
+
+html.light #theme-toggle-btn {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: #d8dee4;
+  color: #1f2328;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
+}

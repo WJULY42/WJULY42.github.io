@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Explore | lunarHope</title>
+    <meta name="description" content="lunarHope content hub — posts, tools, and downloadable resources in one place.">
+
+    <!-- ============ 字体与 Tailwind ============ -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        space: {
+                            900: '#010409', 800: '#0d1117', 700: '#161b22',
+                            600: '#21262d', border: '#30363d',
+                            text: '#f0f6fc', muted: '#8b949e',
+                        },
+                        glow: {
+                            purple: '#8957e5', blue: '#58a6ff',
+                            pink: '#da3633', green: '#3fb950',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Helvetica', 'Arial', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace'],
+                    },
+                }
+            }
+        }
+    </script>
+
+    <style>
+        * { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+        body { background-color: #010409; color: #f0f6fc; overflow-x: hidden; font-display: swap; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #010409; }
+        ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 4px; }
+
+        .spotlight-card { position: relative; background: #0d1117; border: 1px solid #30363d; overflow: hidden; transition: border-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease; }
+        .spotlight-card::before {
+            content: ''; position: absolute; inset: 0;
+            background: radial-gradient(600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(137, 87, 229, 0.15), transparent 40%);
+            z-index: 0; opacity: 0; transition: opacity 0.3s ease;
+        }
+        .spotlight-card:hover::before { opacity: 1; }
+        .spotlight-card:hover { border-color: rgba(137, 87, 229, 0.5); transform: translateY(-2px); box-shadow: 0 8px 30px rgba(0,0,0,0.3); }
+        .spotlight-card > * { position: relative; z-index: 1; }
+
+        .text-gradient { background: linear-gradient(135deg, #f0f6fc 0%, #8b949e 50%, #f0f6fc 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        .text-gradient-glow { background: linear-gradient(135deg, #58a6ff 0%, #8957e5 50%, #da3633 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+        .reveal { opacity: 0; transform: translateY(20px); transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1); }
+        .reveal.active { opacity: 1; transform: translateY(0); }
+
+        .loader { border: 2px solid #30363d; border-top: 2px solid #58a6ff; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        .tab-btn { padding: 0.45rem 1rem; border-radius: 9999px; font-size: 0.85rem; font-weight: 500; border: 1px solid #30363d; color: #8b949e; transition: all 0.2s; cursor: pointer; background: transparent; }
+        .tab-btn:hover { border-color: rgba(137, 87, 229, 0.5); color: #f0f6fc; }
+        .tab-btn.active { background: rgba(137, 87, 229, 0.15); border-color: rgba(137, 87, 229, 0.6); color: #f0f6fc; }
+
+        .tag-chip { padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; border: 1px solid #30363d; color: #8b949e; cursor: pointer; transition: all 0.2s; background: transparent; }
+        .tag-chip:hover { border-color: rgba(88, 166, 255, 0.5); color: #f0f6fc; }
+        .tag-chip.active { background: rgba(88, 166, 255, 0.15); border-color: rgba(88, 166, 255, 0.6); color: #f0f6fc; }
+
+        .new-badge { background: rgba(218, 54, 51, 0.15); border: 1px solid rgba(218, 54, 51, 0.5); color: #f0f6fc; font-size: 10px; padding: 2px 8px; border-radius: 9999px; font-weight: 700; letter-spacing: 0.05em; }
+
+        .push-banner {
+            position: fixed; top: 80px; right: 20px; z-index: 100;
+            max-width: 360px; padding: 14px 18px; border-radius: 12px;
+            background: rgba(13, 17, 23, 0.95); border: 1px solid rgba(137, 87, 229, 0.5);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5); backdrop-filter: blur(12px);
+            transform: translateX(120%); opacity: 0; transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .push-banner.show { transform: translateX(0); opacity: 1; }
+        .push-banner .close { cursor: pointer; opacity: 0.6; transition: opacity 0.2s; }
+        .push-banner .close:hover { opacity: 1; }
+
+        @keyframes cardIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .card-in { animation: cardIn 0.4s ease-out forwards; }
+    </style>
+
+    <link rel="stylesheet" href="theme.css">
+    <script src="local-loaders.js"></script>
+    <script src="local-data.js"></script>
+    <script src="theme-toggle.js"></script>
+</head>
+<body class="font-sans antialiased min-h-screen flex flex-col">
+
+    <!-- ============ 顶部导航 ============ -->
+    <header class="fixed top-0 w-full z-50 bg-space-900/60 backdrop-blur-md border-b border-white/5">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-8">
+                <a href="index.html" class="flex items-center space-x-2 font-mono font-bold text-lg text-space-text">
+                    <svg class="w-6 h-6 text-glow-purple" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                    <span>lunarHope</span>
+                </a>
+                <nav class="hidden md:flex items-center space-x-6 text-sm text-space-muted font-medium">
+                    <a href="explore.html" class="text-space-text border-b-2 border-glow-purple pb-1 transition">Explore</a>
+                    <a href="index.html#guestbook" class="hover:text-space-text transition">Guestbook</a>
+                     <a href="publish.html" class="hover:text-space-text transition">Creator Studio</a>
+                </nav>
+            </div>
+            <div class="flex items-center space-x-2">
+                <button class="theme-toggle ml-2 text-lg p-2 rounded-md hover:bg-black/5 dark:hover:bg-white/10" type="button" aria-label="Toggle theme" title="Toggle theme">☀️</button>
+            </div>
+        </div>
+        </header>
+
+    <!-- ============ 推送横幅 ============ -->
+    <div id="push-banner" class="push-banner">
+        <div class="flex items-start gap-3">
+            <div class="text-2xl">🎉</div>
+            <div class="flex-1 min-w-0">
+                <div id="push-title" class="text-sm font-bold text-space-text">New content available</div>
+                <div id="push-desc" class="text-xs text-space-muted mt-1">Some new posts/tools/resources have arrived.</div>
+                <button id="push-view-btn" class="mt-2 text-xs text-glow-purple hover:text-glow-blue font-semibold transition">View new →</button>
+            </div>
+            <button class="close text-space-muted text-lg leading-none" onclick="dismissPush()">×</button>
+        </div>
+    </div>
+
+    <!-- ============ Hero ============ -->
+    <section class="relative z-10 pt-32 md:pt-40 pb-10 px-6">
+        <div class="max-w-7xl mx-auto">
+            <div class="inline-flex items-center space-x-2 bg-space-800/50 border border-space-border rounded-full px-4 py-1.5 text-xs text-space-muted backdrop-blur-sm">
+                <span class="flex h-2 w-2 relative">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-glow-green opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-glow-green"></span>
+                </span>
+                <span id="status-text">Loading content...</span>
+            </div>
+            <h1 class="text-4xl md:text-6xl font-extrabold tracking-tight text-gradient mt-4">Explore Everything</h1>
+            <p class="text-space-muted mt-3 max-w-2xl text-lg">Posts, tools, and resources — unified in one place.</p>
+
+            <!-- 搜索 -->
+            <div class="mt-6 max-w-xl">
+                <div class="flex items-center bg-space-800 border border-space-border rounded-xl px-4 py-3 focus-within:border-glow-purple transition">
+                    <svg class="w-5 h-5 text-space-muted mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    <input id="search-input" type="text" placeholder="Search posts, tools, resources..." class="flex-1 bg-transparent outline-none text-sm" autocomplete="off">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============ 筛选 ============ -->
+    <section class="relative z-10 px-6 pb-6">
+        <div class="max-w-7xl mx-auto space-y-4">
+            <!-- 类型 Tabs -->
+            <div class="flex flex-wrap items-center gap-2" id="type-tabs">
+                <button class="tab-btn active" data-type="all">All</button>
+                <button class="tab-btn" data-type="posts">📝 Posts</button>
+                <button class="tab-btn" data-type="tools">🛠️ Tools</button>
+                <button class="tab-btn" data-type="resources">📦 Resources</button>
+            </div>
+
+            <!-- 标签 -->
+            <div id="tag-bar" class="flex flex-wrap items-center gap-2 text-xs text-space-muted">
+                <span>Tags:</span>
+            </div>
+
+            <!-- 排序 -->
+            <div class="flex items-center gap-2 text-xs text-space-muted">
+                <span>Sort:</span>
+                <select id="sort-select" class="bg-space-800 border border-space-border rounded-md px-3 py-1.5 text-xs outline-none focus:border-glow-blue transition">
+                    <option value="newest">Newest first</option>
+                    <option value="alpha">A → Z</option>
+                </select>
+            </div>
+        </div>
+    </section>
+
+    <!-- ============ 内容网格 ============ -->
+    <main class="relative z-10 flex-grow max-w-7xl mx-auto w-full px-6 py-6">
+        <div id="content-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div class="col-span-full flex flex-col items-center justify-center py-20 space-y-4 text-space-muted">
+                <div class="loader"></div>
+                <p class="font-mono text-sm">Loading content...</p>
+            </div>
+        </div>
+    </main>
+
+    <footer class="relative z-10 border-t border-space-border mt-12 py-8 text-center text-xs text-space-muted">
+        <p>&copy; 2026 lunarHope. Built with ❤️ and Tailwind CSS.</p>
+    </footer>
+
+    <script>
+        // ==================== 状态 ====================
+        const state = {
+            type: 'all',
+            tag: null,
+            query: '',
+            sort: 'newest',
+            posts: [],
+            tools: [],
+            resources: [],
+            seenIds: null
+        };
+
+        // ==================== DOM ====================
+        const grid = document.getElementById('content-grid');
+        const statusText = document.getElementById('status-text');
+        const searchInput = document.getElementById('search-input');
+        const tagBar = document.getElementById('tag-bar');
+        const sortSelect = document.getElementById('sort-select');
+        const pushBanner = document.getElementById('push-banner');
+        const pushTitle = document.getElementById('push-title');
+        const pushDesc = document.getElementById('push-desc');
+        const pushViewBtn = document.getElementById('push-view-btn');
+
+        // ==================== 加载数据 ====================
+        async function loadAll() {
+            try {
+                const [postsData, toolsData, resourcesData] = await Promise.all([
+                    window.loadLocalData('data/posts.json', 'data/posts.json?_=' + Date.now()),
+                    window.loadLocalData('data/tools.json', 'data/tools.json?_=' + Date.now()),
+                    window.loadLocalData('data/resources.json', 'data/resources.json?_=' + Date.now())
+                ]);
+
+                state.posts = Array.isArray(postsData) ? postsData : (postsData.posts || []);
+                state.tools = Array.isArray(toolsData) ? toolsData : (toolsData.tools || []);
+                state.resources = Array.isArray(resourcesData) ? resourcesData : (resourcesData.resources || []);
+
+                statusText.textContent = `${state.posts.length} posts · ${state.tools.length} tools · ${state.resources.length} resources`;
+                renderTagBar();
+                renderGrid();
+                checkForUpdates();
+            } catch (e) {
+                console.error('Failed to load explore data', e);
+                statusText.textContent = '⚠️ Failed to load content';
+                grid.innerHTML = '<p class="col-span-full text-center text-glow-pink font-mono">Error loading content. If you are using file://, please open via local server.</p>';
+            }
+        }
+
+        // ==================== 数据归一化 ====================
+        function allItems() {
+            const items = [];
+            state.posts.forEach(p => items.push({
+                id: 'post:' + p.slug,
+                type: 'posts',
+                title: p.title,
+                desc: p.excerpt || p.desc || 'No description available.',
+                date: p.date || '',
+                tags: p.tags || [],
+                icon: '📄',
+                url: p.url || `view.html?type=post&slug=${p.slug}`,
+                meta: p.date || 'Post',
+                raw: p
+            }));
+            state.tools.forEach(t => items.push({
+                id: 'tool:' + t.url,
+                type: 'tools',
+                title: t.name,
+                desc: t.desc || 'A handy web tool.',
+                date: t.date || '',
+                tags: ['tool', t.lang || 'html', t.status || 'Live'],
+                icon: t.emoji || '🛠️',
+                url: t.url && t.url.startsWith('http') ? t.url : `view.html?type=tool&app=${t.url}`,
+                meta: t.status || 'Tool',
+                raw: t
+            }));
+            state.resources.forEach(r => items.push({
+                id: 'resource:' + r.file,
+                type: 'resources',
+                title: r.name,
+                desc: r.desc || '',
+                date: r.date || '',
+                tags: r.tags || [],
+                icon: r.type === 'zip' ? '📦' : r.type === 'json' ? '🧾' : '📄',
+                url: r.file,
+                download: true,
+                meta: `${r.size} · ${r.type.toUpperCase()}`,
+                raw: r
+            }));
+            return items;
+        }
+
+        // ==================== 标签 ====================
+        function allTags() {
+            const set = new Set();
+            allItems().forEach(item => {
+                (item.tags || []).forEach(t => { if (t) set.add(t); });
+            });
+            return [...set].sort();
+        }
+
+        function renderTagBar() {
+            const tags = allTags();
+            let html = '<span>Tags:</span>';
+            if (tags.length === 0) html += '<span class="opacity-60">none</span>';
+            tags.forEach(t => {
+                html += `<button class="tag-chip${state.tag === t ? ' active' : ''}" data-tag="${t}">${t}</button>`;
+            });
+            tagBar.innerHTML = html;
+            tagBar.querySelectorAll('.tag-chip').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const tag = btn.dataset.tag;
+                    state.tag = state.tag === tag ? null : tag;
+                    renderTagBar();
+                    renderGrid();
+                });
+            });
+        }
+
+        // ==================== 筛选 ====================
+        function getFilteredItems() {
+            let items = allItems();
+
+            if (state.type !== 'all') {
+                items = items.filter(i => i.type === state.type);
+            }
+
+            if (state.tag) {
+                items = items.filter(i => (i.tags || []).includes(state.tag));
+            }
+
+            const q = state.query.trim().toLowerCase();
+            if (q) {
+                items = items.filter(i =>
+                    (i.title || '').toLowerCase().includes(q) ||
+                    (i.desc || '').toLowerCase().includes(q) ||
+                    (i.tags || []).some(t => t.toLowerCase().includes(q))
+                );
+            }
+
+            if (state.sort === 'alpha') {
+                items.sort((a, b) => a.title.localeCompare(b.title, 'zh-CN'));
+            } else {
+                items.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+            }
+
+            return items;
+        }
+
+        // ==================== 渲染 ====================
+        function renderGrid() {
+            const items = getFilteredItems();
+
+            if (items.length === 0) {
+                grid.innerHTML = '<p class="col-span-full text-center text-space-muted font-mono py-16">// No matching items. Try another filter.</p>';
+                return;
+            }
+
+            grid.innerHTML = '';
+            items.forEach((item, index) => {
+                const card = document.createElement('div');
+                card.className = 'spotlight-card rounded-xl p-6 block card-in reveal active';
+                card.style.transitionDelay = `${index * 30}ms`;
+
+                const isNew = state.seenIds && !state.seenIds.has(item.id);
+                const tagsHtml = (item.tags || []).slice(0, 4).map(t =>
+                    `<span class="px-2 py-0.5 rounded-full text-[10px] font-medium bg-space-700/50 text-space-muted border border-space-border mr-1">${t}</span>`
+                ).join('');
+
+                const inner = `
+                    <div class="flex items-start justify-between mb-3 gap-3">
+                        <div class="text-4xl">${item.icon}</div>
+                        ${isNew ? '<span class="new-badge">NEW</span>' : ''}
+                    </div>
+                    <div class="flex flex-wrap gap-1 mb-2">${tagsHtml}</div>
+                    <h3 class="text-xl font-bold text-space-text mb-2 leading-snug">${item.title}</h3>
+                    <p class="text-space-muted text-sm leading-relaxed mb-4 line-clamp-3">${item.desc}</p>
+                    <div class="flex items-center justify-between text-xs text-space-muted pt-4 border-t border-space-border">
+                        <span class="font-mono">${item.meta}</span>
+                        <span class="text-glow-blue font-semibold">${item.download ? 'Download ↓' : 'Open →'}</span>
+                    </div>
+                `;
+                card.innerHTML = inner;
+
+                if (item.download) {
+                    const a = document.createElement('a');
+                    a.href = item.url;
+                    a.download = item.raw.file.split('/').pop();
+                    a.className = 'absolute inset-0';
+                    a.setAttribute('aria-label', `Download ${item.title}`);
+                    card.appendChild(a);
+                } else {
+                    card.addEventListener('click', () => {
+                        window.location.href = item.url;
+                    });
+                    card.style.cursor = 'pointer';
+                }
+
+                card.addEventListener('mousemove', (e) => {
+                    const rect = card.getBoundingClientRect();
+                    card.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
+                    card.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
+                });
+
+                grid.appendChild(card);
+            });
+        }
+
+        // ==================== 推送机制 ====================
+        function getKnownIds() {
+            try {
+                const raw = localStorage.getItem('explore_seen_ids');
+                return raw ? new Set(JSON.parse(raw)) : null;
+            } catch { return null; }
+        }
+
+        function saveKnownIds(ids) {
+            try { localStorage.setItem('explore_seen_ids', JSON.stringify([...ids])); } catch {}
+        }
+
+        function checkForUpdates() {
+            const items = allItems();
+            const currentIds = new Set(items.map(i => i.id));
+            let known = getKnownIds();
+
+            if (!known) {
+                // First visit: treat everything as seen
+                saveKnownIds(currentIds);
+                state.seenIds = currentIds;
+                return;
+            }
+
+            const newItems = items.filter(i => !known.has(i.id));
+            state.seenIds = known;
+
+            if (newItems.length > 0) {
+                const typeNames = [...new Set(newItems.map(i => i.type))];
+                pushTitle.textContent = `🎉 ${newItems.length} new item${newItems.length > 1 ? 's' : ''}`;
+                pushDesc.textContent = `New in: ${typeNames.join(', ')}. Click to view.`;
+                state.seenIds = known;
+                renderGrid();
+                pushBanner.classList.add('show');
+                pushViewBtn.onclick = () => {
+                    const firstNew = newItems[0];
+                    const cards = [...grid.querySelectorAll('.spotlight-card')];
+                    const target = cards.find(c => c.textContent.includes(firstNew.title));
+                    if (target) {
+                        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        target.style.boxShadow = '0 0 0 2px rgba(218, 54, 51, 0.6)';
+                        setTimeout(() => { target.style.boxShadow = ''; }, 2000);
+                    }
+                    saveKnownIds(currentIds);
+                    state.seenIds = currentIds;
+                    dismissPush();
+                    renderGrid();
+                };
+            }
+        }
+
+        function dismissPush() {
+            pushBanner.classList.remove('show');
+        }
+
+        // ==================== 事件 ====================
+        document.querySelectorAll('#type-tabs .tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('#type-tabs .tab-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                state.type = btn.dataset.type;
+                renderGrid();
+            });
+        });
+
+        searchInput.addEventListener('input', (e) => {
+            state.query = e.target.value;
+            renderGrid();
+        });
+
+        sortSelect.addEventListener('change', (e) => {
+            state.sort = e.target.value;
+            renderGrid();
+        });
+
+        // 支持 hash: #posts #tools #resources #all，以及 ?q= 搜索参数
+        function applyHash() {
+            const params = new URLSearchParams(window.location.search);
+            const q = params.get('q');
+            if (q) {
+                state.query = q;
+                searchInput.value = q;
+            }
+
+            const hash = window.location.hash.replace('#', '');
+            if (['posts', 'tools', 'resources', 'all'].includes(hash)) {
+                state.type = hash;
+                document.querySelectorAll('#type-tabs .tab-btn').forEach(b => {
+                    b.classList.toggle('active', b.dataset.type === hash);
+                });
+                renderGrid();
+            }
+        }
+
+        window.addEventListener('hashchange', applyHash);
+
+        // ==================== 启动 ====================
+        loadAll();
+        applyHash();
+    </script>
+</body>
+</html>

@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Creator Studio | lunarHope</title>
+    <meta name="description" content="lunarHope Creator Studio — write and publish posts and tools straight to GitHub.">
+
+    <!-- ============ 字体预连接优化 ============ -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="dns-prefetch" href="https://cdn.tailwindcss.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/pinyin-pro" async></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        space: {
+                            900: '#010409', 800: '#0d1117', 700: '#161b22',
+                            600: '#21262d', border: '#30363d',
+                            text: '#f0f6fc', muted: '#8b949e',
+                        },
+                        glow: {
+                            purple: '#8957e5', blue: '#58a6ff',
+                            pink: '#da3633', green: '#3fb950',
+                            yellow: '#d29922',
+                        }
+                    },
+                    fontFamily: {
+                        // 系统字体栈兜底，确保即使 CDN 慢也能立即显示
+                        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Helvetica', 'Arial', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace'],
+                    },
+                    animation: {
+                        'float': 'float 20s ease-in-out infinite',
+                        'float-delayed': 'float 25s ease-in-out infinite reverse',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translate(0, 0) scale(1)' },
+                            '33%': { transform: 'translate(30px, -50px) scale(1.05)' },
+                            '66%': { transform: 'translate(-20px, 20px) scale(0.95)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        * { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+        html { scroll-behavior: smooth; }
+        body { background-color: #010409; color: #f0f6fc; overflow-x: hidden; font-display: swap; }
+        textarea { resize: none; }
+
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #010409; }
+        ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 4px; }
+
+        /* ============ 设计变量（light 模式由 theme.css 覆盖） ============ */
+        :root {
+            --space-900: #010409; --space-800: #0d1117; --space-700: #161b22; --space-600: #21262d;
+            --space-border: #30363d; --space-text: #f0f6fc; --space-muted: #8b949e;
+            --glow-purple: #8957e5; --glow-blue: #58a6ff; --glow-green: #3fb950;
+            --glow-pink: #da3633; --glow-yellow: #d29922;
+        }
+
+        /* ============ Spotlight 追光卡片（与主页一致） ============ */
+        .spotlight-card {
+            position: relative; background: #0d1117; border: 1px solid #30363d; overflow: hidden;
+            transition: border-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .spotlight-card::before {
+            content: ''; position: absolute; inset: 0;
+            background: radial-gradient(600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(137, 87, 229, 0.15), transparent 40%);
+            z-index: 0; opacity: 0; transition: opacity 0.3s ease;
+        }
+        .spotlight-card:hover::before { opacity: 1; }
+        .spotlight-card:hover { border-color: rgba(137, 87, 229, 0.5); transform: translateY(-2px); box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3); }
+        .spotlight-card > * { position: relative; z-index: 1; }
+
+        /* ============ 渐变文字（与主页一致） ============ */
+        .text-gradient { background: linear-gradient(135deg, #f0f6fc 0%, #8b949e 50%, #f0f6fc 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        .text-gradient-glow { background: linear-gradient(135deg, #58a6ff 0%, #8957e5 50%, #da3633 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+        /* ============ 滚动显示（与主页一致；JS 未就绪时保持可见） ============ */
+        .reveal { transition: all 0.7s cubic-bezier(0.16, 1, 0.3, 1); }
+        .reveal.armed { opacity: 0; transform: translateY(24px); }
+        .reveal.active { opacity: 1; transform: translateY(0); }
+
+        /* ============ Pill Tabs（与 Explore 一致） ============ */
+        .tab-btn {
+            display: inline-flex; align-items: center; gap: 0.5rem;
+            padding: 0.45rem 1rem; border-radius: 9999px;
+            font-size: 0.85rem; font-weight: 500;
+            border: 1px solid var(--space-border, #30363d);
+            color: var(--space-muted, #8b949e);
+            background: transparent; cursor: pointer; transition: all 0.2s;
+        }
+        .tab-btn:hover { border-color: rgba(137, 87, 229, 0.5); color: var(--space-text, #f0f6fc); }
+        .tab-btn.active { background: rgba(137, 87, 229, 0.15); border-color: rgba(137, 87, 229, 0.6); color: var(--space-text, #f0f6fc); }
+
+        /* ============ Segmented 切换（类型选择） ============ */
+        .seg-btn {
+            flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+            padding: 0.55rem 1rem; border-radius: 0.5rem;
+            font-size: 0.875rem; font-weight: 500;
+            color: var(--space-muted, #8b949e); background: transparent; border: none;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .seg-btn:hover { color: var(--space-text, #f0f6fc); background: rgba(137, 87, 229, 0.08); }
+        .seg-btn.active { color: var(--space-text, #f0f6fc); background: rgba(137, 87, 229, 0.18); box-shadow: inset 0 0 0 1px rgba(137, 87, 229, 0.55); }
+
+        /* ============ 图床上传区 ============ */
+        .dropzone { border: 2px dashed var(--space-border, #30363d); background: var(--space-800, #0d1117); transition: all 0.2s; }
+        .dropzone.dragover { border-color: var(--glow-blue, #58a6ff); background: rgba(88, 166, 255, 0.1); }
+        .dropzone:hover { border-color: var(--glow-blue, #58a6ff); }
+
+        .upload-item { animation: slideIn 0.3s ease-out; }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* ============ 草稿卡片 ============ */
+        .draft-card { transition: all 0.25s ease; }
+        .draft-card:hover { transform: translateY(-2px); border-color: rgba(88, 166, 255, 0.5); box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25); }
+
+        /* ============ 小 spinner ============ */
+        .spinner { display: inline-block; width: 12px; height: 12px; border-radius: 9999px; border: 2px solid currentColor; border-top-color: transparent; animation: spin 0.8s linear infinite; vertical-align: middle; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+    <link rel="stylesheet" href="theme.css">
+    <script src="local-loaders.js"></script>
+    <script src="local-data.js"></script>
+    <script src="theme-toggle.js"></script>
+</head>
+<body class="font-sans antialiased min-h-screen flex flex-col">
+
+    <!-- ============ 背景光影 ============ -->
+    <div class="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+        <div class="absolute top-[-10%] left-[-5%] w-[500px] h-[500px] bg-glow-purple/20 rounded-full blur-[120px] animate-float"></div>
+        <div class="absolute bottom-[-10%] right-[-5%] w-[600px] h-[600px] bg-glow-blue/20 rounded-full blur-[120px] animate-float-delayed"></div>
+        <div class="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000_70%,transparent_110%)]"></div>
+    </div>
+
+    <header class="fixed top-0 w-full z-50 bg-space-900/60 backdrop-blur-md border-b border-white/5">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-8">
+                <a href="index.html" class="flex items-center space-x-2 font-mono font-bold text-lg text-space-text">
+                    <svg class="w-6 h-6 text-glow-purple" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                    <span>lunarHope</span>
+                </a>
+                <nav class="hidden md:flex items-center space-x-6 text-sm text-space-muted font-medium">
+                    <a href="explore.html" class="hover:text-space-text transition">Explore</a>
+                    <a href="index.html#guestbook" class="hover:text-space-text transition">Guestbook</a>
+                    <a href="publish.html" class="text-space-text border-b-2 border-glow-purple pb-1 transition">Creator Studio</a>
+                </nav>
+            </div>
+            <div class="flex items-center space-x-2">
+                <button class="theme-toggle ml-2 text-lg p-2 rounded-md hover:bg-black/5 dark:hover:bg-white/10" type="button" aria-label="Toggle theme" title="Toggle theme">☀️</button>
+            </div>
+        </div>
+    </header>
+
+
+    <!-- ============ Hero ============ -->
+    <section class="relative z-10 px-6 pt-28 md:pt-32 pb-6">
+        <div class="max-w-7xl mx-auto reveal">
+            <div class="inline-flex items-center space-x-2 bg-space-800/50 border border-space-border rounded-full px-4 py-1.5 text-xs text-space-muted backdrop-blur-sm">
+                <span class="flex h-2 w-2 relative">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-glow-green opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-glow-green"></span>
+                </span>
+                <span>Write · Publish · Iterate</span>
+            </div>
+            <h1 id="page-title" class="text-4xl md:text-6xl font-extrabold tracking-tight text-gradient mt-4">Creator Studio</h1>
+            <p class="text-space-muted mt-3 max-w-2xl text-lg">Write posts and tools, then publish straight to GitHub.</p>
+        </div>
+    </section>
+
+    <!-- ============ 主 Tab 切换 ============ -->
+    <section class="relative z-10 px-6 pb-6">
+        <div class="max-w-7xl mx-auto flex flex-wrap items-center gap-2 reveal">
+            <button onclick="switchMainTab('editor')" id="main-tab-editor" class="tab-btn active">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"></path></svg>
+                Editor
+            </button>
+            <button onclick="switchMainTab('drafts')" id="main-tab-drafts" class="tab-btn">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"></path></svg>
+                Drafts
+                <span id="draft-count" class="px-1.5 py-0.5 text-[10px] bg-space-700 rounded-full">0</span>
+            </button>
+        </div>
+    </section>
+
+    <main class="relative z-10 flex-grow max-w-7xl mx-auto w-full px-6 py-6">
+        
+        <!-- ========== Editor Tab ========== -->
+        <div id="panel-editor" class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div class="lg:col-span-2 space-y-6">
+                <!-- Type Tabs -->
+                <div class="bg-space-800 border border-space-border rounded-xl p-1.5 flex reveal">
+                    <button id="tab-post" onclick="switchType('post')" class="seg-btn active">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"></path></svg>
+                        Post
+                    </button>
+                    <button id="tab-tool" onclick="switchType('tool')" class="seg-btn">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.746-.616 1.216-.762m-4.05-2.318l2.496-3.03a1.125 1.125 0 011.216-.762m4.05 2.318l-2.496 3.03"></path></svg>
+                        Tool
+                    </button>
+                </div>
+
+                <!-- 图床上传区 -->
+                <div id="dropzone" class="dropzone rounded-xl p-6 text-center cursor-pointer reveal" onclick="document.getElementById('file-input').click()">
+                    <input type="file" id="file-input" accept="image/*" multiple class="hidden" onchange="handleFiles(this.files)">
+                    <div class="text-space-muted">
+                        <div class="w-12 h-12 bg-glow-blue/10 rounded-lg flex items-center justify-center mx-auto mb-3 text-glow-blue">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>
+                        </div>
+                        <p class="text-sm">Drop images here or <span class="text-glow-blue underline">click to upload</span></p>
+                        <p class="text-xs mt-1 font-mono">Images will be hosted on GitHub (assets/images/)</p>
+                    </div>
+                    <div id="upload-list" class="mt-4 space-y-2 text-left"></div>
+                </div>
+
+                <div class="spotlight-card rounded-xl p-6 shadow-lg reveal">
+                    <!-- 编辑模式提示 -->
+                    <div id="edit-mode-banner" class="hidden mb-4 p-3 bg-glow-yellow/10 border border-glow-yellow/30 rounded-lg flex items-center justify-between">
+                        <span class="text-glow-yellow text-sm flex items-center">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                            Editing: <span id="edit-target-name" class="font-bold ml-1"></span>
+                        </span>
+                        <button onclick="exitEditMode()" class="text-xs text-space-muted hover:text-space-text inline-flex items-center gap-1">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                            Exit
+                        </button>
+                    </div>
+
+                    <label class="block text-sm text-space-muted mb-2">Title / Name</label>
+                    <input type="text" id="item-title" class="w-full bg-space-900 border border-space-border rounded-lg p-3 text-space-text focus:border-glow-blue outline-none transition font-bold text-lg" placeholder="e.g., My First Post">
+                    
+                    <div class="grid grid-cols-2 gap-4 mt-4">
+                        <div>
+                            <label class="block text-sm text-space-muted mb-2">Author</label>
+                            <input type="text" id="item-author" class="w-full bg-space-900 border border-space-border rounded-lg p-3 text-space-text focus:border-glow-blue outline-none" value="lunarHope">
+                        </div>
+                        <div id="field-date">
+                            <label class="block text-sm text-space-muted mb-2">Publish Date</label>
+                            <input type="date" id="item-date" class="w-full bg-space-900 border border-space-border rounded-lg p-3 text-space-text focus:border-glow-blue outline-none">
+                        </div>
+                    </div>
+
+                    <div id="tool-fields" class="hidden grid grid-cols-2 gap-4 mt-4">
+                        <div>
+                            <label class="block text-sm text-space-muted mb-2">Emoji Icon</label>
+                            <input type="text" id="item-emoji" class="w-full bg-space-900 border border-space-border rounded-lg p-3 text-space-text focus:border-glow-blue outline-none" placeholder="🛠️">
+                        </div>
+                        <div>
+                            <label class="block text-sm text-space-muted mb-2">Short Description</label>
+                            <input type="text" id="item-desc" class="w-full bg-space-900 border border-space-border rounded-lg p-3 text-space-text focus:border-glow-blue outline-none" placeholder="A quick utility...">
+                        </div>
+                    </div>
+
+                    <div id="post-tags-field" class="mt-4">
+                        <label class="block text-sm text-space-muted mb-2">Tags (comma separated)</label>
+                        <input type="text" id="item-tags" class="w-full bg-space-900 border border-space-border rounded-lg p-3 text-space-text focus:border-glow-blue outline-none" placeholder="tech, life, code">
+                    </div>
+
+                    <label class="block text-sm text-space-muted mt-4 mb-2">Content (<span id="content-type-label">Markdown</span>)</label>
+                    <textarea id="item-content" rows="16" class="w-full bg-space-900 border border-space-border rounded-lg p-4 text-space-text focus:border-glow-blue outline-none transition font-mono text-sm leading-relaxed" placeholder="Start writing..."></textarea>
+                </div>
+            </div>
+
+            <div class="space-y-6">
+                <div class="spotlight-card rounded-xl p-6 shadow-lg reveal">
+                    <h3 class="text-glow-purple font-bold mb-4 flex items-center">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 18H7.5m9-12a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0m3 12a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0"></path></svg>
+                        Publish Settings
+                    </h3>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-xs text-space-muted mb-1">GitHub Token (repo scope)</label>
+                            <div class="relative">
+                                <svg class="w-4 h-4 text-space-muted absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.036-1.563.44L9.642 17.642a3 3 0 11-4.243-4.243l1.857-1.857c.405-.405.537-.999.44-1.563A6 6 0 1118.75 8.25z"></path></svg>
+                                <input type="password" id="gh-token" class="w-full bg-space-900 border border-space-border rounded-lg pl-9 pr-3 py-2 text-xs text-space-text focus:border-glow-green outline-none" placeholder="ghp_xxxxxxxxxxxx">
+                            </div>
+                        </div>
+                        <button onclick="publishItem(false)" id="publish-btn" class="w-full bg-glow-green/20 text-glow-green border border-glow-green/50 hover:bg-glow-green/30 py-3 rounded-lg font-bold transition flex items-center justify-center gap-2">
+                            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"></path></svg>
+                            <span id="btn-text">Publish</span>
+                        </button>
+                        <button onclick="publishItem(true)" id="draft-btn" class="w-full bg-space-700 text-space-text border border-space-border hover:bg-space-600 py-2.5 rounded-lg text-sm transition flex items-center justify-center gap-2">
+                            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z"></path></svg>
+                            Save as Draft
+                        </button>
+                    </div>
+                </div>
+
+                <div class="reveal bg-space-800 border border-space-border rounded-xl shadow-2xl overflow-hidden">
+                    <div class="bg-space-700 px-4 py-3 border-b border-space-border flex items-center justify-between">
+                        <div class="flex space-x-2">
+                            <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                            <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+                            <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                        </div>
+                        <span class="text-xs text-space-muted font-mono">lunarHope@studio ~ publish</span>
+                        <span class="w-11"></span>
+                    </div>
+                    <div id="terminal-log" class="p-4 font-mono text-xs h-80 overflow-y-auto text-space-muted space-y-1">
+                        <p class="text-space-muted">Creator Studio v1.0.0</p>
+                        <p class="text-space-muted">Enter a token, then publish or save a draft.</p>
+                        <p class="text-glow-green">➜  ~  System ready.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== Drafts Tab ========== -->
+        <div id="panel-drafts" class="hidden">
+            <div class="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-8">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-glow-purple/10 rounded-lg flex items-center justify-center text-glow-purple flex-shrink-0">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"></path></svg>
+                    </div>
+                    <div>
+                        <h2 class="text-2xl font-bold text-space-text leading-tight">Your Drafts</h2>
+                        <p class="text-xs text-space-muted">Work in progress — publish whenever it's ready.</p>
+                    </div>
+                </div>
+                <button onclick="loadDrafts()" class="tab-btn">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                    Refresh
+                </button>
+            </div>
+            <div id="drafts-list" class="space-y-3">
+                <p class="text-space-muted text-center py-12 font-mono">Loading drafts...</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- ============ Footer ============ -->
+    <footer class="relative z-10 border-t border-white/5 mt-12 py-8 text-center text-xs text-space-muted">
+        <p>&copy; 2026 lunarHope. Built with ❤️ and Tailwind CSS.</p>
+    </footer>
+
+    <script>
+        // ==================== 全局状态 ====================
+        let currentType = 'post';
+        let editMode = { active: false, type: null, slug: null, sha: null, originalSlug: null };
+        
+        // ==================== 初始化 ====================
+        document.getElementById('item-date').valueAsDate = new Date();
+        if (localStorage.getItem('gh_token')) document.getElementById('gh-token').value = localStorage.getItem('gh_token');
+        
+        const params = new URLSearchParams(window.location.search);
+        
+        // 自动读取 URL 中的 token
+        const _tokenParam = params.get('_token');
+        if (_tokenParam) {
+            const decoded = decodeURIComponent(_tokenParam);
+            document.getElementById('gh-token').value = decoded;
+            localStorage.setItem('gh_token', decoded);
+        }
+        
+        // 处理编辑模式
+        if (params.get('edit')) {
+            editMode.active = true;
+            editMode.type = params.get('type') || 'post';
+            editMode.slug = params.get('edit');
+            switchType(editMode.type);
+            document.getElementById('page-title').textContent = `Editing: ${editMode.slug}`;
+            loadItemForEdit();
+        } else if (params.get('type') === 'tool') {
+            switchType('tool');
+        }
+        
+        if (params.get('tab') === 'drafts') switchMainTab('drafts');
+        
+        loadDraftCount();
+        
+        // ==================== Tab 切换 ====================
+        function switchMainTab(tab) {
+            document.getElementById('panel-editor').classList.toggle('hidden', tab !== 'editor');
+            document.getElementById('panel-drafts').classList.toggle('hidden', tab !== 'drafts');
+            document.getElementById('main-tab-editor').classList.toggle('active', tab === 'editor');
+            document.getElementById('main-tab-drafts').classList.toggle('active', tab === 'drafts');
+            if (tab === 'drafts') loadDrafts();
+        }
+
+        function switchType(type) {
+            currentType = type;
+            document.getElementById('tab-post').classList.toggle('active', type === 'post');
+            document.getElementById('tab-tool').classList.toggle('active', type === 'tool');
+            if (type === 'post') {
+                document.getElementById('field-date').classList.remove('hidden');
+                document.getElementById('post-tags-field').classList.remove('hidden');
+                document.getElementById('tool-fields').classList.add('hidden');
+                document.getElementById('content-type-label').textContent = 'Markdown';
+            } else {
+                document.getElementById('field-date').classList.add('hidden');
+                document.getElementById('post-tags-field').classList.add('hidden');
+                document.getElementById('tool-fields').classList.remove('hidden');
+                document.getElementById('content-type-label').textContent = 'HTML';
+            }
+        }
+
+        // ==================== 工具函数 ====================
+        function utf8ToBase64(str) { return btoa(unescape(encodeURIComponent(str))); }
+        function base64ToUtf8(base64) { return decodeURIComponent(escape(atob(base64))); }
+
+        function log(msg, type = 'info') {
+            const term = document.getElementById('terminal-log');
+            const p = document.createElement('p');
+            p.className = type === 'error' ? 'text-glow-pink' : (type === 'success' ? 'text-glow-green' : (type === 'warn' ? 'text-glow-yellow' : 'text-space-muted'));
+            p.textContent = `> ${msg}`;
+            term.appendChild(p);
+            term.scrollTop = term.scrollHeight;
+        }
+
+        function escapeHtml(value) {
+            return String(value == null ? '' : value).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        }
+
+        async function ghFetch(path, options = {}) {
+            const token = document.getElementById('gh-token').value.trim();
+            const headers = { 'Accept': 'application/vnd.github.v3+json' };
+            if (token) headers['Authorization'] = `token ${token}`;
+            if (options.headers) Object.assign(headers, options.headers);
+            const res = await fetch(`https://api.github.com/repos/WJULY42/WJULY42.github.io${path}`, { ...options, headers });
+            return res;
+        }
+
+        async function getFileSha(path) {
+            try {
+                const res = await ghFetch(`/contents/${path}`);
+                if (res.ok) return (await res.json()).sha;
+            } catch (e) {}
+            return null;
+        }
+
+        function generateSlug(title) {
+            let slug = "";
+            if (window.pinyinPro) slug = window.pinyinPro.pinyin(title, { toneType: 'none', type: 'array' }).join('-');
+            else slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+            slug = slug.replace(/-+/g, '-').toLowerCase().replace(/(^-|-$)/g, '');
+            return slug || `item-${Date.now()}`;
+        }
+
+        // ==================== 图床功能 ====================
+        const dropzone = document.getElementById('dropzone');
+        const uploadList = document.getElementById('upload-list');
+        
+        ['dragenter', 'dragover'].forEach(evt => {
+            dropzone.addEventListener(evt, (e) => { e.preventDefault(); dropzone.classList.add('dragover'); });
+        });
+        ['dragleave', 'drop'].forEach(evt => {
+            dropzone.addEventListener(evt, (e) => { e.preventDefault(); dropzone.classList.remove('dragover'); });
+        });
+        dropzone.addEventListener('drop', (e) => handleFiles(e.dataTransfer.files));
+
+        async function handleFiles(files) {
+            const token = document.getElementById('gh-token').value.trim();
+            if (!token) { log('Please enter a GitHub Token first.', 'error'); return; }
+            for (const file of files) {
+                if (!file.type.startsWith('image/')) continue;
+                await uploadImage(file, token);
+            }
+        }
+
+        async function uploadImage(file, token) {
+            const itemId = 'upload-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5);
+            const item = document.createElement('div');
+            item.id = itemId;
+            item.className = 'upload-item flex items-center justify-between p-2.5 bg-space-900 border border-space-border rounded-lg text-xs';
+            item.innerHTML = `
+                <div class="flex items-center flex-1 min-w-0">
+                    <span class="text-glow-blue mr-2"><span class="spinner"></span></span>
+                    <span class="truncate text-space-text">${escapeHtml(file.name)}</span>
+                </div>
+                <span class="text-space-muted ml-2 upload-status">Uploading...</span>
+            `;
+            uploadList.appendChild(item);
+
+            try {
+                const base64 = await fileToBase64(file);
+                const ext = file.name.split('.').pop().toLowerCase();
+                const dateStr = new Date().toISOString().split('T')[0].replace(/-/g, '');
+                const rand = Math.random().toString(36).substr(2, 6);
+                const fileName = `${dateStr}-${rand}.${ext}`;
+                const path = `assets/images/${fileName}`;
+
+                const res = await ghFetch(`/contents/${path}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: `feat: upload image ${fileName}`,
+                        content: base64.split(',')[1],
+                        branch: 'main'
+                    })
+                });
+
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+                const imageUrl = `https://wjuly42.github.io/${path}`;
+                const mdLink = `![${file.name}](${imageUrl})`;
+                insertAtCursor(document.getElementById('item-content'), mdLink + '\n');
+
+                item.innerHTML = `
+                    <div class="flex items-center flex-1 min-w-0">
+                        <span class="mr-2 flex items-center">
+                            <svg class="w-3.5 h-3.5 text-glow-green" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4.5 12.75l6 6 9-13.5"></path></svg>
+                        </span>
+                        <span class="truncate text-space-text">${escapeHtml(file.name)}</span>
+                    </div>
+                    <button onclick="copyToClipboard('${imageUrl}'); this.textContent='Copied!'; setTimeout(()=>this.textContent='Copy URL', 1500)" class="text-glow-blue hover:underline ml-2">Copy URL</button>
+                `;
+                log(`Image uploaded: ${fileName}`, 'success');
+                setTimeout(() => item.remove(), 5000);
+            } catch (err) {
+                item.querySelector('.upload-status').textContent = 'Failed';
+                item.querySelector('.upload-status').className = 'text-glow-pink ml-2 upload-status';
+                log(`Upload failed: ${err.message}`, 'error');
+            }
+        }
+
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function insertAtCursor(textarea, text) {
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            textarea.value = textarea.value.substring(0, start) + text + textarea.value.substring(end);
+            textarea.selectionStart = textarea.selectionEnd = start + text.length;
+            textarea.focus();
+        }
+
+        function copyToClipboard(text) { navigator.clipboard.writeText(text); }
+
+        // ==================== 编辑模式 ====================
+        async function loadItemForEdit() {
+            const token = document.getElementById('gh-token').value.trim();
+            if (!token) { log('Please enter a GitHub Token to load the item for editing.', 'warn'); return; }
+
+            log(`Loading ${editMode.type}: ${editMode.slug}...`, 'info');
+            
+            try {
+                if (editMode.type === 'post') {
+                    const postsData = await window.loadLocalData('data/posts.json', 'data/posts.json?t=' + Date.now());
+                    const posts = Array.isArray(postsData) ? postsData : (postsData.posts || []);
+                    const post = posts.find(p => p.slug === editMode.slug);
+                    if (!post) throw new Error('Post not found in index');
+
+                    const mdPath = `blog/posts/${editMode.slug}.md`;
+                    const [mdRes, sha] = await Promise.all([
+                        fetch(`${mdPath}?t=${Date.now()}`),
+                        getFileSha(mdPath)
+                    ]);
+                    if (!mdRes.ok) throw new Error('Markdown file not found');
+                    const mdText = await mdRes.text();
+
+                    const fmMatch = mdText.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
+                    if (!fmMatch) throw new Error('Invalid frontmatter');
+                    
+                    const fm = {};
+                    fmMatch[1].split('\n').forEach(line => {
+                        const m = line.match(/^(\w+):\s*(.+)$/);
+                        if (m) {
+                            let val = m[2].trim().replace(/^["']|["']$/g, '');
+                            if (m[1] === 'tags') {
+                                val = val.replace(/[\[\]]/g, '').split(',').map(t => t.trim()).filter(t => t);
+                            }
+                            fm[m[1]] = val;
+                        }
+                    });
+
+                    document.getElementById('item-title').value = fm.title || post.title;
+                    document.getElementById('item-author').value = fm.author || post.author || 'lunarHope';
+                    document.getElementById('item-date').value = fm.date || post.date || '';
+                    document.getElementById('item-tags').value = Array.isArray(fm.tags) ? fm.tags.join(', ') : (fm.tags || '');
+                    document.getElementById('item-content').value = fmMatch[2];
+
+                    editMode.sha = sha;
+                    editMode.originalSlug = editMode.slug;
+                } else {
+                    const toolsData = await window.loadLocalData('data/tools.json', 'data/tools.json?t=' + Date.now());
+                    const tools = Array.isArray(toolsData) ? toolsData : (toolsData.tools || []);
+                    const tool = tools.find(t => t.url === editMode.slug || t.url === `${editMode.slug}.html`);
+                    if (!tool) throw new Error('Tool not found in index');
+
+                    const htmlPath = `tools/${tool.url}`;
+                    const [htmlRes, sha] = await Promise.all([
+                        fetch(`${htmlPath}?t=${Date.now()}`),
+                        getFileSha(htmlPath)
+                    ]);
+                    if (!htmlRes.ok) throw new Error('HTML file not found');
+                    let htmlText = await htmlRes.text();
+                    htmlText = htmlText.replace(/^<!--[\s\S]*?-->\n?/, '');
+
+                    document.getElementById('item-title').value = tool.name;
+                    document.getElementById('item-author').value = tool.author || 'lunarHope';
+                    document.getElementById('item-emoji').value = tool.emoji || '';
+                    document.getElementById('item-desc').value = tool.desc || '';
+                    document.getElementById('item-content').value = htmlText;
+
+                    editMode.sha = sha;
+                    editMode.originalSlug = tool.url.replace('.html', '');
+                }
+
+                document.getElementById('edit-mode-banner').classList.remove('hidden');
+                document.getElementById('edit-target-name').textContent = editMode.slug;
+                document.getElementById('btn-text').textContent = 'Update (Overwrite)';
+                log('Loaded successfully. Ready to update.', 'success');
+            } catch (err) {
+                log(`Failed to load: ${err.message}`, 'error');
+            }
+        }
+
+        function exitEditMode() {
+            editMode = { active: false, type: null, slug: null, sha: null, originalSlug: null };
+            document.getElementById('edit-mode-banner').classList.add('hidden');
+            document.getElementById('btn-text').textContent = 'Publish';
+            document.getElementById('page-title').textContent = 'Creator Studio';
+            ['item-title', 'item-content', 'item-emoji', 'item-desc', 'item-tags'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.value = '';
+            });
+            history.replaceState({}, '', 'publish.html');
+        }
+
+        // ==================== 发布/更新/草稿 ====================
+        async function publishItem(asDraft) {
+            const token = document.getElementById('gh-token').value.trim();
+            const title = document.getElementById('item-title').value.trim();
+            const author = document.getElementById('item-author').value.trim() || 'lunarHope';
+            const content = document.getElementById('item-content').value;
+            const btn = document.getElementById('publish-btn');
+            const btnText = document.getElementById('btn-text');
+
+            if (!token || !title || !content) { log('Error: Title, Content and Token are required.', 'error'); return; }
+            if (content.includes(token) || /ghp_[a-zA-Z0-9]{36}/.test(content)) {
+                log('Security alert: content may contain a token.', 'error'); return;
+            }
+
+            localStorage.setItem('gh_token', token);
+            btn.disabled = true;
+            btnText.textContent = 'Processing...';
+
+            const slug = generateSlug(title);
+            const isUpdate = editMode.active;
+            const targetSlug = isUpdate ? editMode.originalSlug : slug;
+
+            let path, jsonPath, encodedContent, jsonKey, newMeta;
+
+            if (currentType === 'post') {
+                const date = document.getElementById('item-date').value;
+                const tags = document.getElementById('item-tags').value.split(',').map(t => t.trim()).filter(t => t);
+                const frontmatter = `---\ntitle: "${title}"\nauthor: "${author}"\ndate: ${date}\ntags: [${tags.join(', ')}]\n---\n\n`;
+                path = `blog/posts/${targetSlug}.md`;
+                jsonPath = `data/posts.json`;
+                encodedContent = utf8ToBase64(frontmatter + content);
+                jsonKey = 'posts';
+                newMeta = { title, author, date, tags, slug: targetSlug, url: `view.html?type=post&slug=${targetSlug}` };
+            } else {
+                const emoji = document.getElementById('item-emoji').value.trim() || '🛠️';
+                const desc = document.getElementById('item-desc').value.trim();
+                const comment = `<!--\nTool: ${title}\nAuthor: ${author}\nDate: ${new Date().toISOString().split('T')[0]}\n-->\n`;
+                path = `tools/${targetSlug}.html`;
+                jsonPath = `data/tools.json`;
+                encodedContent = utf8ToBase64(comment + content);
+                jsonKey = 'tools';
+                newMeta = { name: title, desc, author, url: `${targetSlug}.html`, emoji, status: "Live", lang: "HTML", langColor: "#e34c26" };
+            }
+
+            // 草稿模式：统一添加 title 字段（修复 bug）
+            if (asDraft) {
+                jsonPath = `data/drafts.json`;
+                jsonKey = 'drafts';
+                newMeta.title = title; // ✅ 关键修复：所有草稿都有 title
+                newMeta.type = currentType;
+                newMeta.savedAt = new Date().toISOString();
+                newMeta.content = content;
+                if (currentType === 'post') {
+                    newMeta.frontmatter = {
+                        title, author,
+                        date: document.getElementById('item-date').value,
+                        tags: document.getElementById('item-tags').value.split(',').map(t => t.trim()).filter(t => t)
+                    };
+                } else {
+                    newMeta.emoji = document.getElementById('item-emoji').value.trim() || '🛠️';
+                    newMeta.desc = document.getElementById('item-desc').value.trim();
+                }
+            }
+
+            try {
+                log(`Fetching /${jsonPath}...`, 'info');
+                let items = [];
+                const currentJsonSha = await getFileSha(jsonPath);
+                let existingIndex = -1;
+
+                if (currentJsonSha) {
+                    const jsonRes = await ghFetch(`/contents/${jsonPath}`);
+                    const parsed = JSON.parse(base64ToUtf8((await jsonRes.json()).content));
+                    items = Array.isArray(parsed) ? parsed : (parsed[jsonKey] || []);
+                    
+                    if (isUpdate && !asDraft) {
+                        existingIndex = items.findIndex(item => {
+                            if (currentType === 'post') return item.slug === editMode.originalSlug;
+                            else return (item.url || '').replace('.html', '') === editMode.originalSlug;
+                        });
+                    }
+                }
+
+                if (existingIndex >= 0) {
+                    items[existingIndex] = { ...items[existingIndex], ...newMeta };
+                } else {
+                    items.unshift(newMeta);
+                }
+
+                const newJsonContent = JSON.stringify({ [jsonKey]: items }, null, 2);
+                const jsonPayload = { 
+                    message: asDraft ? `draft: save "${title}"` : (isUpdate ? `update: ${currentType} "${title}"` : `feat: create ${currentType} "${title}"`),
+                    content: utf8ToBase64(newJsonContent), 
+                    branch: 'main' 
+                };
+                if (currentJsonSha) jsonPayload.sha = currentJsonSha;
+
+                const jsonRes = await ghFetch(`/contents/${jsonPath}`, {
+                    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(jsonPayload)
+                });
+                if (!jsonRes.ok) throw new Error(`Index update failed: ${await jsonRes.text()}`);
+                log('Index updated.', 'success');
+
+                if (!asDraft) {
+                    log(`Pushing ${path}...`, 'info');
+                    const filePayload = { message: jsonPayload.message, content: encodedContent, branch: 'main' };
+                    if (editMode.sha) filePayload.sha = editMode.sha;
+
+                    const fileRes = await ghFetch(`/contents/${path}`, {
+                        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(filePayload)
+                    });
+                    if (!fileRes.ok) throw new Error(`File push failed: ${await fileRes.text()}`);
+                    log('File published.', 'success');
+                }
+
+                if (asDraft) {
+                    log('Draft saved.', 'success');
+                    // ✅ 关键修复：强制刷新草稿计数（绕过缓存）
+                    await loadDraftCount(true);
+                    setTimeout(() => {
+                        if (confirm('Draft saved! View drafts?')) switchMainTab('drafts');
+                    }, 800);
+                } else {
+                    log('Done.', 'success');
+                    setTimeout(() => window.location.href = currentType === 'post' ? 'explore.html#posts' : 'explore.html#tools', 1200);
+                }
+            } catch (err) {
+                log(`Critical Error: ${err.message}`, 'error');
+            } finally {
+                btn.disabled = false;
+                btnText.textContent = isUpdate ? 'Update (Overwrite)' : 'Publish';
+            }
+        }
+
+        // ==================== 草稿管理（修复版） ====================
+        async function loadDraftCount(forceRefresh = false) {
+            try {
+                // ✅ 关键修复：强制绕过缓存
+                const cacheBuster = forceRefresh ? `&_=${Date.now()}` : `?_=${Date.now()}`;
+                const data = await window.loadLocalData('data/drafts.json', `data/drafts.json${cacheBuster}`);
+                const drafts = Array.isArray(data) ? data : (data.drafts || []);
+                document.getElementById('draft-count').textContent = drafts.length;
+            } catch { 
+                document.getElementById('draft-count').textContent = '0'; 
+            }
+        }
+
+        async function loadDrafts() {
+            const list = document.getElementById('drafts-list');
+            list.innerHTML = '<p class="text-space-muted text-center py-12 font-mono">Loading drafts...</p>';
+            
+            try {
+                // ✅ 关键修复：强制绕过缓存
+                const data = await window.loadLocalData('data/drafts.json', `data/drafts.json?_=${Date.now()}`);
+                const drafts = Array.isArray(data) ? data : (data.drafts || []);
+                
+                if (drafts.length === 0) {
+                    list.innerHTML = '<p class="text-space-muted text-center py-12 font-mono">// No drafts yet. Click "Save as Draft" to create one.</p>';
+                    return;
+                }
+
+                list.innerHTML = drafts.map((d, i) => {
+                    const isPost = d.type === 'post';
+                    const tile = isPost
+                        ? '<div class="w-10 h-10 bg-glow-purple/10 rounded-lg flex items-center justify-center text-glow-purple flex-shrink-0"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"></path></svg></div>'
+                        : '<div class="w-10 h-10 bg-glow-blue/10 rounded-lg flex items-center justify-center text-glow-blue flex-shrink-0"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.746-.616 1.216-.762m-4.05-2.318l2.496-3.03a1.125 1.125 0 011.216-.762m4.05 2.318l-2.496 3.03"></path></svg></div>';
+                    return `
+                        <div class="draft-card bg-space-800 border border-space-border rounded-xl p-5 flex flex-col md:flex-row md:items-center gap-4">
+                            <div class="flex items-center gap-4 flex-1 min-w-0">
+                                ${tile}
+                                <div class="min-w-0 flex-1">
+                                    <div class="flex items-center gap-2 mb-1 flex-wrap">
+                                        <h3 class="font-bold text-space-text truncate">${escapeHtml(d.title || d.name || 'Untitled')}</h3>
+                                        <span class="text-[10px] px-2 py-0.5 rounded-full bg-glow-yellow/10 text-glow-yellow border border-glow-yellow/30 font-semibold">Draft</span>
+                                        <span class="text-[10px] px-2 py-0.5 rounded-full bg-space-700 text-space-muted border border-space-border">${isPost ? 'Post' : 'Tool'}</span>
+                                    </div>
+                                    <p class="text-xs text-space-muted font-mono">Saved ${new Date(d.savedAt).toLocaleString()}</p>
+                                </div>
+                            </div>
+                            <div class="flex gap-2 flex-shrink-0 flex-wrap">
+                                <button onclick='editDraft(${i})' class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-space-700 hover:bg-space-600 border border-space-border rounded-lg text-xs text-space-text transition"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125"></path></svg>Edit</button>
+                                <button onclick='publishDraft(${i})' class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-glow-green/20 hover:bg-glow-green/30 border border-glow-green/50 rounded-lg text-xs text-glow-green transition"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"></path></svg>Publish</button>
+                                <button onclick='deleteDraft(${i})' class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-glow-pink/10 hover:bg-glow-pink/20 border border-glow-pink/50 rounded-lg text-xs text-glow-pink transition"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"></path></svg>Delete</button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } catch (err) {
+                list.innerHTML = `<p class="text-glow-pink text-center font-mono">Error: ${err.message}</p>`;
+            }
+        }
+
+        let draftsCache = [];
+        async function ensureDraftsLoaded() {
+            const data = await window.loadLocalData('data/drafts.json', `data/drafts.json?_=${Date.now()}`);
+            draftsCache = Array.isArray(data) ? data : (data.drafts || []);
+            return draftsCache;
+        }
+
+        async function editDraft(index) {
+            const drafts = await ensureDraftsLoaded();
+            const draft = drafts[index];
+            if (!draft) return;
+
+            switchType(draft.type);
+            document.getElementById('item-title').value = draft.title || draft.name || '';
+            document.getElementById('item-author').value = draft.author || 'lunarHope';
+            document.getElementById('item-content').value = draft.content || '';
+            
+            if (draft.type === 'post' && draft.frontmatter) {
+                document.getElementById('item-date').value = draft.frontmatter.date || '';
+                document.getElementById('item-tags').value = (draft.frontmatter.tags || []).join(', ');
+            } else {
+                document.getElementById('item-emoji').value = draft.emoji || '';
+                document.getElementById('item-desc').value = draft.desc || '';
+            }
+
+            switchMainTab('editor');
+            log(`Loaded draft: ${draft.title || draft.name}`, 'info');
+        }
+
+        async function publishDraft(index) {
+            if (!confirm('Load this draft into editor for publishing?')) return;
+            await editDraft(index);
+            log('Draft loaded into editor. Click Publish to make it live.', 'info');
+        }
+
+        async function deleteDraft(index, confirmFirst = true) {
+            if (confirmFirst && !confirm('Delete this draft?')) return;
+            const token = document.getElementById('gh-token').value.trim();
+            if (!token) { log('Token required.', 'error'); return; }
+
+            try {
+                const drafts = await ensureDraftsLoaded();
+                drafts.splice(index, 1);
+
+                const sha = await getFileSha('data/drafts.json');
+                const payload = { 
+                    message: 'chore: delete draft', 
+                    content: utf8ToBase64(JSON.stringify({ drafts }, null, 2)), 
+                    branch: 'main' 
+                };
+                if (sha) payload.sha = sha;
+                
+                const putRes = await ghFetch('/contents/data/drafts.json', {
+                    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+                });
+                if (!putRes.ok) throw new Error(await putRes.text());
+                
+                log('Draft deleted.', 'success');
+                await loadDrafts();
+                await loadDraftCount(true);
+            } catch (err) {
+                log(`Delete failed: ${err.message}`, 'error');
+            }
+        }
+
+        // ==================== 追光效果（与主页一致） ====================
+        document.querySelectorAll('.spotlight-card').forEach(card => {
+            card.addEventListener('mousemove', (e) => {
+                const rect = card.getBoundingClientRect();
+                card.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
+                card.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
+            });
+        });
+
+        // ==================== 滚动显示（与主页一致） ====================
+        const revealEls = document.querySelectorAll('.reveal');
+        if ('IntersectionObserver' in window) {
+            revealEls.forEach(el => el.classList.add('armed'));
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add('active'); });
+            }, { threshold: 0.1 });
+            revealEls.forEach(el => observer.observe(el));
+        } else {
+            revealEls.forEach(el => el.classList.add('active'));
+        }
+    </script>
+</body>
+</html>
