@@ -1,0 +1,14 @@
+{
+  "name": "fire-signal-server",
+  "version": "1.0.0",
+  "description": "钢铁前线1944 极小信令页 / 自建 PeerJS 信令服务器",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "peerjs-server": "^0.2.9"
+  }
+}

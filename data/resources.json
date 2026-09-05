@@ -1,0 +1,31 @@
+{
+  "resources": [
+    {
+      "name": "lunarHope Cheatsheet",
+      "desc": "Keyboard shortcuts, terminal easter eggs, and theme tips for the lunarHope site.",
+      "file": "resources/lunarhope-cheatsheet.txt",
+      "size": "405 B",
+      "type": "txt",
+      "date": "2026-09-05",
+      "tags": ["docs", "shortcuts"]
+    },
+    {
+      "name": "Dark Space Theme Palette",
+      "desc": "The official lunarHope color palette and font stack, exported as JSON.",
+      "file": "resources/theme-palette.json",
+      "size": "324 B",
+      "type": "json",
+      "date": "2026-09-05",
+      "tags": ["design", "theme"]
+    },
+    {
+      "name": "Site Assets Pack",
+      "desc": "A zip containing the cheatsheet and theme palette for offline reference.",
+      "file": "resources/site-assets-pack.zip",
+      "size": "704 B",
+      "type": "zip",
+      "date": "2026-09-05",
+      "tags": ["download", "pack"]
+    }
+  ]
+}

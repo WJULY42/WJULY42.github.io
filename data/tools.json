@@ -1,0 +1,184 @@
+{
+  "tools": [
+    {
+      "name": "课表",
+      "desc": "今日课程实时倒计时，整周课表速览",
+      "author": "lunarHope",
+      "url": "ke-biao.html",
+      "emoji": "🏫",
+      "status": "Live",
+      "lang": "HTML",
+      "langColor": "#e34c26"
+    },
+    {
+      "name": "破门而入",
+      "desc": "战术小队射击，PvE/PvP 联机对战（WebRTC 点对点直连）",
+      "author": "lunarHope",
+      "url": "zhan-shu.html",
+      "emoji": "🔫",
+      "status": "Live",
+      "lang": "HTML",
+      "langColor": "#e34c26"
+    },
+    {
+      "name": "扫雷",
+      "desc": "经典扫雷，三档难度，右键插旗",
+      "author": "lunarHope",
+      "url": "sao-lei.html",
+      "emoji": "💣",
+      "status": "Live",
+      "lang": "HTML",
+      "langColor": "#e34c26"
+    },
+    {
+      "name": "cut",
+      "desc": "按 4 万字符自动切割长文本，批量下载分片",
+      "author": "lunarHope",
+      "url": "c-u-t.html",
+      "emoji": "✂️",
+      "status": "Live",
+      "lang": "HTML",
+      "langColor": "#e34c26"
+    },
+    {
+      "name": "计算器",
+      "desc": "简单好用的四则运算，支持键盘",
+      "author": "lunarHope",
+      "url": "calculator.html",
+      "emoji": "🧮",
+      "status": "Live",
+      "lang": "HTML",
+      "langColor": "#e34c26"
+    },
+    {
+      "name": "待办清单",
+      "desc": "记录每日任务，自动保存到浏览器",
+      "author": "lunarHope",
+      "url": "todo.html",
+      "emoji": "✅",
+      "status": "Live",
+      "lang": "HTML",
+      "langColor": "#e34c26"
+    },
+    {
+      "name": "贪吃蛇",
+      "desc": "玩家VS AI贪吃蛇，速度可调",
+      "author": "lunarHope",
+      "url": "snake.html",
+      "emoji": "🐍",
+      "status": "Live",
+      "lang": "HTML",
+      "langColor": "#e34c26"
+    },
+    {
+      "name": "番茄时钟",
+      "desc": "25分钟专注，提高效率",
+      "author": "lunarHope",
+      "url": "tomato.html",
+      "emoji": "🍅",
+      "status": "Live",
+      "lang": "HTML",
+      "langColor": "#e34c26"
+    },
+    {
+      "name": "随机数",
+      "desc": "按范围和数量生成随机数，一键复制结果",
+      "author": "lunarHope",
+      "url": "random.html",
+      "emoji": "",
+      "status": "Live",
+      "lang": "HTML",
+      "langColor": "#e34c26"
+    },
+    {
+      "name": "密码生成器",
+      "desc": "生成强密码，可选大小写、数字与符号",
+      "author": "lunarHope",
+      "url": "password.html",
+      "emoji": "",
+      "status": "Live",
+      "lang": "HTML",
+      "langColor": "#e34c26"
+    },
+    {
+      "name": "秒表",
+      "desc": "毫秒计时与计次，记录多组时间",
+      "author": "lunarHope",
+      "url": "stopwatch.html",
+      "emoji": "",
+      "status": "Live",
+      "lang": "HTML",
+      "langColor": "#e34c26"
+    },
+    {
+      "name": "倒数日",
+      "desc": "记录重要日期并显示剩余时间",
+      "author": "lunarHope",
+      "url": "countdown.html",
+      "emoji": "",
+      "status": "Live",
+      "lang": "HTML",
+      "langColor": "#e34c26"
+    },
+    {
+      "name": "单位换算",
+      "desc": "长度、重量、温度常用单位换算",
+      "author": "lunarHope",
+      "url": "unit-converter.html",
+      "emoji": "",
+      "status": "Live",
+      "lang": "HTML",
+      "langColor": "#e34c26"
+    },
+    {
+      "name": "文本统计",
+      "desc": "实时统计字数、字符数、行数与阅读时间",
+      "author": "lunarHope",
+      "url": "text-stats.html",
+      "emoji": "",
+      "status": "Live",
+      "lang": "HTML",
+      "langColor": "#e34c26"
+    },
+    {
+      "name": "调色板",
+      "desc": "随机生成配色方案，点击复制 HEX / RGB",
+      "author": "lunarHope",
+      "url": "color-palette.html",
+      "emoji": "",
+      "status": "Live",
+      "lang": "HTML",
+      "langColor": "#e34c26"
+    },
+    {
+      "name": "决策转盘",
+      "desc": "把选项放上转盘，一键随机决定",
+      "author": "lunarHope",
+      "url": "decision-spinner.html",
+      "emoji": "",
+      "status": "Live",
+      "lang": "HTML",
+      "langColor": "#e34c26"
+    },
+    {
+      "name": "BMI 计算器",
+      "desc": "根据身高体重计算 BMI 并给出参考区间",
+      "author": "lunarHope",
+      "url": "bmi.html",
+      "emoji": "",
+      "status": "Live",
+      "lang": "HTML",
+      "langColor": "#e34c26"
+    },
+    {
+      "name": "便签板",
+      "desc": "多张便签自由编辑，自动保存到浏览器",
+      "author": "lunarHope",
+      "url": "sticky-notes.html",
+      "emoji": "",
+      "status": "Live",
+      "lang": "HTML",
+      "langColor": "#e34c26"
+    }
+  ]
+}
