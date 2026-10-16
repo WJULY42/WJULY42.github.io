@@ -47,6 +47,9 @@
         .glow-input { background: #0d1117; border: 1px solid #30363d; outline: none; transition: border-color .2s; }
         .glow-input:focus { border-color: #8957e5; }
         #room-list::-webkit-scrollbar, #chat-box::-webkit-scrollbar { width: 6px; }
+        #game-overlay { position: absolute; inset: 0; z-index: 30; background: #0d1117; border-radius: 0.75rem; flex-direction: column; overflow: hidden; }
+        #game-overlay.hidden { display: none; }
+        #game-overlay.flex { display: flex; }
     </style>
 
     <script src="assets/theme-toggle.js"></script>
@@ -127,12 +130,14 @@
                     </button>
                 </div>
 
-                <div class="spotlight-card rounded-xl flex flex-col" style="height: 60vh;">
+                <div class="spotlight-card rounded-xl flex flex-col relative" style="height: 60vh;">
                     <div id="chat-box" class="flex-1 overflow-y-auto p-5 space-y-3"></div>
                     <div class="border-t border-space-border p-3 flex gap-2">
                         <input id="msg-input" class="glow-input flex-1 rounded-lg px-4 py-2.5 text-sm" placeholder="输入消息，回车发送" maxlength="500" autocomplete="off">
+                        <button id="game-btn" class="px-4 py-2.5 bg-glow-green/20 text-glow-green border border-glow-green/40 rounded-lg text-sm font-medium hover:bg-glow-green/30 transition whitespace-nowrap">🎮 游戏</button>
                         <button id="send-btn" class="px-5 py-2.5 bg-glow-blue/20 text-glow-blue border border-glow-blue/40 rounded-lg text-sm font-medium hover:bg-glow-blue/30 transition">发送</button>
                     </div>
+                    <div id="game-overlay" class="hidden"></div>
                 </div>
                 <p id="room-status" class="text-xs text-space-muted mt-3 font-mono text-center"></p>
             </div>
@@ -348,6 +353,8 @@
             const from = (conn.metadata && conn.metadata.name) || '访客';
             addMsg(from, d.text, false);
             broadcast({ type: 'msg', from, text: d.text }, conn); // 转发给其他人
+        } else if (d.type === 'game' && d.sub === 'action') {
+            hostGameAction(conn, d);
         }
     }
     // 客户端收到房主消息
@@ -360,6 +367,7 @@
         else if (d.type === 'msg') addMsg(d.from, d.text, false);
         else if (d.type === 'sys') addSys(d.text);
         else if (d.type === 'members') setRoomStatus('在线：' + d.list.join('、'));
+        else if (d.type === 'game') clientGameData(d);
         else if (d.type === 'reject') {
             setStatus('加入失败：' + (d.reason || '昵称重复'));
             if (peer) { try { peer.destroy(); } catch (e) {} }
@@ -433,6 +441,8 @@
         $('room-view').classList.add('hidden');
         $('lobby-view').classList.remove('hidden');
         $('chat-box').innerHTML = '';
+        gameOverlayHide();
+        GAME.active = false; if (GAME.timer) clearTimeout(GAME.timer);
         setRoomStatus('');
         loadRooms();
     }
@@ -444,6 +454,344 @@
     }
 
     // ============================================================
+    // 小游戏系统（房主权威：房主计算，客户端发动作）
+    // 一局 = 3 轮，每轮从游戏池随机抽一个，胜者 +1 分
+    // ============================================================
+    const GAME = {
+        active: false,
+        totalRounds: 3,
+        roundIndex: 0,
+        scores: {},          // name -> score
+        curGame: null,       // 'reaction' | 'rps' | 'math'
+        curData: null,
+        pool: ['reaction', 'rps', 'math'],
+        timer: null,
+        myAnswer: null,
+        roundStart: 0,
+        collected: {},       // 房主收集：name -> value
+        roundResolved: false,
+    };
+
+    function gEsc(s) { return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+    function gameSend(obj) {
+        // 房主广播；客户端发给房主
+        if (isHost) broadcast(obj);
+        else if (connections.host) connections.host.send(obj);
+    }
+
+    // ---------- 房主：开始 / 轮次 / 结束 ----------
+    function hostStartGame() {
+        if (!isHost) return;
+        const players = [myName];
+        for (const id in connections) players.push((connections[id].metadata && connections[id].metadata.name) || '访客');
+        GAME.active = true;
+        GAME.roundIndex = 0;
+        GAME.scores = {};
+        players.forEach(p => GAME.scores[p] = 0);
+        GAME.curGame = null;
+        broadcast({ type: 'game', sub: 'start', total: GAME.totalRounds, scores: { ...GAME.scores } });
+        renderGameStart(GAME.totalRounds);
+    }
+
+    function hostNextRound() {
+        if (!GAME.active) return;
+        GAME.roundIndex++;
+        if (GAME.roundIndex > GAME.totalRounds) { hostEndGame(); return; }
+        const others = GAME.pool.filter(g => g !== GAME.curGame);
+        GAME.curGame = others[Math.floor(Math.random() * others.length)];
+        GAME.curData = null;
+        GAME.collected = {};
+        GAME.roundResolved = false;
+        GAME.myAnswer = null;
+        broadcast({ type: 'game', sub: 'round', game: GAME.curGame, round: GAME.roundIndex, total: GAME.totalRounds, scores: { ...GAME.scores } });
+        if (GAME.curGame === 'reaction') hostReaction();
+        else if (GAME.curGame === 'rps') hostRps();
+        else if (GAME.curGame === 'math') hostMath();
+    }
+
+    function hostEndGame() {
+        GAME.active = false;
+        broadcast({ type: 'game', sub: 'over', scores: { ...GAME.scores } });
+        renderGameOver(GAME.scores);
+    }
+
+    // ---------- 游戏 1：反应速度 ----------
+    function hostReaction() {
+        renderGameReaction('prepare');
+        const delay = 2000 + Math.random() * 3000;
+        GAME.timer = setTimeout(() => {
+            GAME.roundStart = Date.now();
+            GAME.collected = {};
+            broadcast({ type: 'game', sub: 'phase', phase: 'go', ts: GAME.roundStart });
+            renderGameReaction('go');
+            // 3 秒后结算
+            GAME.timer = setTimeout(() => hostResolveReaction(), 3000);
+        }, delay);
+    }
+    function hostResolveReaction() {
+        if (GAME.roundResolved) return;
+        GAME.roundResolved = true;
+        // 房主自己也参与
+        let best = null, bestT = Infinity;
+        for (const name in GAME.collected) {
+            const t = GAME.collected[name];
+            if (t < bestT) { bestT = t; best = name; }
+        }
+        let msg;
+        if (best) { GAME.scores[best] = (GAME.scores[best] || 0) + 1; msg = best + ' 最快（' + bestT + 'ms）'; }
+        else msg = '无人响应';
+        broadcast({ type: 'game', sub: 'phase', phase: 'result', text: msg, scores: { ...GAME.scores } });
+        renderGameResult(msg, GAME.scores);
+    }
+
+    // ---------- 游戏 2：石头剪刀布 ----------
+    function hostRps() {
+        const hands = ['rock', 'paper', 'scissors'];
+        GAME.curData = { hostHand: hands[Math.floor(Math.random() * 3)] };
+        GAME.collected = {};
+        broadcast({ type: 'game', sub: 'phase', phase: 'choose' });
+        renderGameRps('choose');
+        GAME.timer = setTimeout(() => hostResolveRps(), 8000); // 8 秒兜底
+    }
+    function hostResolveRps() {
+        if (GAME.roundResolved) return;
+        GAME.roundResolved = true;
+        clearTimeout(GAME.timer);
+        const hostHand = GAME.curData.hostHand;
+        const beats = { rock: 'scissors', paper: 'rock', scissors: 'paper' };
+        const winners = [];
+        for (const name in GAME.collected) {
+            const h = GAME.collected[name];
+            if (beats[h] === hostHand) winners.push(name);
+        }
+        winners.forEach(w => GAME.scores[w] = (GAME.scores[w] || 0) + 1);
+        const handName = { rock: '石头', paper: '布', scissors: '剪刀' }[hostHand];
+        const msg = '房主出了「' + handName + '」，' + (winners.length ? winners.join('、') + ' 获胜' : '无人获胜');
+        broadcast({ type: 'game', sub: 'phase', phase: 'result', text: msg, scores: { ...GAME.scores } });
+        renderGameResult(msg, GAME.scores);
+    }
+
+    // ---------- 游戏 3：速算抢答 ----------
+    function hostMath() {
+        const ops = ['+', '-', '×'];
+        const op = ops[Math.floor(Math.random() * 3)];
+        let a, b, ans;
+        if (op === '+') { a = 10 + Math.floor(Math.random() * 90); b = 10 + Math.floor(Math.random() * 90); ans = a + b; }
+        else if (op === '-') { a = 30 + Math.floor(Math.random() * 70); b = 10 + Math.floor(Math.random() * 30); ans = a - b; }
+        else { a = 3 + Math.floor(Math.random() * 9); b = 3 + Math.floor(Math.random() * 9); ans = a * b; }
+        GAME.curData = { expr: a + ' ' + op + ' ' + b, ans: ans };
+        GAME.collected = {};
+        broadcast({ type: 'game', sub: 'phase', phase: 'question', expr: GAME.curData.expr });
+        renderGameMath('question', GAME.curData.expr);
+        GAME.timer = setTimeout(() => hostResolveMath(), 10000); // 10 秒兜底
+    }
+    function hostResolveMath() {
+        if (GAME.roundResolved) return;
+        GAME.roundResolved = true;
+        clearTimeout(GAME.timer);
+        // 找第一个答对的
+        let winner = null, bestT = Infinity;
+        for (const name in GAME.collected) {
+            const c = GAME.collected[name];
+            if (c.value === GAME.curData.ans && c.t < bestT) { bestT = c.t; winner = name; }
+        }
+        let msg;
+        if (winner) { GAME.scores[winner] = (GAME.scores[winner] || 0) + 1; msg = winner + ' 答对：' + GAME.curData.ans; }
+        else msg = '无人答对，答案是 ' + GAME.curData.ans;
+        broadcast({ type: 'game', sub: 'phase', phase: 'result', text: msg, scores: { ...GAME.scores } });
+        renderGameResult(msg, GAME.scores);
+    }
+
+    // ---------- 房主：处理客户端动作 ----------
+    function hostGameAction(conn, d) {
+        const name = (conn.metadata && conn.metadata.name) || '访客';
+        if (GAME.curGame === 'reaction' && d.action === 'tap' && !(name in GAME.collected)) {
+            GAME.collected[name] = Date.now() - GAME.roundStart;
+            if (Object.keys(GAME.collected).length >= Object.keys(connections).length + 1) {
+                clearTimeout(GAME.timer);
+                hostResolveReaction();
+            }
+        } else if (GAME.curGame === 'rps' && d.action === 'rps' && !(name in GAME.collected)) {
+            GAME.collected[name] = d.value;
+            if (Object.keys(GAME.collected).length >= Object.keys(connections).length) {
+                clearTimeout(GAME.timer);
+                hostResolveRps();
+            }
+        } else if (GAME.curGame === 'math' && d.action === 'answer' && !(name in GAME.collected)) {
+            GAME.collected[name] = { value: d.value, t: Date.now() };
+            if (d.value === GAME.curData.ans) {
+                clearTimeout(GAME.timer);
+                hostResolveMath();
+            }
+        }
+    }
+
+    // ---------- 客户端：处理房主广播 ----------
+    function clientGameData(d) {
+        if (d.sub === 'start') {
+            GAME.active = true; GAME.roundIndex = 0; GAME.scores = d.scores || {}; GAME.curGame = null;
+            renderGameStart(d.total);
+        } else if (d.sub === 'round') {
+            GAME.curGame = d.game; GAME.roundIndex = d.round; GAME.scores = d.scores || {}; GAME.myAnswer = null;
+        } else if (d.sub === 'phase') {
+            if (d.phase === 'go') { GAME.roundStart = d.ts; renderGameReaction('go'); }
+            else if (d.phase === 'prepare') renderGameReaction('prepare');
+            else if (d.phase === 'choose') renderGameRps('choose');
+            else if (d.phase === 'question') renderGameMath('question', d.expr);
+            else if (d.phase === 'result') { GAME.scores = d.scores || GAME.scores; renderGameResult(d.text, GAME.scores); }
+        } else if (d.sub === 'over') {
+            GAME.active = false; renderGameOver(d.scores);
+        }
+    }
+
+    // ---------- 玩家动作 ----------
+    function playerAction(action, value) {
+        const payload = { type: 'game', sub: 'action', action: action, value: value };
+        if (isHost) {
+            // 房主自己：直接处理
+            const fake = { metadata: { name: myName } };
+            hostGameActionSelf(action, value);
+        } else {
+            gameSend(payload);
+        }
+    }
+    function hostGameActionSelf(action, value) {
+        if (GAME.curGame === 'reaction' && action === 'tap' && !(myName in GAME.collected)) {
+            GAME.collected[myName] = Date.now() - GAME.roundStart;
+        } else if (GAME.curGame === 'rps' && action === 'rps' && !(myName in GAME.collected)) {
+            GAME.collected[myName] = value;
+        } else if (GAME.curGame === 'math' && action === 'answer' && !(myName in GAME.collected)) {
+            GAME.collected[myName] = { value: value, t: Date.now() };
+        }
+    }
+
+    // ============================================================
+    // 游戏 UI 渲染
+    // ============================================================
+    function gameOverlayShow() { const o = $('game-overlay'); o.classList.remove('hidden'); o.classList.add('flex'); }
+    function gameOverlayHide() { const o = $('game-overlay'); o.classList.add('hidden'); o.classList.remove('flex'); }
+
+    function gameHeader(html) {
+        return '<div class="flex items-center justify-between px-5 py-3 border-b border-space-border bg-space-800/60">' +
+            '<span class="text-sm font-semibold text-glow-green">🎮 联机小游戏</span>' +
+            '<button id="game-close" class="text-space-muted hover:text-space-text text-lg leading-none px-2">✕</button>' +
+            '</div>' + html;
+    }
+    function scoreboard(scores) {
+        const arr = Object.keys(scores || {}).map(n => ({ n, s: scores[n] })).sort((a, b) => b.s - a.s);
+        return '<div class="flex flex-wrap gap-2 justify-center mt-4">' +
+            arr.map(x => '<span class="text-xs font-mono px-2 py-1 rounded bg-space-800 border border-space-border">' + gEsc(x.n) + ' · ' + x.s + '</span>').join('') +
+            '</div>';
+    }
+
+    function renderGameStart(total) {
+        gameOverlayShow();
+        $('game-overlay').innerHTML = gameHeader(
+            '<div class="flex-1 flex flex-col items-center justify-center text-center p-8">' +
+            '<div class="text-5xl mb-4">🎲</div>' +
+            '<h2 class="text-xl font-bold text-space-text mb-2">小游戏开始！</h2>' +
+            '<p class="text-space-muted text-sm">共 ' + total + ' 轮，每轮随机一个游戏，胜者得分</p>' +
+            '</div>');
+        $('game-close').addEventListener('click', () => { gameOverlayHide(); });
+        // 房主 2 秒后开第一轮
+        if (isHost) { setTimeout(() => hostNextRound(), 2000); }
+    }
+
+    function renderGameReaction(phase) {
+        gameOverlayShow();
+        let body = '';
+        if (phase === 'prepare') {
+            body = '<div class="flex-1 flex flex-col items-center justify-center"><p class="text-2xl text-space-muted font-mono">准备…</p><p class="text-sm text-space-muted mt-2">变绿后立刻点击</p></div>';
+        } else if (phase === 'go') {
+            body = '<button id="react-btn" class="flex-1 w-full bg-glow-green text-space-900 text-3xl font-bold hover:brightness-110 transition">点！</button>';
+        }
+        $('game-overlay').innerHTML = gameHeader(
+            '<div class="px-5 pt-3 text-center text-xs text-space-muted font-mono">第 ' + GAME.roundIndex + '/' + GAME.totalRounds + ' 轮 · 反应速度</div>' +
+            '<div class="flex-1 flex flex-col p-4">' + body + '</div>');
+        $('game-close').addEventListener('click', () => gameOverlayHide());
+        const rb = $('react-btn');
+        if (rb) rb.addEventListener('click', () => {
+            rb.disabled = true; rb.textContent = '已点击';
+            if (isHost) { hostGameActionSelf('tap'); } else { gameSend({ type: 'game', sub: 'action', action: 'tap' }); }
+        });
+    }
+
+    function renderGameRps(phase) {
+        gameOverlayShow();
+        const hands = [['rock','✊ 石头'],['paper','✋ 布'],['scissors','✌️ 剪刀']];
+        const body = '<div class="grid grid-cols-3 gap-3 mt-4">' +
+            hands.map(h => '<button class="rps-btn px-3 py-6 rounded-xl bg-space-800 border border-space-border hover:border-glow-green transition text-space-text" data-h="' + h[0] + '">' + h[1] + '</button>').join('') +
+            '</div>';
+        $('game-overlay').innerHTML = gameHeader(
+            '<div class="px-5 pt-3 text-center text-xs text-space-muted font-mono">第 ' + GAME.roundIndex + '/' + GAME.totalRounds + ' 轮 · 石头剪刀布</div>' +
+            '<div class="flex-1 flex flex-col items-center justify-center p-4"><p class="text-space-muted mb-2">选一个，赢房主得分</p>' + body + '</div>');
+        $('game-close').addEventListener('click', () => gameOverlayHide());
+        document.querySelectorAll('.rps-btn').forEach(b => b.addEventListener('click', () => {
+            document.querySelectorAll('.rps-btn').forEach(x => x.disabled = true);
+            b.classList.add('border-glow-green');
+            const v = b.dataset.h;
+            if (isHost) hostGameActionSelf('rps', v); else gameSend({ type: 'game', sub: 'action', action: 'rps', value: v });
+        }));
+    }
+
+    function renderGameMath(phase, expr) {
+        gameOverlayShow();
+        $('game-overlay').innerHTML = gameHeader(
+            '<div class="px-5 pt-3 text-center text-xs text-space-muted font-mono">第 ' + GAME.roundIndex + '/' + GAME.totalRounds + ' 轮 · 速算抢答</div>' +
+            '<div class="flex-1 flex flex-col items-center justify-center p-4">' +
+            '<p class="text-4xl font-mono text-space-text mb-6">' + gEsc(expr) + ' = ?</p>' +
+            '<input id="math-input" type="number" class="glow-input rounded-lg px-4 py-3 text-center text-xl w-40" autocomplete="off">' +
+            '<button id="math-submit" class="mt-4 px-6 py-2.5 bg-glow-green/20 text-glow-green border border-glow-green/40 rounded-lg hover:bg-glow-green/30 transition">提交</button>' +
+            '</div>');
+        $('game-close').addEventListener('click', () => gameOverlayHide());
+        const submit = () => {
+            const v = parseInt($('math-input').value, 10);
+            if (isNaN(v)) return;
+            $('math-submit').disabled = true;
+            if (isHost) hostGameActionSelf('answer', v); else gameSend({ type: 'game', sub: 'action', action: 'answer', value: v });
+        };
+        $('math-submit').addEventListener('click', submit);
+        $('math-input').addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
+        setTimeout(() => $('math-input') && $('math-input').focus(), 100);
+    }
+
+    function renderGameResult(text, scores) {
+        gameOverlayShow();
+        $('game-overlay').innerHTML = gameHeader(
+            '<div class="flex-1 flex flex-col items-center justify-center text-center p-6">' +
+            '<p class="text-lg text-space-text mb-2">' + gEsc(text) + '</p>' +
+            scoreboard(scores) +
+            (isHost ? '<button id="next-round" class="mt-6 px-6 py-2.5 bg-glow-green/20 text-glow-green border border-glow-green/40 rounded-lg hover:bg-glow-green/30 transition">下一轮 →</button>' :
+                '<p class="text-xs text-space-muted mt-6">等待房主开始下一轮…</p>') +
+            '</div>');
+        $('game-close').addEventListener('click', () => gameOverlayHide());
+        if (isHost) {
+            const nb = $('next-round');
+            if (nb) nb.addEventListener('click', () => hostNextRound());
+        }
+    }
+
+    function renderGameOver(scores) {
+        gameOverlayShow();
+        const arr = Object.keys(scores || {}).map(n => ({ n, s: scores[n] })).sort((a, b) => b.s - a.s);
+        let champ;
+        if (!arr.length) champ = '—';
+        else if (arr.length > 1 && arr[0].s === arr[1].s) champ = '平局（' + arr[0].s + ' 分）';
+        else champ = arr[0].n + '（' + arr[0].s + ' 分）';
+        $('game-overlay').innerHTML = gameHeader(
+            '<div class="flex-1 flex flex-col items-center justify-center text-center p-6">' +
+            '<div class="text-5xl mb-3">🏆</div>' +
+            '<h2 class="text-xl font-bold text-space-text mb-1">游戏结束</h2>' +
+            '<p class="text-glow-green font-semibold mb-3">冠军：' + gEsc(champ) + '</p>' +
+            scoreboard(scores) +
+            '<button id="game-close2" class="mt-6 px-6 py-2.5 bg-space-700 border border-space-border rounded-lg hover:border-glow-green transition">关闭</button>' +
+            '</div>');
+        $('game-close').addEventListener('click', () => gameOverlayHide());
+        $('game-close2').addEventListener('click', () => gameOverlayHide());
+    }
+
+    // ============================================================
     // 事件绑定 & 初始化
     // ============================================================
     $('create-btn').addEventListener('click', createRoom);
@@ -451,6 +799,7 @@
     $('leave-btn').addEventListener('click', leaveRoom);
     $('send-btn').addEventListener('click', sendMsg);
     $('msg-input').addEventListener('keydown', e => { if (e.key === 'Enter') sendMsg(); });
+    $('game-btn').addEventListener('click', () => { if (isHost) hostStartGame(); else addSys('只有房主可以发起游戏'); });
 
     $('nickname').value = localStorage.getItem('lobby_nick') || '';
 

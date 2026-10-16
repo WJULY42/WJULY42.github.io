@@ -191,3 +191,11 @@ It has a dark "space" theme with an optional light mode.
   To edit it: Workers & Pages -> square-wave-2fd0 -> Edit code.
 - lobby.html is self-contained (inline style + script). It is NOT part of the
   data/*.json pipeline and does not load assets/local-data.js.
+
+- Game mode: the chat footer has a "🎮 游戏" button (host-only). Pressing it starts a
+  3-round match; each round randomly picks a different mini-game from a pool of three
+  (reaction / rock-paper-scissors / mental math). The host is authoritative: it runs the
+  round, collects every player's action, decides the winner, and broadcasts the result;
+  clients only send {type:'game', sub:'action', ...} and render what the host broadcasts.
+  Winner of each round scores +1; the highest total wins (ties shown as 平局). The host
+  advances rounds manually via "下一轮". Reactions: 3s window; RPS: 8s; math: 10s.
