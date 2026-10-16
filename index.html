@@ -195,11 +195,11 @@
     </style>
 
       <!-- ============ Theme Toggle Script ============ -->
-      <script src="local-loaders.js"></script>
-      <script src="local-data.js"></script>
+      <script src="assets/local-loaders.js"></script>
+      <script src="assets/local-data.js"></script>
 
-      <script src="theme-toggle.js"></script>
-    <link rel="stylesheet" href="theme.css">
+      <script src="assets/theme-toggle.js"></script>
+    <link rel="stylesheet" href="assets/theme.css">
 </head>
 <body class="font-sans antialiased">
 
@@ -267,6 +267,7 @@
                 </a>
                 <nav class="hidden md:flex items-center space-x-6 text-sm text-space-muted font-medium">
                     <a href="explore.html" class="hover:text-space-text transition">Explore</a>
+                    <a href="lobby.html" class="hover:text-space-text transition">联机大厅</a>
                     <a href="#guestbook" class="hover:text-space-text transition">Guestbook</a>
                      <a href="publish.html" class="hover:text-space-text transition">Creator Studio</a>
                 </nav>
@@ -384,41 +385,7 @@
                 <h2 class="text-3xl md:text-5xl font-bold text-gradient mb-4">Featured Projects</h2>
                 <p class="text-space-muted text-lg">Hover over the cards to feel the energy.</p>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <a href="https://github.com/ChatGPTNextWeb/NextChat" target="_blank" rel="noopener noreferrer" class="spotlight-card rounded-xl p-6 transition-all duration-300 hover:border-glow-purple/50 reveal block">
-                    <div class="w-12 h-12 bg-glow-purple/10 rounded-lg flex items-center justify-center mb-4 text-glow-purple">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
-                    </div>
-                    <h3 class="text-xl font-bold text-space-text mb-2">NextChat</h3>
-                    <p class="text-space-muted text-sm mb-6">A well-designed cross-platform AI UI. One of the best open-source ChatGPT clients.</p>
-                    <div class="flex items-center justify-between text-xs text-space-muted">
-                        <span class="flex items-center"><span class="w-2 h-2 rounded-full bg-blue-500 mr-2"></span> TypeScript</span>
-                        <span class="text-glow-blue hover:underline flex items-center">View Repo <svg class="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg></span>
-                    </div>
-                </a>
-                <a href="https://github.com/deepseek-ai" target="_blank" rel="noopener noreferrer" class="spotlight-card rounded-xl p-6 transition-all duration-300 hover:border-glow-blue/50 reveal block" style="transition-delay: 100ms;">
-                    <div class="w-12 h-12 bg-glow-blue/10 rounded-lg flex items-center justify-center mb-4 text-glow-blue">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>
-                    </div>
-                    <h3 class="text-xl font-bold text-space-text mb-2">DeepSeek</h3>
-                    <p class="text-space-muted text-sm mb-6">Pushing the boundaries of AI with open-source LLMs and cutting-edge research.</p>
-                    <div class="flex items-center justify-between text-xs text-space-muted">
-                        <span class="flex items-center"><span class="w-2 h-2 rounded-full bg-yellow-500 mr-2"></span> Python</span>
-                        <span class="text-glow-blue hover:underline flex items-center">View Repo <svg class="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg></span>
-                    </div>
-                </a>
-                <a href="https://github.com/giscus/giscus" target="_blank" rel="noopener noreferrer" class="spotlight-card rounded-xl p-6 transition-all duration-300 hover:border-glow-pink/50 reveal block" style="transition-delay: 200ms;">
-                    <div class="w-12 h-12 bg-glow-pink/10 rounded-lg flex items-center justify-center mb-4 text-glow-pink">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"></path></svg>
-                    </div>
-                    <h3 class="text-xl font-bold text-space-text mb-2">Giscus</h3>
-                    <p class="text-space-muted text-sm mb-6">The engine powering this Guestbook. A comment system based on GitHub Discussions.</p>
-                    <div class="flex items-center justify-between text-xs text-space-muted">
-                        <span class="flex items-center"><span class="w-2 h-2 rounded-full bg-purple-500 mr-2"></span> TypeScript</span>
-                        <span class="text-glow-blue hover:underline flex items-center">View Repo <svg class="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg></span>
-                    </div>
-                </a>
-            </div>
+            <div id="featured-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
         </div>
     </section>
 
@@ -571,8 +538,76 @@
             spotlightData.posts = Array.isArray(postsRes) ? postsRes : (postsRes.posts || []);
             spotlightData.tools = Array.isArray(toolsRes) ? toolsRes : (toolsRes.tools || []);
         } catch(e) { console.warn('Spotlight data load failed', e); }
+        renderFeatured();
     }
     loadSpotlightData();
+
+    // ==================== Featured（引用站内 Posts / Tools） ====================
+    function renderFeatured() {
+        const grid = document.getElementById('featured-grid');
+        if (!grid) return;
+        const posts = spotlightData.posts || [];
+        const tools = spotlightData.tools || [];
+        const colors = [
+            { bg: 'bg-glow-purple/10', text: 'text-glow-purple', border: 'hover:border-glow-purple/50', dot: 'bg-purple-500' },
+            { bg: 'bg-glow-blue/10',   text: 'text-glow-blue',   border: 'hover:border-glow-blue/50',   dot: 'bg-blue-500' },
+            { bg: 'bg-glow-pink/10',   text: 'text-glow-pink',   border: 'hover:border-glow-pink/50',   dot: 'bg-pink-500' },
+        ];
+        const arrow = '<svg class="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>';
+
+        // 交错取 tools 与 posts，最多 6 张
+        const items = [];
+        const max = 6;
+        let pi = 0, ti = 0;
+        while (items.length < max && (pi < posts.length || ti < tools.length)) {
+            if (ti < tools.length) items.push({ kind: 'tool', data: tools[ti++] });
+            if (items.length >= max) break;
+            if (pi < posts.length) items.push({ kind: 'post', data: posts[pi++] });
+        }
+
+        grid.innerHTML = items.map((it, i) => {
+            const c = colors[i % colors.length];
+            const delay = i * 100;
+            if (it.kind === 'tool') {
+                const t = it.data;
+                const isExt = (t.url || '').startsWith('http');
+                const url = isExt ? t.url : `view.html?type=tool&app=${t.url}`;
+                const extAttr = isExt ? ' target="_blank" rel="noopener noreferrer"' : '';
+                return `<a href="${url}"${extAttr} class="spotlight-card rounded-xl p-6 transition-all duration-300 ${c.border} reveal block" style="transition-delay:${delay}ms;">
+                    <div class="w-12 h-12 ${c.bg} rounded-lg flex items-center justify-center mb-4 text-2xl">${escapeHtml(t.emoji || '🛠️')}</div>
+                    <h3 class="text-xl font-bold text-space-text mb-2">${escapeHtml(t.name || 'Untitled')}</h3>
+                    <p class="text-space-muted text-sm mb-6">${escapeHtml(t.desc || '')}</p>
+                    <div class="flex items-center justify-between text-xs text-space-muted">
+                        <span class="flex items-center"><span class="w-2 h-2 rounded-full ${c.dot} mr-2"></span>Tool</span>
+                        <span class="text-glow-blue hover:underline flex items-center">Open ${arrow}</span>
+                    </div>
+                </a>`;
+            } else {
+                const p = it.data;
+                const url = p.url || `view.html?type=post&slug=${p.slug}`;
+                const tags = (p.tags || []).slice(0, 1).join('');
+                return `<a href="${url}" class="spotlight-card rounded-xl p-6 transition-all duration-300 ${c.border} reveal block" style="transition-delay:${delay}ms;">
+                    <div class="w-12 h-12 ${c.bg} rounded-lg flex items-center justify-center mb-4 text-2xl">📄</div>
+                    <h3 class="text-xl font-bold text-space-text mb-2">${escapeHtml(p.title || 'Untitled')}</h3>
+                    <p class="text-space-muted text-sm mb-6">${escapeHtml(p.excerpt || '')}</p>
+                    <div class="flex items-center justify-between text-xs text-space-muted">
+                        <span class="flex items-center"><span class="w-2 h-2 rounded-full ${c.dot} mr-2"></span>${escapeHtml(p.date || 'Post')}${tags ? ' · ' + escapeHtml(tags) : ''}</span>
+                        <span class="text-glow-blue hover:underline flex items-center">Read ${arrow}</span>
+                    </div>
+                </a>`;
+            }
+        }).join('');
+
+        // 重新绑定追光与滚动动画（动态插入的元素不在初始绑定范围内）
+        grid.querySelectorAll('.spotlight-card').forEach(card => {
+            card.addEventListener('mousemove', (e) => {
+                const rect = card.getBoundingClientRect();
+                card.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
+                card.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
+            });
+        });
+        grid.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+    }
 
     const staticPages = [
         { title: 'Home', icon: '🏠', url: 'index.html', meta: 'Page' },

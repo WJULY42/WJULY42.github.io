@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>联机大厅 | lunarHope</title>
+    <meta name="description" content="公网房间搜索 · WebRTC 点对点聊天">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        space: {
+                            900: '#010409', 800: '#0d1117', 700: '#161b22',
+                            600: '#21262d', border: '#30363d',
+                            text: '#f0f6fc', muted: '#8b949e',
+                        },
+                        glow: {
+                            purple: '#8957e5', blue: '#58a6ff',
+                            pink: '#da3633', green: '#3fb950',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Helvetica', 'Arial', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace'],
+                    },
+                }
+            }
+        }
+    </script>
+
+    <link rel="stylesheet" href="assets/theme.css">
+    <style>
+        * { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+        html { scroll-behavior: smooth; }
+        body { background-color: #010409; color: #f0f6fc; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #010409; }
+        ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 4px; }
+        .spotlight-card { position: relative; background: #0d1117; border: 1px solid #30363d; overflow: hidden; transition: border-color 0.3s ease; }
+        .spotlight-card:hover { border-color: rgba(137, 87, 229, 0.5); }
+        .glow-input { background: #0d1117; border: 1px solid #30363d; outline: none; transition: border-color .2s; }
+        .glow-input:focus { border-color: #8957e5; }
+        #room-list::-webkit-scrollbar, #chat-box::-webkit-scrollbar { width: 6px; }
+    </style>
+
+    <script src="assets/theme-toggle.js"></script>
+</head>
+<body class="font-sans antialiased min-h-screen flex flex-col">
+
+    <!-- 顶部导航 -->
+    <header class="fixed top-0 w-full z-50 bg-space-900/60 backdrop-blur-md border-b border-white/5">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-8">
+                <a href="index.html" class="flex items-center space-x-2 font-mono font-bold text-lg text-space-text">
+                    <svg class="w-6 h-6 text-glow-purple" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                    <span>lunarHope</span>
+                </a>
+                <nav class="hidden md:flex items-center space-x-6 text-sm text-space-muted font-medium">
+                    <a href="explore.html" class="hover:text-space-text transition">Explore</a>
+                    <a href="lobby.html" class="text-space-text">联机大厅</a>
+                    <a href="publish.html" class="hover:text-space-text transition">Creator Studio</a>
+                </nav>
+            </div>
+            <button class="theme-toggle text-lg p-2 rounded-md hover:bg-black/5 dark:hover:bg-white/10" type="button" aria-label="Toggle theme" title="Toggle theme">☀️</button>
+        </div>
+    </header>
+
+    <main class="relative z-10 pt-28 pb-16 px-6 flex-grow">
+        <div class="max-w-5xl mx-auto">
+
+            <!-- ===== 大厅视图 ===== -->
+            <div id="lobby-view">
+                <div class="text-center mb-10">
+                    <h1 class="text-3xl md:text-5xl font-bold text-gradient mb-3">联机大厅</h1>
+                    <p class="text-space-muted">公网房间搜索 · 点对点直连，消息不经过任何服务器</p>
+                </div>
+
+                <!-- 身份 + 建房 -->
+                <div class="spotlight-card rounded-xl p-6 mb-8">
+                    <div class="flex flex-col md:flex-row gap-4 md:items-end">
+                        <div class="flex-1">
+                            <label class="block text-xs text-space-muted mb-2 font-mono">你的昵称</label>
+                            <input id="nickname" class="glow-input w-full rounded-lg px-4 py-2.5 text-sm" placeholder="输入昵称" maxlength="16">
+                        </div>
+                        <div class="flex-1">
+                            <label class="block text-xs text-space-muted mb-2 font-mono">房间名</label>
+                            <input id="room-name" class="glow-input w-full rounded-lg px-4 py-2.5 text-sm" placeholder="例如：摸鱼聊天室" maxlength="24">
+                        </div>
+                        <button id="create-btn" class="px-6 py-2.5 bg-glow-purple/20 text-glow-purple border border-glow-purple/40 rounded-lg text-sm font-medium hover:bg-glow-purple/30 transition whitespace-nowrap">
+                            创建房间
+                        </button>
+                    </div>
+                    <p id="lobby-status" class="text-xs text-space-muted mt-3 font-mono"></p>
+                </div>
+
+                <!-- 房间列表 -->
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-lg font-semibold text-space-text">当前房间</h2>
+                    <div class="flex items-center gap-3">
+                        <span id="room-count" class="text-xs text-space-muted font-mono">0 个</span>
+                        <button id="refresh-btn" class="text-xs text-glow-blue hover:underline font-mono">刷新</button>
+                    </div>
+                </div>
+                <div id="room-list" class="space-y-3 max-h-[50vh] overflow-y-auto pr-1">
+                    <p class="text-space-muted text-sm text-center py-10">加载中...</p>
+                </div>
+            </div>
+
+            <!-- ===== 房间视图 ===== -->
+            <div id="room-view" class="hidden">
+                <div class="flex items-center justify-between mb-6 flex-wrap gap-3">
+                    <div>
+                        <h1 id="rv-name" class="text-2xl font-bold text-space-text">房间</h1>
+                        <p class="text-xs text-space-muted font-mono mt-1">
+                            房间码：<span id="rv-code" class="text-glow-green font-bold"></span>
+                            <span id="rv-role" class="ml-2"></span>
+                        </p>
+                    </div>
+                    <button id="leave-btn" class="px-4 py-2 bg-glow-pink/10 text-glow-pink border border-glow-pink/40 rounded-lg text-sm hover:bg-glow-pink/20 transition">
+                        离开房间
+                    </button>
+                </div>
+
+                <div class="spotlight-card rounded-xl flex flex-col" style="height: 60vh;">
+                    <div id="chat-box" class="flex-1 overflow-y-auto p-5 space-y-3"></div>
+                    <div class="border-t border-space-border p-3 flex gap-2">
+                        <input id="msg-input" class="glow-input flex-1 rounded-lg px-4 py-2.5 text-sm" placeholder="输入消息，回车发送" maxlength="500" autocomplete="off">
+                        <button id="send-btn" class="px-5 py-2.5 bg-glow-blue/20 text-glow-blue border border-glow-blue/40 rounded-lg text-sm font-medium hover:bg-glow-blue/30 transition">发送</button>
+                    </div>
+                </div>
+                <p id="room-status" class="text-xs text-space-muted mt-3 font-mono text-center"></p>
+            </div>
+
+        </div>
+    </main>
+
+    <footer class="relative z-10 border-t border-white/5 py-6 text-center text-xs text-space-muted">
+        <p>&copy; 2026 lunarHope. 联机基于 WebRTC 点对点直连。</p>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
+    <script>
+    // ============================================================
+    // 配置
+    // ============================================================
+    const API_BASE = 'https://roomfind.us.ci';  // Cloudflare Worker（房间登记）
+    const HEARTBEAT_MS = 20000;   // 心跳间隔
+    const STALE_MS = 60000;       // 超过 60s 无心跳视为过期
+
+    // ============================================================
+    // 状态
+    // ============================================================
+    let peer = null;
+    let isHost = false;
+    let myCode = '';
+    let myName = '';
+    let roomName = '';
+    let connections = {};   // host: connId -> conn ; client: { host: conn }
+    let heartbeatTimer = null;
+    let roomId = null;      // 房主：是否已登记房间（用于删除/心跳）
+
+    const $ = id => document.getElementById(id);
+
+    // ============================================================
+    // 工具
+    // ============================================================
+    function genCode(len = 5) {
+        const a = '23456789ABCDEFGHJKMNPQRSTUVWXYZ';
+        let s = '';
+        for (let i = 0; i < len; i++) s += a[Math.floor(Math.random() * a.length)];
+        return s;
+    }
+    function esc(s) {
+        return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+    }
+    function nowTs() { return new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }); }
+    function setStatus(text) { $('lobby-status').textContent = text || ''; }
+    function setRoomStatus(text) { $('room-status').textContent = text || ''; }
+
+    // ============================================================
+    // 房间列表（Cloudflare Worker）
+    // ============================================================
+    async function loadRooms() {
+        try {
+            const res = await fetch(API_BASE + '/rooms');
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const data = await res.json();
+            renderRooms(Array.isArray(data) ? data : []);
+        } catch (e) {
+            $('room-list').innerHTML = `<p class="text-glow-pink text-sm text-center py-10">加载房间失败：${esc(e.message)}</p>`;
+        }
+    }
+
+    function renderRooms(rooms) {
+        $('room-count').textContent = rooms.length + ' 个';
+        if (!rooms.length) {
+            $('room-list').innerHTML = '<p class="text-space-muted text-sm text-center py-10">暂时没有房间，创建一个吧 👆</p>';
+            return;
+        }
+        $('room-list').innerHTML = rooms.map(r => `
+            <div class="spotlight-card rounded-xl p-4 flex items-center justify-between gap-4">
+                <div class="min-w-0">
+                    <h3 class="font-semibold text-space-text truncate">${esc(r.name)}</h3>
+                    <p class="text-xs text-space-muted font-mono mt-1">
+                        房主 ${esc(r.host)} · 房间码 <span class="text-glow-green">${esc(r.code)}</span>
+                    </p>
+                </div>
+                <button data-join="${esc(r.code)}" data-name="${esc(r.name)}"
+                    class="join-btn px-4 py-2 bg-glow-green/10 text-glow-green border border-glow-green/40 rounded-lg text-sm hover:bg-glow-green/20 transition whitespace-nowrap">
+                    加入
+                </button>
+            </div>
+        `).join('');
+        document.querySelectorAll('.join-btn').forEach(btn => {
+            btn.addEventListener('click', () => joinRoom(btn.dataset.join, btn.dataset.name));
+        });
+    }
+
+    // ============================================================
+    // 创建房间（房主）
+    // ============================================================
+    async function createRoom() {
+        myName = ($('nickname').value || '').trim() || '房主';
+        roomName = ($('room-name').value || '').trim() || (myName + ' 的房间');
+        localStorage.setItem('lobby_nick', myName);
+
+        setStatus('正在创建房间...');
+        myCode = genCode();
+        isHost = true;
+
+        // 1. 登记房间到 Worker
+        try {
+            const res = await fetch(API_BASE + '/announce', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ code: myCode, name: roomName, host: myName })
+            });
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            roomId = myCode;
+        } catch (e) {
+            setStatus('创建失败：' + e.message);
+            return;
+        }
+
+        // 2. 建立 PeerJS（房主 id = 房间码）
+        try {
+            peer = new Peer(myCode, { debug: 1 });
+            await new Promise((res, rej) => {
+                peer.on('open', res);
+                peer.on('error', e => rej(new Error(e.type || 'peer error')));
+                setTimeout(() => rej(new Error('信令超时（PeerJS 云端可能不可达，请稍后重试）')), 15000);
+            });
+        } catch (e) {
+            await cleanupRoom();
+            setStatus('创建失败：' + e.message);
+            return;
+        }
+
+        // 3. 监听连接
+        peer.on('connection', conn => {
+            connections[conn.peer] = conn;
+            conn.on('data', d => onHostData(conn, d));
+            conn.on('close', () => {
+                delete connections[conn.peer];
+                addSys(`${conn.metadata?.name || '有人'} 离开了`);
+                broadcastMembers();
+            });
+        });
+
+        // 4. 心跳
+        heartbeatTimer = setInterval(() => {
+            if (!roomId) return;
+            fetch(API_BASE + '/heartbeat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ code: roomId })
+            }).catch(() => {});
+        }, HEARTBEAT_MS);
+
+        // 5. 进入房间视图
+        enterRoomView('房主');
+        addSys('房间已创建，把房间码告诉朋友吧');
+    }
+
+    // ============================================================
+    // 加入房间（客户端）
+    // ============================================================
+    async function joinRoom(code, name) {
+        myName = ($('nickname').value || '').trim() || '访客';
+        localStorage.setItem('lobby_nick', myName);
+        myCode = code; roomName = name; isHost = false;
+
+        setStatus('正在连接房间 ' + code + ' ...');
+        try {
+            peer = new Peer({ debug: 1 });
+            await new Promise((res, rej) => {
+                peer.on('open', res);
+                peer.on('error', e => rej(new Error(e.type || 'peer error')));
+                setTimeout(() => rej(new Error('信令超时')), 15000);
+            });
+        } catch (e) {
+            setStatus('连接失败：' + e.message);
+            return;
+        }
+
+        const conn = peer.connect(code, { metadata: { name: myName } });
+        conn.on('open', () => {
+            connections.host = conn;
+            setStatus('已连接，等待房主确认...');
+            conn.send({ type: 'join', name: myName });
+        });
+        conn.on('data', d => onClientData(d));
+        conn.on('close', () => { addSys('与房主的连接已断开'); setRoomStatus('连接已断开'); });
+        conn.on('error', e => { addSys('连接错误：' + (e.type || e)); });
+    }
+
+    // ============================================================
+    // 消息处理
+    // ============================================================
+    // 房主收到客户端消息
+    function onHostData(conn, d) {
+        if (!d || typeof d !== 'object') return;
+        if (d.type === 'join') {
+            const name = (d.name || '').trim() || '访客';
+            // 收集房间内已有的昵称（含房主）
+            const existing = [myName];
+            for (const id in connections) {
+                if (connections[id] === conn) continue;
+                existing.push((connections[id].metadata && connections[id].metadata.name) || '访客');
+            }
+            if (existing.includes(name)) {
+                try { conn.send({ type: 'reject', reason: '昵称「' + name + '」已被占用，请换一个' }); } catch (e) {}
+                setTimeout(() => { try { conn.close(); } catch (e) {} }, 300);
+                return;
+            }
+            conn.metadata = conn.metadata || {};
+            conn.metadata.name = name;
+            try { conn.send({ type: 'welcome' }); } catch (e) {}
+            addSys(`${name} 加入了`);
+            broadcastMembers();
+        } else if (d.type === 'msg') {
+            const from = (conn.metadata && conn.metadata.name) || '访客';
+            addMsg(from, d.text, false);
+            broadcast({ type: 'msg', from, text: d.text }, conn); // 转发给其他人
+        }
+    }
+    // 客户端收到房主消息
+    function onClientData(d) {
+        if (!d || typeof d !== 'object') return;
+        if (d.type === 'welcome') {
+            enterRoomView('成员');
+            addSys('已加入房间');
+        }
+        else if (d.type === 'msg') addMsg(d.from, d.text, false);
+        else if (d.type === 'sys') addSys(d.text);
+        else if (d.type === 'members') setRoomStatus('在线：' + d.list.join('、'));
+        else if (d.type === 'reject') {
+            setStatus('加入失败：' + (d.reason || '昵称重复'));
+            if (peer) { try { peer.destroy(); } catch (e) {} }
+            peer = null; connections = {}; myCode = ''; roomName = '';
+        }
+    }
+
+    function broadcast(obj, exceptConn) {
+        for (const id in connections) {
+            if (connections[id] === exceptConn) continue;
+            try { connections[id].send(obj); } catch (e) {}
+        }
+    }
+    function broadcastMembers() {
+        const names = [myName];
+        for (const id in connections) {
+            const n = (connections[id].metadata && connections[id].metadata.name) || '访客';
+            if (!names.includes(n)) names.push(n);
+        }
+        broadcast({ type: 'members', list: names });
+        setRoomStatus('在线：' + names.join('、'));
+    }
+
+    function sendMsg() {
+        const text = ($('msg-input').value || '').trim();
+        if (!text) return;
+        $('msg-input').value = '';
+        addMsg(myName, text, true);
+        if (isHost) broadcast({ type: 'msg', from: myName, text });
+        else if (connections.host) connections.host.send({ type: 'msg', text });
+    }
+
+    // ============================================================
+    // UI 渲染
+    // ============================================================
+    function addMsg(from, text, self) {
+        const box = $('chat-box');
+        const el = document.createElement('div');
+        el.className = 'flex flex-col ' + (self ? 'items-end' : 'items-start');
+        el.innerHTML = `
+            <div class="text-[11px] text-space-muted mb-1 font-mono">${esc(from)} · ${nowTs()}</div>
+            <div class="max-w-[75%] rounded-lg px-3.5 py-2 text-sm break-words ${self ? 'bg-glow-purple/20 border border-glow-purple/40' : 'bg-space-800 border border-space-border'}">${esc(text)}</div>
+        `;
+        box.appendChild(el);
+        box.scrollTop = box.scrollHeight;
+    }
+    function addSys(text) {
+        const box = $('chat-box');
+        const el = document.createElement('div');
+        el.className = 'text-center text-xs text-space-muted font-mono py-1';
+        el.textContent = '— ' + text + ' —';
+        box.appendChild(el);
+        box.scrollTop = box.scrollHeight;
+    }
+
+    function enterRoomView(role) {
+        $('lobby-view').classList.add('hidden');
+        $('room-view').classList.remove('hidden');
+        $('rv-name').textContent = roomName;
+        $('rv-code').textContent = myCode;
+        $('rv-role').textContent = '（' + role + '）';
+        setStatus('');
+    }
+
+    async function leaveRoom() {
+        // 房主：注销房间
+        if (isHost && roomId) { try { await fetch(API_BASE + '/leave', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: roomId }) }); } catch (e) {} }
+        if (heartbeatTimer) clearInterval(heartbeatTimer);
+        if (peer) { try { peer.destroy(); } catch (e) {} }
+        peer = null; connections = {}; roomId = null; heartbeatTimer = null;
+        $('room-view').classList.add('hidden');
+        $('lobby-view').classList.remove('hidden');
+        $('chat-box').innerHTML = '';
+        setRoomStatus('');
+        loadRooms();
+    }
+
+    async function cleanupRoom() {
+        if (heartbeatTimer) clearInterval(heartbeatTimer);
+        if (roomId) { try { await fetch(API_BASE + '/leave', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: roomId }) }); } catch (e) {} }
+        if (peer) { try { peer.destroy(); } catch (e) {} }
+    }
+
+    // ============================================================
+    // 事件绑定 & 初始化
+    // ============================================================
+    $('create-btn').addEventListener('click', createRoom);
+    $('refresh-btn').addEventListener('click', loadRooms);
+    $('leave-btn').addEventListener('click', leaveRoom);
+    $('send-btn').addEventListener('click', sendMsg);
+    $('msg-input').addEventListener('keydown', e => { if (e.key === 'Enter') sendMsg(); });
+
+    $('nickname').value = localStorage.getItem('lobby_nick') || '';
+
+    loadRooms();
+    setInterval(loadRooms, 10000); // 大厅每 10s 自动刷新
+
+    // 关闭页面前清理（房主）：sendBeacon 尽力通知 Worker 注销房间
+    window.addEventListener('beforeunload', () => {
+        if (isHost && roomId) {
+            try {
+                navigator.sendBeacon(API_BASE + '/leave', new Blob([JSON.stringify({ code: roomId })], { type: 'application/json' }));
+            } catch (e) {}
+        }
+    });
+    </script>
+</body>
+</html>

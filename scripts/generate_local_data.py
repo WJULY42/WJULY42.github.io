@@ -12,7 +12,8 @@ import json
 import os
 import glob
 
-ROOT = os.path.dirname(os.path.abspath(__file__))
+# This script lives in scripts/; the site root is one level up.
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 store = {}
 
@@ -26,13 +27,13 @@ for json_file in glob.glob(os.path.join(ROOT, 'data', '*.json')):
 parts = []
 parts.append('// Auto-generated: window.__localStore only, for file:// usage.')
 parts.append('// Post bodies are NOT embedded (see the module docstring).')
-parts.append('// Loaders live in local-loaders.js — include that script on any page that')
+parts.append('// Loaders live in assets/local-loaders.js — include that script on any page that')
 parts.append('// calls loadLocalData / loadLocalText.')
-parts.append('// Regenerate with: python generate_local_data.py')
+parts.append('// Regenerate with: python scripts/generate_local_data.py')
 parts.append('window.__localStore = ' + json.dumps(store, ensure_ascii=False, indent=2) + ';')
 
 output = '\n'.join(parts)
-output_path = os.path.join(ROOT, 'local-data.js')
+output_path = os.path.join(ROOT, 'assets', 'local-data.js')
 with open(output_path, 'w', encoding='utf-8') as f:
     f.write(output)
 print(f'Generated {output_path} ({len(output.encode("utf-8"))} bytes)')

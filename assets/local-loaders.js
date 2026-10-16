@@ -1,11 +1,11 @@
 // Shared data loaders for the lunarHope site.
 //
-// Pair with local-data.js:
-//     <script src="local-loaders.js"></script>   <- load this on any page that calls a loader
-//     <script src="local-data.js"></script>      <- only on pages that read the embedded store
+// Pair with local-data.js (both live in assets/):
+//     <script src="assets/local-loaders.js"></script>   <- load this on any page that calls a loader
+//     <script src="assets/local-data.js"></script>      <- only on pages that read the embedded store
 //
 // local-data.js is a single global (window.__localStore, data/*.json only) generated
-// by generate_local_data.py. It is deliberately kept separate so that pages which only
+// by scripts/generate_local_data.py. It is deliberately kept separate so that pages which only
 // need loadLocalText (blog/read.html) never have to download the ~23 KB index.
 //
 // loadLocalData looks window.__localStore up at call time, so if the store script is

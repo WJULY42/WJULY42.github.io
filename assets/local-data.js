@@ -1,8 +1,8 @@
 // Auto-generated: window.__localStore only, for file:// usage.
 // Post bodies are NOT embedded (see the module docstring).
-// Loaders live in local-loaders.js — include that script on any page that
+// Loaders live in assets/local-loaders.js — include that script on any page that
 // calls loadLocalData / loadLocalText.
-// Regenerate with: python generate_local_data.py
+// Regenerate with: python scripts/generate_local_data.py
 window.__localStore = {
   "data/drafts.json": {
     "drafts": []

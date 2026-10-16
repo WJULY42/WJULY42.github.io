@@ -1,11 +1,22 @@
 lunarHope GitHub Pages — Project Memory
 =========================================
 
-Last updated: 2026-09-05
+Last updated: 2026-10-16
 
 ## What this project is
 A personal GitHub Pages site built with plain HTML, Tailwind CSS (CDN), and vanilla JavaScript.
 It has a dark "space" theme with an optional light mode.
+
+## Directory layout
+- Root HTML entries stay at the repo root (GitHub Pages serves the root; relative
+  links + file:// depend on it): index / explore / publish / view / find / jump / lobby.
+- assets/             — shared site assets
+    - theme.css, theme-toggle.js        (theme system)
+    - local-data.js  (GENERATED), local-loaders.js  (hand-maintained)
+- scripts/            — build/tooling
+    - generate_local_data.py            (regenerates assets/local-data.js)
+- Content dirs: blog/ (posts + legacy reader), tools/ (web tools), fire/ (game),
+  resources/ (downloadables), data/ (JSON metadata).
 
 ## Key pages
 - index.html         — Home / landing page
@@ -17,6 +28,7 @@ It has a dark "space" theme with an optional light mode.
 - tools/index.html   — Redirects to explore.html#tools (legacy)
 - find.html          — Bluetooth school uniform distance tool
 - jump.html          — "Jump Jump" game
+- lobby.html         — Online lobby: public room search + P2P chat (see "Multiplayer lobby" below)
 
 ## Vocabulary (UI labels — keep these consistent)
 - Post / Posts     — blog content. Retired words: "Blog", "Blog post", "Article"
@@ -60,21 +72,21 @@ It has a dark "space" theme with an optional light mode.
 - When adding new resources:
   1. Put the file under resources/
   2. Add an entry in data/resources.json
-  3. Run `python generate_local_data.py` to refresh local-data.js
+  3. Run `python scripts/generate_local_data.py` to refresh assets/local-data.js
 
 ## Theme system
-- theme.css          — Light-mode overrides
-- theme-toggle.js    — Theme toggle (dark/light), stored in localStorage
-- Every page includes theme.css + theme-toggle.js — EXCEPT tools/*.html, see below
+- assets/theme.css          — Light-mode overrides
+- assets/theme-toggle.js    — Theme toggle (dark/light), stored in localStorage
+- Every page includes assets/theme.css + assets/theme-toggle.js — EXCEPT tools/*.html, see below
 - Default follows system preference, manual choice is remembered
 
 
 ## Tools (tools/*.html)
-- Dark-only. They include neither theme.css, theme-toggle.js nor local-data.js
+- Dark-only. They include neither assets/theme.css, assets/theme-toggle.js nor assets/local-data.js
   (nothing in tools/ calls loadLocalData, so the ~28 KB snapshot was dead weight).
-- Why no theme: a tool runs inside view.html's iframe, so theme-toggle.js would append
+- Why no theme: a tool runs inside view.html's iframe, so assets/theme-toggle.js would append
   its own floating toggle to the iframe and theme its own <html> independently of the
-  parent page. theme.css also overrides 199 selectors but skips opacity variants
+  parent page. assets/theme.css also overrides 199 selectors but skips opacity variants
   (bg-glow-green/20, border-glow-blue/50, hover:bg-glow-pink/30 ...), so a tool in
   light mode rendered half-converted. The parent page owns the theme.
 - A back link inside a tool MUST use target="_top": without it the iframe navigates to
@@ -100,10 +112,10 @@ It has a dark "space" theme with an optional light mode.
   so content stays visible if the script never runs
 
 ## Local file:// support
-- Two files, on purpose:
-    - local-data.js      — GENERATED. A single global, `window.__localStore`, holding
+- Two files, on purpose (both in assets/):
+    - assets/local-data.js      — GENERATED. A single global, `window.__localStore`, holding
       data/*.json only. Never hand-edit. ~22 KB at 37 posts.
-    - local-loaders.js   — HAND-MAINTAINED, ~2 KB. Defines __normalizeLocalKey,
+    - assets/local-loaders.js   — HAND-MAINTAINED, ~2 KB. Defines __normalizeLocalKey,
       window.loadLocalData and window.loadLocalText.
 - Pages include ONLY what they use:
     - reads the store (index, explore, publish, view): both scripts, loaders first
@@ -124,7 +136,7 @@ It has a dark "space" theme with an optional light mode.
 - The GitHub Actions workflow runs this script too and commits local-data.js, so
   published content shows up offline as well; local-only edits still need a manual run
 - Regenerate local-data.js after changing any data/*.json file:
-  `python generate_local_data.py`
+  `python scripts/generate_local_data.py`
 - For full dynamic behavior (GitHub API publish/delete), a local server is still recommended:
   `python -m http.server 8000`
 
@@ -151,8 +163,31 @@ It has a dark "space" theme with an optional light mode.
   (title, author, date, tags) plus the first prose paragraph as the excerpt
 - It exits 1 without writing when no posts are found, so an empty index can never
   be committed by accident (the old version silently produced {"posts": []})
-- The workflow also runs `python3 generate_local_data.py`, so the file:// snapshot
+- The workflow also runs `python3 scripts/generate_local_data.py`, so the file:// snapshot
   is committed together with data/posts.json
 - Triggers on blog/posts/*.md, blog/posts/*.html, the script, the workflow and
-  generate_local_data.py; workflow_dispatch also works
+  scripts/generate_local_data.py; workflow_dispatch also works
 - Keep memory.txt updated when making structural changes
+
+
+## Multiplayer lobby (lobby.html)
+- Purpose: public room search + peer-to-peer chat. No game server — only room
+  discovery touches a backend; chat messages travel directly between browsers.
+- Backend: a Cloudflare Worker at https://roomfind.us.ci (custom domain, because
+  the default *.workers.dev domain is blocked in mainland China). The Worker uses
+  Workers KV to store room entries. Endpoints:
+    - POST /announce   {code, name, host}  register a room (TTL 120s)
+    - POST /heartbeat  {code}              refresh TTL (host every 20s)
+    - GET  /rooms                          list live rooms (last_seen < 90s)
+    - POST /leave      {code}              remove a room
+- Transport: WebRTC via PeerJS (peerjs@1.5.4, public signalling cloud). The host's
+  Peer id = the room code; clients connect straight to the host.
+- Room codes: 5 chars from '23456789ABCDEFGHJKMNPQRSTUVWXYZ' (no 0/O/1/I/L).
+- Flow: client opens a data connection and sends {type:'join'}; the host validates
+  the nickname (rejects duplicates with {type:'reject'}) and answers {type:'welcome'};
+  only then does the client enter the room view. Messages are relayed by the host.
+- KV is eventually consistent (~13s lag), so the lobby polls /rooms every 10s.
+- The Worker source is NOT in this repo — it lives in the Cloudflare dashboard.
+  To edit it: Workers & Pages -> square-wave-2fd0 -> Edit code.
+- lobby.html is self-contained (inline style + script). It is NOT part of the
+  data/*.json pipeline and does not load assets/local-data.js.
