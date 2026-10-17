@@ -238,5 +238,10 @@ It has a dark "space" theme with an optional light mode.
   broadcasts a snapshot every 50ms; the guest mirrors and sends {t:'p'} up. This runs
   inside the iframe independently of lobby's own 5-round mini-game system.
 - Lobby-side code lives under the "联机枪战" section of lobby.html: ARENA state,
+- Spawn-room safety (zhan-shu.html): doors on the starting room's edges carry
+  secure:true (set in buildMap via startAdj()). aiCrankDoor() refuses secure doors,
+  so enemies can never break into the spawn room at level start; the door-approach
+  branch in the AI move code also skips them and re-paths instead. The player and
+  teammates can still open these doors normally (crankDoorBy is unaffected).
   arenaOpen/Close/Start, onArenaMsg (offer/answer/open/closed), the window 'message'
   listener, and the arena-overlay markup + CSS.

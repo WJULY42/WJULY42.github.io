@@ -738,7 +738,7 @@ function navMove(u, tx, ty, speed, dt, setAngle){
   if (!ok){
     // 被关闭的门挡住 → AI 自动开门（面向门，原地摇门）
     const door = nearestDoor(u.x, u.y, 64);
-    if (door){
+    if (door && !door.secure){
       u.angle = Math.atan2(door.y + door.h/2 - u.y, door.x + door.w/2 - u.x);
       aiCrankDoor(door, dt);
       return true;
@@ -751,6 +751,7 @@ function navMove(u, tx, ty, speed, dt, setAngle){
 
 /* AI 开门：持续加进度（净速率跑赢回落），开门同样发出噪声 */
 function aiCrankDoor(d, dt){
+  if (d.secure) return false;   // 安全屋（出生房）的门敌人打不开，避免开局被破门
   d.progress = Math.min(1, d.progress + 0.75 * dt);   // 净 0.5/s，约 2s 开门
   d.speed = 3;
   d.aiNoiseT = (d.aiNoiseT || 0) - dt;
@@ -960,7 +961,7 @@ function buildMap(){
         // 80% 缺口装交互门（关闭时挡路+挡视线，玩家按 F / AI 自动开启）
         if (Math.random() < 0.8 || startAdj(e)){   // 起始房间边必定装可关闭的门，确保隔断生效
           doors.push({x:wx-3, y:dp, w:WALL_T+6, h:DOOR_W, vert:true,
-                      open:false, progress:0, lastPress:0, speed:0});
+                      open:false, progress:0, lastPress:0, speed:0, secure:!!startAdj(e)});
         }
       }
     } else {
@@ -974,7 +975,7 @@ function buildMap(){
         wallRects.push({x:dp + DOOR_W, y:wy, w:x1 - (dp + DOOR_W), h:WALL_T});
         if (Math.random() < 0.8 || startAdj(e)){   // 起始房间边必定装可关闭的门，确保隔断生效
           doors.push({x:dp, y:wy-3, w:DOOR_W, h:WALL_T+6, vert:false,
-                      open:false, progress:0, lastPress:0, speed:0});
+                      open:false, progress:0, lastPress:0, speed:0, secure:!!startAdj(e)});
         }
       }
     }
