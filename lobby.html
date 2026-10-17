@@ -454,30 +454,140 @@
     }
 
     // ============================================================
-    // 小游戏系统（房主权威：房主计算，客户端发动作）
-    // 一局 = 3 轮，每轮从游戏池随机抽一个，胜者 +1 分
+    // 小游戏系统 v2 —— 100 款小游戏（数据驱动，6 种玩法模板）
+    // 一局 5 轮，每轮抽取一款；开始前有抽取滚动动画
+    // 房主权威：房主出题/收集/判定/广播；客户端只发动作、渲染
     // ============================================================
+
+    const GAME_DEFS = [];
+    (function buildGameDefs() {
+        const push = o => GAME_DEFS.push(o);
+
+        // ---- 反应速度 tap 20 ----
+        [
+            ['红灯停','🚦','变绿立刻点',1500,3500,2500],
+            ['猎豹反应','🐆','豹子起跑，快点',1200,3000,2200],
+            ['神经反射','⚡','电光火石之间',1000,2500,2000],
+            ['红绿灯','🚥','绿灯亮起点击',1800,4000,2800],
+            ['狙击手','🎯','目标出现立刻开枪',2000,4500,2000],
+            ['起跑枪','🏃','枪响之后冲出去',1300,3200,2200],
+            ['猫咪扑击','🐱','猫爪落下前点',1600,3600,2400],
+            ['闪电侠','🌩️','快如闪电',900,2200,1800],
+            ['心跳时刻','💓','心跳加速时点',2200,4800,3000],
+            ['龟兔赛跑','🐢','乌龟抬头就点',1800,4200,2600],
+            ['闹钟响了','⏰','闹钟一响就按',1500,3800,2500],
+            ['烟花绽放','🎆','烟花炸开时点',2000,4600,2400],
+            ['捕风捉影','💨','风来的瞬间',1400,3400,2300],
+            ['打地鼠','🔨','地鼠冒头就砸',1100,2800,2100],
+            ['百米冲刺','🥇','发令就起跑',1600,3900,2500],
+            ['雷达锁定','📡','锁定目标点击',1900,4400,2300],
+            ['秒针归零','🕐','秒针到 12 点',2100,5000,2600],
+            ['雷击瞬间','🌩️','雷声响起那刻',1700,4000,2400],
+            ['泡泡破灭','🫧','泡泡碰到就点',1300,3100,2200],
+            ['心跳同步','💗','跟着节奏点击',2000,4700,2700]
+        ].forEach((t,i) => push({ id:'tap'+(i+1), name:t[0], emoji:t[1], type:'tap', prompt:t[2], waitMin:t[3], waitMax:t[4], windowMs:t[5] }));
+
+        // ---- 选择题 quiz 25 ----
+        [
+            ['颜色辨识','🎨','太阳是什么颜色？',['红色','黄色','蓝色','绿色'],1],
+            ['动物世界','🦁','百兽之王是？',['老虎','狮子','大象','熊'],1],
+            ['水果认知','🍎','苹果通常是什么颜色？',['红色','蓝色','紫色','黑色'],0],
+            ['地理常识','🌍','世界上最大的洋是？',['大西洋','印度洋','太平洋','北冰洋'],2],
+            ['数学常识','➕','3 + 5 = ?',['6','7','8','9'],2],
+            ['天体认知','🌞','离地球最近的恒星是？',['月亮','太阳','火星','金星'],1],
+            ['人体常识','🫀','人体最大的器官是？',['心脏','肝脏','皮肤','肺'],2],
+            ['交通标志','🚦','红灯表示？',['通行','停止','减速','转弯'],1],
+            ['季节常识','🍂','树叶变黄是哪个季节？',['春天','夏天','秋天','冬天'],2],
+            ['单位换算','📏','1 米 = 多少厘米？',['10','100','1000','10000'],1],
+            ['成语理解','📖','“画蛇添足”比喻？',['多此一举','锦上添花','恰到好处','画龙点睛'],0],
+            ['历史常识','📜','中国四大发明不包括？',['造纸术','指南针','火药','电灯'],3],
+            ['科学常识','🔬','水的化学式是？',['CO2','H2O','O2','NaCl'],1],
+            ['音乐常识','🎵','标准钢琴有多少个键？',['66','76','88','96'],2],
+            ['体育常识','⚽','足球每队上场几人？',['9','10','11','12'],2],
+            ['植物常识','🌱','光合作用需要？',['黑暗','阳光','风','土'],1],
+            ['天文常识','🌙','月亮绕什么转？',['太阳','地球','火星','自己'],1],
+            ['日常生活','🥢','筷子通常用几根？',['1','2','3','4'],1],
+            ['动物尾巴','🐒','哪种动物会用尾巴倒挂？',['狗','猫','猴子','兔子'],2],
+            ['颜色混合','🟣','红 + 蓝 = ?',['绿','紫','橙','灰'],1],
+            ['数字常识','🔢','100 的一半是？',['25','40','50','60'],2],
+            ['自然现象','🌈','彩虹通常有几种颜色？',['5','6','7','8'],2],
+            ['时间常识','⌚','一天有多少小时？',['12','18','24','36'],2],
+            ['语言常识','💬','“谢谢”用英语怎么说？',['Sorry','Thanks','Hello','Bye'],1],
+            ['反义词语','🔁','“大”的反义词是？',['高','小','多','长'],1]
+        ].forEach((q,i) => push({ id:'quiz'+(i+1), name:q[0], emoji:q[1], type:'quiz', q:q[2], opts:q[3], ans:q[4] }));
+
+        // ---- 速算 math 20 ----
+        [
+            ['加加快算','➕','+',10,90,10,90],
+            ['减减速度','➖','-',50,120,10,40],
+            ['乘法达人','✖️','×',2,12,2,12],
+            ['加减混合','±','mix',10,99,1,50],
+            ['两位数加','🔢','+',20,99,20,99],
+            ['两位数减','🔻','-',40,99,10,39],
+            ['九九乘法','🧮','×',2,9,2,9],
+            ['三位数加','💯','+',100,500,100,500],
+            ['三位数减','📉','-',200,800,100,199],
+            ['大数乘法','✳️','×',3,15,3,15],
+            ['心算挑战','🧠','mix',15,80,5,30],
+            ['速算王者','👑','mix',20,99,10,50],
+            ['闪电计算','⚡','+',5,50,5,50],
+            ['数字游戏','🎲','×',4,11,4,11],
+            ['减法入门','⬇️','-',20,60,5,19],
+            ['加法进阶','⬆️','+',50,150,50,150],
+            ['乘法强化','💪','×',6,14,6,14],
+            ['混合运算','🔀','mix',25,99,10,40],
+            ['极速心算','🚀','mix',30,99,15,60],
+            ['算术马拉松','🏃','+',100,999,100,999]
+        ].forEach((m,i) => push({ id:'math'+(i+1), name:m[0], emoji:m[1], type:'math', op:m[2], aMin:m[3], aMax:m[4], bMin:m[5], bMax:m[6] }));
+
+        // ---- 猜拳 rps 10 ----
+        [
+            ['经典猜拳','✊'],['石头剪刀布','✌️'],['手指对决','🖐️'],['拳头大战','👊'],
+            ['猜拳大师','🏆'],['盲猜出拳','🙈'],['快手猜拳','⚡'],['猜拳王','👑'],
+            ['一决高下','🎯'],['猜拳对决','⚔️']
+        ].forEach((r,i) => push({ id:'rps'+(i+1), name:r[0], emoji:r[1], type:'rps' }));
+
+        // ---- 数字炸弹 bomb 10 ----
+        [
+            ['数字炸弹','💣',1,100],['拆弹专家','🧨',1,50],['幸运数字','🍀',1,30],
+            ['危险数字','☠️',1,200],['倒计时炸弹','⏱️',1,60],['拆弹行动','🚨',1,80],
+            ['猜数字','🔢',1,100],['炸弹区间','💥',1,150],['危机倒计时','⌛',1,40],
+            ['拆解密码','🔐',1,120]
+        ].forEach((b,i) => push({ id:'bomb'+(i+1), name:b[0], emoji:b[1], type:'bomb', lo:b[2], hi:b[3] }));
+
+        // ---- 你画我猜 draw 15 ----
+        [
+            ['画动物','🐾',['小猫','小狗','大象','老虎','兔子']],
+            ['画食物','🍔',['汉堡','披萨','面条','米饭','蛋糕']],
+            ['画交通','🚗',['汽车','飞机','轮船','自行车','火车']],
+            ['画自然','🌳',['大树','太阳','月亮','彩虹','雪山']],
+            ['画建筑','🏠',['房子','学校','桥梁','塔','城堡']],
+            ['画工具','🔧',['锤子','剪刀','雨伞','钥匙','台灯']],
+            ['画运动','⚽',['足球','篮球','游泳','跑步','跳绳']],
+            ['画人物','👤',['医生','老师','警察','厨师','消防员']],
+            ['画乐器','🎸',['吉他','钢琴','鼓','小提琴','口琴']],
+            ['画水果','🍎',['苹果','香蕉','葡萄','西瓜','草莓']],
+            ['画天气','☁️',['晴天','下雨','下雪','打雷','刮风']],
+            ['画表情','😀',['大笑','哭泣','生气','惊讶','害羞']],
+            ['画衣物','👕',['衬衫','裤子','鞋子','帽子','围巾']],
+            ['画符号','🔢',['数字1','数字8','爱心','星星','圆圈']],
+            ['画电子','📱',['手机','电脑','电视','相机','耳机']]
+        ].forEach((d,i) => push({ id:'draw'+(i+1), name:d[0], emoji:d[1], type:'draw', words:d[2] }));
+    })();
+
     const GAME = {
-        active: false,
-        totalRounds: 5,
-        roundIndex: 0,
-        scores: {},          // name -> score
-        curGame: null,       // 'reaction' | 'rps' | 'math' | 'draw' | 'bomb'
-        curData: null,
-        pool: ['reaction', 'rps', 'math', 'draw', 'bomb'],
-        timer: null,
-        myAnswer: null,
-        roundStart: 0,
-        collected: {},       // 房主收集：name -> value
-        roundResolved: false,
-        drawer: null,        // 你画我猜：画手名
-        word: null,          // 你画我猜：答案词
+        active: false, totalRounds: 5, roundIndex: 0,
+        scores: {}, curDef: null, curData: null, timer: null,
+        collected: {}, roundResolved: false,
+        drawer: null, word: null
     };
 
-    // 你画我猜词库
-    const DRAW_WORDS = ['太阳','月亮','苹果','汽车','房子','小猫','大树','飞机','雨伞','蛋糕','眼镜','足球','熊猫','火箭','冰淇淋','钥匙','气球','蜡烛','雪人','星星','香蕉','雨衣','台灯','钟表','乌龟','蝴蝶','书包','桥'];
+    function gEsc(s) { return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m]); }
 
-    // 玩家名列表 / 定向发送
+    function gameSend(obj) {
+        if (isHost) broadcast(obj);
+        else if (connections.host) connections.host.send(obj);
+    }
     function allPlayerNames() {
         const names = [myName];
         for (const id in connections) names.push((connections[id].metadata && connections[id].metadata.name) || '访客');
@@ -490,29 +600,51 @@
         return null;
     }
     function sendTo(name, obj) {
-        if (name === myName) return; // 房主自己直接渲染
+        if (name === myName) return;
         const c = connByName(name);
         if (c) { try { c.send(obj); } catch (e) {} }
     }
 
-    function gEsc(s) { return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
-
-    function gameSend(obj) {
-        // 房主广播；客户端发给房主
-        if (isHost) broadcast(obj);
-        else if (connections.host) connections.host.send(obj);
+    // ---------- 抽取滚动动画 ----------
+    function playDrawAnimation(def, cb) {
+        gameOverlayShow();
+        const ov = $('game-overlay');
+        ov.innerHTML = gameHeader(
+            '<div class="flex-1 flex flex-col items-center justify-center p-6 text-center">' +
+            '<p class="text-xs text-space-muted font-mono mb-5">第 ' + GAME.roundIndex + ' / ' + GAME.totalRounds + ' 轮 · 抽取中…</p>' +
+            '<div id="slot-emoji" class="text-7xl mb-4" style="transition:transform .3s">🎲</div>' +
+            '<div id="slot-name" class="text-2xl font-bold text-space-text font-mono">…</div>' +
+            '<p id="slot-tip" class="text-xs text-space-muted mt-6 h-4"></p>' +
+            '</div>');
+        $('game-close').addEventListener('click', () => gameOverlayHide());
+        const emojiEl = $('slot-emoji'), nameEl = $('slot-name'), tipEl = $('slot-tip');
+        const total = 18;
+        let t = 0;
+        function tick() {
+            const rnd = GAME_DEFS[Math.floor(Math.random() * GAME_DEFS.length)];
+            emojiEl.textContent = rnd.emoji;
+            nameEl.textContent = rnd.name;
+            t++;
+            if (t < total) {
+                setTimeout(tick, 40 + (t / total) * 110);
+            } else {
+                emojiEl.textContent = def.emoji;
+                nameEl.textContent = def.name;
+                emojiEl.style.transform = 'scale(1.4)';
+                nameEl.style.color = '#3fb950';
+                tipEl.textContent = '准备开始！';
+                setTimeout(() => { if (cb) cb(); }, 650);
+            }
+        }
+        tick();
     }
-
-    // ---------- 房主：开始 / 轮次 / 结束 ----------
+    // ---------- 房主：开始 / 下一轮 / 结束 ----------
     function hostStartGame() {
         if (!isHost) return;
-        const players = [myName];
-        for (const id in connections) players.push((connections[id].metadata && connections[id].metadata.name) || '访客');
-        GAME.active = true;
-        GAME.roundIndex = 0;
-        GAME.scores = {};
+        const players = allPlayerNames();
+        GAME.active = true; GAME.roundIndex = 0; GAME.scores = {};
         players.forEach(p => GAME.scores[p] = 0);
-        GAME.curGame = null;
+        GAME.curDef = null;
         broadcast({ type: 'game', sub: 'start', total: GAME.totalRounds, scores: { ...GAME.scores } });
         renderGameStart(GAME.totalRounds);
     }
@@ -521,18 +653,24 @@
         if (!GAME.active) return;
         GAME.roundIndex++;
         if (GAME.roundIndex > GAME.totalRounds) { hostEndGame(); return; }
-        const others = GAME.pool.filter(g => g !== GAME.curGame);
-        GAME.curGame = others[Math.floor(Math.random() * others.length)];
-        GAME.curData = null;
-        GAME.collected = {};
-        GAME.roundResolved = false;
-        GAME.myAnswer = null;
-        broadcast({ type: 'game', sub: 'round', game: GAME.curGame, round: GAME.roundIndex, total: GAME.totalRounds, scores: { ...GAME.scores } });
-        if (GAME.curGame === 'reaction') hostReaction();
-        else if (GAME.curGame === 'rps') hostRps();
-        else if (GAME.curGame === 'math') hostMath();
-        else if (GAME.curGame === 'draw') hostDraw();
-        else if (GAME.curGame === 'bomb') hostBomb();
+        const pool = GAME_DEFS.filter(g => !GAME.curDef || g.id !== GAME.curDef.id);
+        const def = pool[Math.floor(Math.random() * pool.length)];
+        GAME.curDef = def;
+        GAME.curData = null; GAME.collected = {}; GAME.roundResolved = false; GAME.word = null;
+        broadcast({ type: 'game', sub: 'round', def: { id: def.id, name: def.name, emoji: def.emoji, type: def.type }, round: GAME.roundIndex, total: GAME.totalRounds, scores: { ...GAME.scores } });
+        playDrawAnimation(def, () => {
+            broadcast({ type: 'game', sub: 'phase', phase: 'begin' });
+            startRoundByType(def);
+        });
+    }
+
+    function startRoundByType(def) {
+        if (def.type === 'tap') hostTap(def);
+        else if (def.type === 'quiz') hostQuiz(def);
+        else if (def.type === 'math') hostMath(def);
+        else if (def.type === 'rps') hostRps(def);
+        else if (def.type === 'bomb') hostBomb(def);
+        else if (def.type === 'draw') hostDraw(def);
     }
 
     function hostEndGame() {
@@ -541,203 +679,208 @@
         renderGameOver(GAME.scores);
     }
 
-    // ---------- 游戏 1：反应速度 ----------
-    function hostReaction() {
-        renderGameReaction('prepare');
-        const delay = 2000 + Math.random() * 3000;
+    function resolveRound(msg) {
+        GAME.roundResolved = true;
+        clearTimeout(GAME.timer);
+        broadcast({ type: 'game', sub: 'phase', phase: 'result', text: msg, scores: { ...GAME.scores } });
+        renderGameResult(msg, GAME.scores);
+    }
+
+    // ---------- tap ----------
+    function hostTap(def) {
+        renderTap('prepare', def);
+        const delay = def.waitMin + Math.random() * (def.waitMax - def.waitMin);
         GAME.timer = setTimeout(() => {
             GAME.roundStart = Date.now();
             GAME.collected = {};
             broadcast({ type: 'game', sub: 'phase', phase: 'go', ts: GAME.roundStart });
-            renderGameReaction('go');
-            // 3 秒后结算
-            GAME.timer = setTimeout(() => hostResolveReaction(), 3000);
+            renderTap('go', def);
+            GAME.timer = setTimeout(() => hostResolveTap(def), def.windowMs);
         }, delay);
     }
-    function hostResolveReaction() {
+    function hostResolveTap(def) {
         if (GAME.roundResolved) return;
-        GAME.roundResolved = true;
-        // 房主自己也参与
         let best = null, bestT = Infinity;
-        for (const name in GAME.collected) {
-            const t = GAME.collected[name];
-            if (t < bestT) { bestT = t; best = name; }
-        }
+        for (const n in GAME.collected) { if (GAME.collected[n] < bestT) { bestT = GAME.collected[n]; best = n; } }
         let msg;
         if (best) { GAME.scores[best] = (GAME.scores[best] || 0) + 1; msg = best + ' 最快（' + bestT + 'ms）'; }
         else msg = '无人响应';
-        broadcast({ type: 'game', sub: 'phase', phase: 'result', text: msg, scores: { ...GAME.scores } });
-        renderGameResult(msg, GAME.scores);
+        resolveRound(msg);
     }
 
-    // ---------- 游戏 2：石头剪刀布 ----------
-    function hostRps() {
-        const hands = ['rock', 'paper', 'scissors'];
-        GAME.curData = { hostHand: hands[Math.floor(Math.random() * 3)] };
+    // ---------- quiz ----------
+    function hostQuiz(def) {
         GAME.collected = {};
-        broadcast({ type: 'game', sub: 'phase', phase: 'choose' });
-        renderGameRps('choose');
-        GAME.timer = setTimeout(() => hostResolveRps(), 8000); // 8 秒兜底
+        broadcast({ type: 'game', sub: 'phase', phase: 'quiz', q: def.q, opts: def.opts });
+        renderQuiz(def);
+        GAME.timer = setTimeout(() => hostResolveQuiz(def), 12000);
     }
-    function hostResolveRps() {
+    function hostResolveQuiz(def) {
         if (GAME.roundResolved) return;
-        GAME.roundResolved = true;
-        clearTimeout(GAME.timer);
-        const hostHand = GAME.curData.hostHand;
-        const beats = { rock: 'scissors', paper: 'rock', scissors: 'paper' };
-        const winners = [];
-        for (const name in GAME.collected) {
-            const h = GAME.collected[name];
-            if (beats[h] === hostHand) winners.push(name);
-        }
-        winners.forEach(w => GAME.scores[w] = (GAME.scores[w] || 0) + 1);
-        const handName = { rock: '石头', paper: '布', scissors: '剪刀' }[hostHand];
-        const msg = '房主出了「' + handName + '」，' + (winners.length ? winners.join('、') + ' 获胜' : '无人获胜');
-        broadcast({ type: 'game', sub: 'phase', phase: 'result', text: msg, scores: { ...GAME.scores } });
-        renderGameResult(msg, GAME.scores);
-    }
-
-    // ---------- 游戏 3：速算抢答 ----------
-    function hostMath() {
-        const ops = ['+', '-', '×'];
-        const op = ops[Math.floor(Math.random() * 3)];
-        let a, b, ans;
-        if (op === '+') { a = 10 + Math.floor(Math.random() * 90); b = 10 + Math.floor(Math.random() * 90); ans = a + b; }
-        else if (op === '-') { a = 30 + Math.floor(Math.random() * 70); b = 10 + Math.floor(Math.random() * 30); ans = a - b; }
-        else { a = 3 + Math.floor(Math.random() * 9); b = 3 + Math.floor(Math.random() * 9); ans = a * b; }
-        GAME.curData = { expr: a + ' ' + op + ' ' + b, ans: ans };
-        GAME.collected = {};
-        broadcast({ type: 'game', sub: 'phase', phase: 'question', expr: GAME.curData.expr });
-        renderGameMath('question', GAME.curData.expr);
-        GAME.timer = setTimeout(() => hostResolveMath(), 10000); // 10 秒兜底
-    }
-    function hostResolveMath() {
-        if (GAME.roundResolved) return;
-        GAME.roundResolved = true;
-        clearTimeout(GAME.timer);
-        // 找第一个答对的
         let winner = null, bestT = Infinity;
-        for (const name in GAME.collected) {
-            const c = GAME.collected[name];
-            if (c.value === GAME.curData.ans && c.t < bestT) { bestT = c.t; winner = name; }
+        for (const n in GAME.collected) {
+            const c = GAME.collected[n];
+            if (c.value === def.ans && c.t < bestT) { bestT = c.t; winner = n; }
+        }
+        const right = def.opts[def.ans];
+        let msg;
+        if (winner) { GAME.scores[winner] = (GAME.scores[winner] || 0) + 1; msg = winner + ' 答对：' + right; }
+        else msg = '无人答对，正确答案：' + right;
+        resolveRound(msg);
+    }
+
+    // ---------- math ----------
+    function hostMath(def) {
+        const rnd = (min, max) => min + Math.floor(Math.random() * (max - min + 1));
+        let a, b, ans, expr;
+        if (def.op === 'mix') {
+            a = rnd(def.aMin, def.aMax); b = rnd(def.bMin, def.bMax);
+            if (Math.random() < 0.5) { expr = a + ' + ' + b; ans = a + b; }
+            else { if (a < b) { const t = a; a = b; b = t; } expr = a + ' - ' + b; ans = a - b; }
+        } else if (def.op === '×') {
+            a = rnd(def.aMin, def.aMax); b = rnd(def.bMin, def.bMax);
+            expr = a + ' × ' + b; ans = a * b;
+        } else if (def.op === '-') {
+            a = rnd(def.aMin, def.aMax); b = rnd(def.bMin, def.bMax);
+            if (a < b) { const t = a; a = b; b = t; }
+            expr = a + ' - ' + b; ans = a - b;
+        } else {
+            a = rnd(def.aMin, def.aMax); b = rnd(def.bMin, def.bMax);
+            expr = a + ' + ' + b; ans = a + b;
+        }
+        GAME.curData = { expr: expr, ans: ans };
+        GAME.collected = {};
+        broadcast({ type: 'game', sub: 'phase', phase: 'math', expr: expr });
+        renderMathGame(def, expr);
+        GAME.timer = setTimeout(() => hostResolveMathGame(), 12000);
+    }
+    function hostResolveMathGame() {
+        if (GAME.roundResolved) return;
+        let winner = null, bestT = Infinity;
+        for (const n in GAME.collected) {
+            const c = GAME.collected[n];
+            if (c.value === GAME.curData.ans && c.t < bestT) { bestT = c.t; winner = n; }
         }
         let msg;
         if (winner) { GAME.scores[winner] = (GAME.scores[winner] || 0) + 1; msg = winner + ' 答对：' + GAME.curData.ans; }
-        else msg = '无人答对，答案是 ' + GAME.curData.ans;
-        broadcast({ type: 'game', sub: 'phase', phase: 'result', text: msg, scores: { ...GAME.scores } });
-        renderGameResult(msg, GAME.scores);
+        else msg = '无人答对，答案：' + GAME.curData.ans;
+        resolveRound(msg);
     }
 
+    // ---------- rps ----------
+    function hostRps(def) {
+        const hands = ['rock', 'paper', 'scissors'];
+        GAME.curData = { hostHand: hands[Math.floor(Math.random() * 3)] };
+        GAME.collected = {};
+        broadcast({ type: 'game', sub: 'phase', phase: 'rps' });
+        renderRpsGame(def);
+        GAME.timer = setTimeout(() => hostResolveRps(def), 10000);
+    }
+    function hostResolveRps(def) {
+        if (GAME.roundResolved) return;
+        const hostHand = GAME.curData.hostHand;
+        const beats = { rock: 'scissors', paper: 'rock', scissors: 'paper' };
+        const winners = [];
+        for (const n in GAME.collected) { if (beats[GAME.collected[n]] === hostHand) winners.push(n); }
+        winners.forEach(w => GAME.scores[w] = (GAME.scores[w] || 0) + 1);
+        const hn = { rock: '石头', paper: '布', scissors: '剪刀' }[hostHand];
+        const msg = '房主出「' + hn + '」，' + (winners.length ? winners.join('、') + ' 获胜' : '无人获胜');
+        resolveRound(msg);
+    }
 
-    // ---------- 游戏 4：你画我猜 ----------
-    function hostDraw() {
-        // 随机选画手，随机选词
+    // ---------- bomb ----------
+    function hostBomb(def) {
+        const answer = def.lo + Math.floor(Math.random() * (def.hi - def.lo + 1));
+        const players = allPlayerNames();
+        GAME.curData = { answer: answer, lo: def.lo, hi: def.hi, order: players, turnIdx: 0, turn: players[0] };
+        GAME.collected = {};
+        broadcast({ type: 'game', sub: 'phase', phase: 'bomb-turn', round: GAME.roundIndex, total: GAME.totalRounds, lo: def.lo, hi: def.hi, turn: GAME.curData.turn });
+        renderBomb(def, def.lo, def.hi, GAME.curData.turn, null);
+    }
+    function hostBombGuess(name, value) {
+        if (!GAME.curDef || GAME.curDef.type !== 'bomb' || GAME.roundResolved) return;
+        if (name !== GAME.curData.turn) return;
+        if (isNaN(value) || value < GAME.curData.lo || value > GAME.curData.hi) return;
+        const ans = GAME.curData.answer;
+        if (value === ans) {
+            const msg = name + ' 踩到炸弹（' + ans + '）！其他玩家各得 1 分';
+            GAME.curData.order.forEach(p => { if (p !== name) GAME.scores[p] = (GAME.scores[p] || 0) + 1; });
+            resolveRound(msg);
+            return;
+        }
+        if (value < ans) GAME.curData.lo = Math.max(GAME.curData.lo, value + 1);
+        else GAME.curData.hi = Math.min(GAME.curData.hi, value - 1);
+        GAME.curData.turnIdx = (GAME.curData.turnIdx + 1) % GAME.curData.order.length;
+        GAME.curData.turn = GAME.curData.order[GAME.curData.turnIdx];
+        const last = name + ' 猜了 ' + value;
+        broadcast({ type: 'game', sub: 'phase', phase: 'bomb-turn', round: GAME.roundIndex, total: GAME.totalRounds, lo: GAME.curData.lo, hi: GAME.curData.hi, turn: GAME.curData.turn, last: last });
+        renderBomb(GAME.curDef, GAME.curData.lo, GAME.curData.hi, GAME.curData.turn, last);
+    }
+
+    // ---------- draw ----------
+    function hostDraw(def) {
         const players = allPlayerNames();
         GAME.drawer = players[Math.floor(Math.random() * players.length)];
-        GAME.word = DRAW_WORDS[Math.floor(Math.random() * DRAW_WORDS.length)];
+        GAME.word = def.words[Math.floor(Math.random() * def.words.length)];
         GAME.collected = {};
-        GAME.curData = { strokes: [] };
-        // 广播：所有人进入画板；画手收到词；猜的人不收到词
-        broadcast({ type: 'game', sub: 'phase', phase: 'draw-start', drawer: GAME.drawer });
-        // 画手（可能是自己或他人）单独告知词
-        if (GAME.drawer === myName) {
-            renderGameDraw('drawer', GAME.word);
-        } else {
+        broadcast({ type: 'game', sub: 'phase', phase: 'draw-start', drawer: GAME.drawer, round: GAME.roundIndex, total: GAME.totalRounds });
+        if (GAME.drawer === myName) renderDrawGame('drawer', GAME.word, def);
+        else {
             sendTo(GAME.drawer, { type: 'game', sub: 'phase', phase: 'you-draw', word: GAME.word });
-            // 房主自己（非画手）也要渲染猜词界面
-            renderGameDraw('guesser', null);
+            renderDrawGame('guesser', null, def);
         }
-        GAME.timer = setTimeout(() => hostResolveDraw(), 45000); // 45 秒
+        GAME.timer = setTimeout(() => hostResolveDraw(), 50000);
     }
     function hostResolveDraw() {
         if (GAME.roundResolved) return;
-        GAME.roundResolved = true;
-        clearTimeout(GAME.timer);
         let msg;
         if (GAME.collected.__winner__) {
             const w = GAME.collected.__winner__;
             GAME.scores[w] = (GAME.scores[w] || 0) + 1;
-            GAME.scores[GAME.drawer] = (GAME.scores[GAME.drawer] || 0) + 1; // 画手也得分
-            msg = w + ' 猜对了「' + GAME.word + '」，' + GAME.drawer + ' 同得 1 分';
-        } else {
-            msg = '无人猜对，答案是「' + GAME.word + '」';
-        }
-        broadcast({ type: 'game', sub: 'phase', phase: 'result', text: msg, scores: { ...GAME.scores } });
-        renderGameResult(msg, GAME.scores);
+            GAME.scores[GAME.drawer] = (GAME.scores[GAME.drawer] || 0) + 1;
+            msg = w + ' 猜对「' + GAME.word + '」，' + GAME.drawer + ' 同得 1 分';
+        } else msg = '无人猜对，答案「' + GAME.word + '」';
+        resolveRound(msg);
     }
-
-    // ---------- 游戏 5：数字炸弹 ----------
-    function hostBomb() {
-        const answer = 1 + Math.floor(Math.random() * 100); // 1..100
-        GAME.curData = { answer: answer, lo: 1, hi: 100, turn: myName };
-        GAME.collected = {};
-        const players = allPlayerNames();
-        GAME.curData.order = players;
-        GAME.curData.turnIdx = 0;
-        GAME.curData.turn = players[0];
-        broadcast({ type: 'game', sub: 'phase', phase: 'bomb-turn', round: GAME.roundIndex, total: GAME.totalRounds, lo: 1, hi: 100, turn: GAME.curData.turn });
-        renderGameBomb('turn', 1, 100, GAME.curData.turn);
-        // 不做超时兜底——等玩家必然出错才能结算（若卡住，房主可关闭游戏层重开）
-    }
-    function hostBombGuess(conn, name, value) {
-        if (GAME.curGame !== 'bomb' || GAME.roundResolved) return;
-        if (name !== GAME.curData.turn) return; // 不是你的回合
-        const ans = GAME.curData.answer;
-        if (value === ans) {
-            // 踩雷，出局，其他人各得 1 分
-            GAME.roundResolved = true;
-            const msg = name + ' 踩到炸弹（数字 ' + ans + '）！其他玩家各得 1 分';
-            for (const p of GAME.curData.order) {
-                if (p !== name) GAME.scores[p] = (GAME.scores[p] || 0) + 1;
-            }
-            broadcast({ type: 'game', sub: 'phase', phase: 'result', text: msg, scores: { ...GAME.scores } });
-            renderGameResult(msg, GAME.scores);
-            return;
-        }
-        // 缩小范围
-        if (value < ans) GAME.curData.lo = Math.max(GAME.curData.lo, value + 1);
-        else GAME.curData.hi = Math.min(GAME.curData.hi, value - 1);
-        // 下一位
-        GAME.curData.turnIdx = (GAME.curData.turnIdx + 1) % GAME.curData.order.length;
-        GAME.curData.turn = GAME.curData.order[GAME.curData.turnIdx];
-        broadcast({ type: 'game', sub: 'phase', phase: 'bomb-turn', round: GAME.roundIndex, total: GAME.totalRounds, lo: GAME.curData.lo, hi: GAME.curData.hi, turn: GAME.curData.turn, last: name + ' 猜了 ' + value });
-        renderGameBomb('turn', GAME.curData.lo, GAME.curData.hi, GAME.curData.turn, name + ' 猜了 ' + value);
-    }
-    function hostBombSelfGuess(value) {
-        hostBombGuess(null, myName, value);
-    }
-
     // ---------- 房主：处理客户端动作 ----------
     function hostGameAction(conn, d) {
         const name = (conn.metadata && conn.metadata.name) || '访客';
-        if (GAME.curGame === 'reaction' && d.action === 'tap' && !(name in GAME.collected)) {
+        const t = GAME.curDef ? GAME.curDef.type : null;
+        if (t === 'tap' && d.action === 'tap' && !(name in GAME.collected)) {
             GAME.collected[name] = Date.now() - GAME.roundStart;
             if (Object.keys(GAME.collected).length >= Object.keys(connections).length + 1) {
                 clearTimeout(GAME.timer);
-                hostResolveReaction();
+                hostResolveTap(GAME.curDef);
             }
-        } else if (GAME.curGame === 'rps' && d.action === 'rps' && !(name in GAME.collected)) {
-            GAME.collected[name] = d.value;
-            if (Object.keys(GAME.collected).length >= Object.keys(connections).length) {
+        } else if (t === 'quiz' && d.action === 'quiz' && !(name in GAME.collected)) {
+            GAME.collected[name] = { value: d.value, t: Date.now() };
+            if (d.value === GAME.curDef.ans) {
                 clearTimeout(GAME.timer);
-                hostResolveRps();
+                hostResolveQuiz(GAME.curDef);
             }
-        } else if (GAME.curGame === 'math' && d.action === 'answer' && !(name in GAME.collected)) {
+        } else if (t === 'math' && d.action === 'answer' && !(name in GAME.collected)) {
             GAME.collected[name] = { value: d.value, t: Date.now() };
             if (d.value === GAME.curData.ans) {
                 clearTimeout(GAME.timer);
-                hostResolveMath();
+                hostResolveMathGame();
             }
-        } else if (GAME.curGame === 'draw') {
+        } else if (t === 'rps' && d.action === 'rps' && !(name in GAME.collected)) {
+            GAME.collected[name] = d.value;
+            if (Object.keys(GAME.collected).length >= Object.keys(connections).length) {
+                clearTimeout(GAME.timer);
+                hostResolveRps(GAME.curDef);
+            }
+        } else if (t === 'bomb' && d.action === 'bomb-guess') {
+            hostBombGuess(name, parseInt(d.value, 10));
+        } else if (t === 'draw') {
             if (d.action === 'guess' && name !== GAME.drawer && !GAME.collected.__winner__) {
                 if ((d.value || '').trim() === GAME.word) {
                     GAME.collected.__winner__ = name;
                     clearTimeout(GAME.timer);
                     hostResolveDraw();
                 } else {
-                    // 转发错误猜测，让画手看到（房主端也要本地显示）
                     broadcast({ type: 'game', sub: 'phase', phase: 'wrong-guess', text: name + ' 猜「' + (d.value || '') + '」' });
-                    const _wl = document.getElementById('draw-log'); if (_wl) _wl.textContent = name + ' 猜「' + (d.value || '') + '」';
+                    const wl = document.getElementById('draw-log'); if (wl) wl.textContent = name + ' 猜「' + (d.value || '') + '」';
                 }
             } else if (d.action === 'stroke' && name === GAME.drawer) {
                 drawAddSeg(d.value);
@@ -746,70 +889,66 @@
                 drawClear();
                 broadcast({ type: 'game', sub: 'phase', phase: 'clear' });
             }
-        } else if (GAME.curGame === 'bomb' && d.action === 'bomb-guess') {
-            hostBombGuess(conn, name, parseInt(d.value, 10));
         }
     }
 
     // ---------- 客户端：处理房主广播 ----------
     function clientGameData(d) {
         if (d.sub === 'start') {
-            GAME.active = true; GAME.roundIndex = 0; GAME.scores = d.scores || {}; GAME.curGame = null;
+            GAME.active = true; GAME.roundIndex = 0; GAME.scores = d.scores || {}; GAME.curDef = null;
             renderGameStart(d.total);
         } else if (d.sub === 'round') {
-            GAME.curGame = d.game; GAME.roundIndex = d.round; GAME.scores = d.scores || {}; GAME.myAnswer = null;
+            GAME.curDef = d.def; GAME.roundIndex = d.round; GAME.totalRounds = d.total; GAME.scores = d.scores || {};
+            GAME.curData = null; GAME.collected = {}; GAME.roundResolved = false;
+            if (d.def) playDrawAnimation(d.def, null);
         } else if (d.sub === 'phase') {
-            if (d.phase === 'go') { GAME.roundStart = d.ts; renderGameReaction('go'); }
-            else if (d.phase === 'prepare') renderGameReaction('prepare');
-            else if (d.phase === 'choose') renderGameRps('choose');
-            else if (d.phase === 'question') renderGameMath('question', d.expr);
-            else if (d.phase === 'draw-start') { GAME.drawer = d.drawer; renderGameDraw(GAME.drawer === myName ? 'drawer' : 'guesser', null); }
-            else if (d.phase === 'you-draw') { GAME.drawer = myName; GAME.word = d.word; renderGameDraw('drawer', d.word); }
+            if (d.phase === 'begin') { /* 动画结束后由后续 phase 接管 */ }
+            else if (d.phase === 'go') { GAME.roundStart = d.ts; renderTap('go', GAME.curDef); }
+            else if (d.phase === 'quiz') renderQuiz({ q: d.q, opts: d.opts, name: GAME.curDef && GAME.curDef.name, emoji: GAME.curDef && GAME.curDef.emoji });
+            else if (d.phase === 'math') renderMathGame(GAME.curDef, d.expr);
+            else if (d.phase === 'rps') renderRpsGame(GAME.curDef);
+            else if (d.phase === 'bomb-turn') { if (d.round) GAME.roundIndex = d.round; if (d.total) GAME.totalRounds = d.total; renderBomb(GAME.curDef, d.lo, d.hi, d.turn, d.last); }
+            else if (d.phase === 'draw-start') { GAME.drawer = d.drawer; renderDrawGame(GAME.drawer === myName ? 'drawer' : 'guesser', null, GAME.curDef); }
+            else if (d.phase === 'you-draw') { GAME.drawer = myName; GAME.word = d.word; renderDrawGame('drawer', d.word, GAME.curDef); }
             else if (d.phase === 'stroke') drawAddSeg(d.seg);
             else if (d.phase === 'clear') drawClear();
-            else if (d.phase === 'wrong-guess') { const el = document.getElementById('draw-log'); if (el) { el.textContent = d.text; } }
-            else if (d.phase === 'bomb-turn') { if (d.round) GAME.roundIndex = d.round; if (d.total) GAME.totalRounds = d.total; renderGameBomb('turn', d.lo, d.hi, d.turn, d.last); }
+            else if (d.phase === 'wrong-guess') { const el = document.getElementById('draw-log'); if (el) el.textContent = d.text; }
             else if (d.phase === 'result') { GAME.scores = d.scores || GAME.scores; renderGameResult(d.text, GAME.scores); }
         } else if (d.sub === 'over') {
             GAME.active = false; renderGameOver(d.scores);
         }
     }
 
-    // ---------- 玩家动作 ----------
-    function playerAction(action, value) {
-        const payload = { type: 'game', sub: 'action', action: action, value: value };
-        if (isHost) {
-            // 房主自己：直接处理
-            const fake = { metadata: { name: myName } };
-            hostGameActionSelf(action, value);
-        } else {
-            gameSend(payload);
-        }
-    }
-    function hostGameActionSelf(action, value) {
-        if (GAME.curGame === 'reaction' && action === 'tap' && !(myName in GAME.collected)) {
+    // ---------- 房主自身动作 ----------
+    function hostSelfAction(action, value) {
+        const t = GAME.curDef ? GAME.curDef.type : null;
+        if (t === 'tap' && action === 'tap' && !(myName in GAME.collected)) {
             GAME.collected[myName] = Date.now() - GAME.roundStart;
-        } else if (GAME.curGame === 'rps' && action === 'rps' && !(myName in GAME.collected)) {
-            GAME.collected[myName] = value;
-        } else if (GAME.curGame === 'math' && action === 'answer' && !(myName in GAME.collected)) {
+        } else if (t === 'quiz' && action === 'quiz' && !(myName in GAME.collected)) {
             GAME.collected[myName] = { value: value, t: Date.now() };
-        } else if (GAME.curGame === 'draw') {
+            if (value === GAME.curDef.ans) { clearTimeout(GAME.timer); hostResolveQuiz(GAME.curDef); }
+        } else if (t === 'math' && action === 'answer' && !(myName in GAME.collected)) {
+            GAME.collected[myName] = { value: value, t: Date.now() };
+            if (value === GAME.curData.ans) { clearTimeout(GAME.timer); hostResolveMathGame(); }
+        } else if (t === 'rps' && action === 'rps' && !(myName in GAME.collected)) {
+            GAME.collected[myName] = value;
+        } else if (t === 'bomb' && action === 'bomb-guess') {
+            hostBombGuess(myName, parseInt(value, 10));
+        } else if (t === 'draw') {
             if (action === 'guess' && myName !== GAME.drawer && !GAME.collected.__winner__) {
-                if ((value || '').trim() === GAME.word) {
-                    GAME.collected.__winner__ = myName;
-                    clearTimeout(GAME.timer);
-                    hostResolveDraw();
-                } else {
-                    broadcast({ type: 'game', sub: 'phase', phase: 'wrong-guess', text: myName + ' 猜「' + (value || '') + '」' });
-                }
+                if ((value || '').trim() === GAME.word) { GAME.collected.__winner__ = myName; clearTimeout(GAME.timer); hostResolveDraw(); }
+                else { broadcast({ type: 'game', sub: 'phase', phase: 'wrong-guess', text: myName + ' 猜「' + (value || '') + '」' }); const wl = document.getElementById('draw-log'); if (wl) wl.textContent = myName + ' 猜「' + (value || '') + '」'; }
             } else if (action === 'stroke' && myName === GAME.drawer) {
                 broadcast({ type: 'game', sub: 'phase', phase: 'stroke', seg: value });
             } else if (action === 'clear' && myName === GAME.drawer) {
                 broadcast({ type: 'game', sub: 'phase', phase: 'clear' });
             }
-        } else if (GAME.curGame === 'bomb' && action === 'bomb-guess') {
-            hostBombSelfGuess(parseInt(value, 10));
         }
+    }
+
+    function playerAct(action, value) {
+        if (isHost) hostSelfAction(action, value);
+        else gameSend({ type: 'game', sub: 'action', action: action, value: value });
     }
 
     // ============================================================
@@ -830,6 +969,10 @@
             arr.map(x => '<span class="text-xs font-mono px-2 py-1 rounded bg-space-800 border border-space-border">' + gEsc(x.n) + ' · ' + x.s + '</span>').join('') +
             '</div>';
     }
+    function roundLabel(def) {
+        const nm = def ? (def.emoji || '') + ' ' + (def.name || '') : '';
+        return '<div class="px-5 pt-3 text-center text-xs text-space-muted font-mono">第 ' + GAME.roundIndex + '/' + GAME.totalRounds + ' 轮 · ' + gEsc(nm) + '</div>';
+    }
 
     function renderGameStart(total) {
         gameOverlayShow();
@@ -837,54 +980,54 @@
             '<div class="flex-1 flex flex-col items-center justify-center text-center p-8">' +
             '<div class="text-5xl mb-4">🎲</div>' +
             '<h2 class="text-xl font-bold text-space-text mb-2">小游戏开始！</h2>' +
-            '<p class="text-space-muted text-sm">共 ' + total + ' 轮，每轮随机一个游戏，胜者得分</p>' +
+            '<p class="text-space-muted text-sm">共 ' + total + ' 轮，每轮随机抽取一款（共 ' + GAME_DEFS.length + ' 款）</p>' +
             '</div>');
-        $('game-close').addEventListener('click', () => { gameOverlayHide(); });
-        // 房主 2 秒后开第一轮
-        if (isHost) { setTimeout(() => hostNextRound(), 2000); }
+        $('game-close').addEventListener('click', () => gameOverlayHide());
+        if (isHost) setTimeout(() => hostNextRound(), 2000);
     }
 
-    function renderGameReaction(phase) {
+    // tap
+    function renderTap(phase, def) {
         gameOverlayShow();
         let body = '';
         if (phase === 'prepare') {
-            body = '<div class="flex-1 flex flex-col items-center justify-center"><p class="text-2xl text-space-muted font-mono">准备…</p><p class="text-sm text-space-muted mt-2">变绿后立刻点击</p></div>';
-        } else if (phase === 'go') {
-            body = '<button id="react-btn" class="flex-1 w-full bg-glow-green text-space-900 text-3xl font-bold hover:brightness-110 transition">点！</button>';
+            body = '<div class="flex-1 flex flex-col items-center justify-center text-center">' +
+                '<div class="text-6xl mb-4">' + (def.emoji || '🎯') + '</div>' +
+                '<p class="text-2xl text-space-muted font-mono">准备…</p>' +
+                '<p class="text-sm text-space-muted mt-2">' + gEsc(def.prompt || '变绿后立刻点击') + '</p></div>';
+        } else {
+            body = '<button id="react-btn" class="flex-1 w-full bg-glow-green text-space-900 text-3xl font-bold rounded-lg hover:brightness-110 transition">点！</button>';
         }
-        $('game-overlay').innerHTML = gameHeader(
-            '<div class="px-5 pt-3 text-center text-xs text-space-muted font-mono">第 ' + GAME.roundIndex + '/' + GAME.totalRounds + ' 轮 · 反应速度</div>' +
-            '<div class="flex-1 flex flex-col p-4">' + body + '</div>');
+        $('game-overlay').innerHTML = gameHeader(roundLabel(def) + '<div class="flex-1 flex flex-col p-4">' + body + '</div>');
         $('game-close').addEventListener('click', () => gameOverlayHide());
         const rb = $('react-btn');
-        if (rb) rb.addEventListener('click', () => {
-            rb.disabled = true; rb.textContent = '已点击';
-            if (isHost) { hostGameActionSelf('tap'); } else { gameSend({ type: 'game', sub: 'action', action: 'tap' }); }
-        });
+        if (rb) rb.addEventListener('click', () => { rb.disabled = true; rb.textContent = '已点击'; playerAct('tap'); });
     }
 
-    function renderGameRps(phase) {
+    // quiz
+    function renderQuiz(def) {
         gameOverlayShow();
-        const hands = [['rock','✊ 石头'],['paper','✋ 布'],['scissors','✌️ 剪刀']];
-        const body = '<div class="grid grid-cols-3 gap-3 mt-4">' +
-            hands.map(h => '<button class="rps-btn px-3 py-6 rounded-xl bg-space-800 border border-space-border hover:border-glow-green transition text-space-text" data-h="' + h[0] + '">' + h[1] + '</button>').join('') +
-            '</div>';
+        const opts = (def.opts || []).map((o, i) =>
+            '<button class="quiz-btn px-4 py-4 rounded-xl bg-space-800 border border-space-border hover:border-glow-green transition text-space-text text-left" data-i="' + i + '">' +
+            '<span class="text-glow-blue font-mono mr-2">' + String.fromCharCode(65 + i) + '</span>' + gEsc(o) + '</button>').join('');
         $('game-overlay').innerHTML = gameHeader(
-            '<div class="px-5 pt-3 text-center text-xs text-space-muted font-mono">第 ' + GAME.roundIndex + '/' + GAME.totalRounds + ' 轮 · 石头剪刀布</div>' +
-            '<div class="flex-1 flex flex-col items-center justify-center p-4"><p class="text-space-muted mb-2">选一个，赢房主得分</p>' + body + '</div>');
+            roundLabel(def) +
+            '<div class="flex-1 flex flex-col items-center justify-center p-4">' +
+            '<p class="text-xl text-space-text text-center mb-5">' + gEsc(def.q) + '</p>' +
+            '<div class="grid grid-cols-2 gap-3 w-full max-w-md">' + opts + '</div></div>');
         $('game-close').addEventListener('click', () => gameOverlayHide());
-        document.querySelectorAll('.rps-btn').forEach(b => b.addEventListener('click', () => {
-            document.querySelectorAll('.rps-btn').forEach(x => x.disabled = true);
+        document.querySelectorAll('.quiz-btn').forEach(b => b.addEventListener('click', () => {
+            document.querySelectorAll('.quiz-btn').forEach(x => x.disabled = true);
             b.classList.add('border-glow-green');
-            const v = b.dataset.h;
-            if (isHost) hostGameActionSelf('rps', v); else gameSend({ type: 'game', sub: 'action', action: 'rps', value: v });
+            playerAct('quiz', parseInt(b.dataset.i, 10));
         }));
     }
 
-    function renderGameMath(phase, expr) {
+    // math
+    function renderMathGame(def, expr) {
         gameOverlayShow();
         $('game-overlay').innerHTML = gameHeader(
-            '<div class="px-5 pt-3 text-center text-xs text-space-muted font-mono">第 ' + GAME.roundIndex + '/' + GAME.totalRounds + ' 轮 · 速算抢答</div>' +
+            roundLabel(def) +
             '<div class="flex-1 flex flex-col items-center justify-center p-4">' +
             '<p class="text-4xl font-mono text-space-text mb-6">' + gEsc(expr) + ' = ?</p>' +
             '<input id="math-input" type="number" class="glow-input rounded-lg px-4 py-3 text-center text-xl w-40" autocomplete="off">' +
@@ -895,19 +1038,63 @@
             const v = parseInt($('math-input').value, 10);
             if (isNaN(v)) return;
             $('math-submit').disabled = true;
-            if (isHost) hostGameActionSelf('answer', v); else gameSend({ type: 'game', sub: 'action', action: 'answer', value: v });
+            playerAct('answer', v);
         };
         $('math-submit').addEventListener('click', submit);
         $('math-input').addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
         setTimeout(() => $('math-input') && $('math-input').focus(), 100);
     }
 
+    // rps
+    function renderRpsGame(def) {
+        gameOverlayShow();
+        const hands = [['rock', '✊ 石头'], ['paper', '✋ 布'], ['scissors', '✌️ 剪刀']];
+        $('game-overlay').innerHTML = gameHeader(
+            roundLabel(def) +
+            '<div class="flex-1 flex flex-col items-center justify-center p-4">' +
+            '<p class="text-space-muted mb-2">选一个，赢房主得分</p>' +
+            '<div class="grid grid-cols-3 gap-3 mt-4 w-full max-w-md">' +
+            hands.map(h => '<button class="rps-btn px-3 py-6 rounded-xl bg-space-800 border border-space-border hover:border-glow-green transition text-space-text" data-h="' + h[0] + '">' + h[1] + '</button>').join('') +
+            '</div></div>');
+        $('game-close').addEventListener('click', () => gameOverlayHide());
+        document.querySelectorAll('.rps-btn').forEach(b => b.addEventListener('click', () => {
+            document.querySelectorAll('.rps-btn').forEach(x => x.disabled = true);
+            b.classList.add('border-glow-green');
+            playerAct('rps', b.dataset.h);
+        }));
+    }
 
-    // ============================================================
-    // 你画我猜 画板
-    // ============================================================
-    let drawCtx = null, drawDrawing = false, drawLast = null, drawIsDrawer = false;
+    // bomb
+    function renderBomb(def, lo, hi, turn, lastText) {
+        gameOverlayShow();
+        const isMyTurn = (turn === myName);
+        const lastLine = lastText ? '<p class="text-center text-xs text-space-muted mt-2">' + gEsc(lastText) + '</p>' : '';
+        const turnLine = '<p class="text-center mt-3">当前回合：<span class="' + (isMyTurn ? 'text-glow-green font-bold' : 'text-space-text') + '">' + gEsc(turn) + (isMyTurn ? '（你）' : '') + '</span></p>';
+        const range = '<p class="text-center text-sm text-space-muted mt-1">范围：<span class="text-glow-blue font-mono">' + lo + ' ~ ' + hi + '</span></p>';
+        const inputArea = isMyTurn
+            ? '<div class="flex justify-center gap-2 mt-4"><input id="bomb-input" type="number" class="glow-input rounded-lg px-4 py-2 text-center w-32" min="' + lo + '" max="' + hi + '" autocomplete="off"><button id="bomb-btn" class="px-5 py-2 bg-glow-pink/20 text-glow-pink border border-glow-pink/40 rounded-lg text-sm hover:bg-glow-pink/30 transition">猜</button></div>'
+            : '<p class="text-center text-xs text-space-muted mt-6">等待 ' + gEsc(turn) + ' 猜…</p>';
+        $('game-overlay').innerHTML = gameHeader(
+            roundLabel(def) + lastLine + turnLine + range +
+            '<div class="flex-1 flex flex-col items-center justify-center p-4">' +
+            '<div class="text-5xl mb-4">💣</div>' + inputArea +
+            '<p class="text-xs text-space-muted mt-4 text-center max-w-sm">猜中炸弹的人出局，其他人各得 1 分</p></div>');
+        $('game-close').addEventListener('click', () => gameOverlayHide());
+        if (isMyTurn) {
+            const submit = () => {
+                const v = parseInt($('bomb-input').value, 10);
+                if (isNaN(v) || v < lo || v > hi) return;
+                $('bomb-btn').disabled = true;
+                playerAct('bomb-guess', v);
+            };
+            $('bomb-btn').addEventListener('click', submit);
+            $('bomb-input').addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
+            setTimeout(() => $('bomb-input') && $('bomb-input').focus(), 100);
+        }
+    }
 
+    // draw
+    let drawCtx = null, drawDrawing = false, drawIsDrawer = false;
     function drawClear() {
         const cv = document.getElementById('draw-canvas');
         if (!cv || !drawCtx) return;
@@ -916,7 +1103,6 @@
     function drawAddSeg(seg) {
         const cv = document.getElementById('draw-canvas');
         if (!cv || !drawCtx || !seg) return;
-        // seg = [x0,y0,x1,y1]（相对坐标 0..1）
         drawCtx.strokeStyle = '#f0f6fc';
         drawCtx.lineWidth = 3;
         drawCtx.lineCap = 'round';
@@ -934,13 +1120,12 @@
         drawCtx = cv.getContext('2d');
         drawCtx.fillStyle = '#0d1117';
         drawCtx.fillRect(0, 0, cv.width, cv.height);
-
         if (!drawIsDrawer) return;
         let last = null;
         const pos = (e) => {
             const r = cv.getBoundingClientRect();
             const p = e.touches ? e.touches[0] : e;
-            return [ (p.clientX - r.left) / r.width, (p.clientY - r.top) / r.height ];
+            return [(p.clientX - r.left) / r.width, (p.clientY - r.top) / r.height];
         };
         const down = (e) => { e.preventDefault(); drawDrawing = true; last = pos(e); };
         const move = (e) => {
@@ -949,9 +1134,7 @@
             const cur = pos(e);
             const seg = [last[0], last[1], cur[0], cur[1]];
             drawAddSeg(seg);
-            // 发送
-            if (isHost) broadcast({ type: 'game', sub: 'phase', phase: 'stroke', seg: seg });
-            else gameSend({ type: 'game', sub: 'action', action: 'stroke', value: seg });
+            playerAct('stroke', seg);
             last = cur;
         };
         const up = () => { drawDrawing = false; };
@@ -963,42 +1146,31 @@
         cv.addEventListener('touchmove', move, { passive: false });
         cv.addEventListener('touchend', up);
     }
-
-    function renderGameDraw(role, word) {
+    function renderDrawGame(role, word, def) {
         gameOverlayShow();
         drawIsDrawer = (role === 'drawer');
-        const header = '<div class="px-5 pt-3 text-center text-xs text-space-muted font-mono">第 ' + GAME.roundIndex + '/' + GAME.totalRounds + ' 轮 · 你画我猜</div>';
-        let top;
-        if (drawIsDrawer) {
-            top = '<p class="text-center text-sm text-space-muted mt-1">你是画手，画：<span class="text-glow-green font-bold text-lg">' + gEsc(word || GAME.word || '') + '</span></p>';
-        } else {
-            top = '<p class="text-center text-sm text-space-muted mt-1">画手是 <span class="text-glow-blue font-semibold">' + gEsc(GAME.drawer || '') + '</span>，猜猜画的是什么</p>';
-        }
+        const top = drawIsDrawer
+            ? '<p class="text-center text-sm text-space-muted mt-1">你是画手，画：<span class="text-glow-green font-bold text-lg">' + gEsc(word || GAME.word || '') + '</span></p>'
+            : '<p class="text-center text-sm text-space-muted mt-1">画手是 <span class="text-glow-blue font-semibold">' + gEsc(GAME.drawer || '') + '</span>，猜猜画的是什么</p>';
         const inputArea = drawIsDrawer
             ? '<div class="flex justify-center gap-2 mt-2"><button id="draw-clear" class="px-4 py-1.5 bg-space-700 border border-space-border rounded-lg text-xs hover:border-glow-pink transition">清空</button></div>'
             : '<div class="flex gap-2 mt-2 px-4"><input id="draw-guess" class="glow-input flex-1 rounded-lg px-4 py-2 text-sm" placeholder="输入你猜的词，回车提交" autocomplete="off"><button id="draw-guess-btn" class="px-4 py-2 bg-glow-green/20 text-glow-green border border-glow-green/40 rounded-lg text-sm hover:bg-glow-green/30 transition">猜</button></div>';
         $('game-overlay').innerHTML = gameHeader(
-            header + top +
+            roundLabel(def) + top +
             '<div class="flex-1 flex flex-col p-4 min-h-0">' +
             '<div class="flex-1 relative rounded-lg overflow-hidden border border-space-border bg-space-900"><canvas id="draw-canvas" class="absolute inset-0 w-full h-full' + (drawIsDrawer ? ' cursor-crosshair' : '') + '"></canvas></div>' +
             '<p id="draw-log" class="text-center text-xs text-space-muted mt-2 h-4"></p>' +
-            inputArea +
-            '</div>');
+            inputArea + '</div>');
         $('game-close').addEventListener('click', () => gameOverlayHide());
         drawInitCanvas();
         if (drawIsDrawer) {
-            $('draw-clear').addEventListener('click', () => {
-                drawClear();
-                if (isHost) broadcast({ type: 'game', sub: 'phase', phase: 'clear' });
-                else gameSend({ type: 'game', sub: 'action', action: 'clear' });
-            });
+            $('draw-clear').addEventListener('click', () => { drawClear(); playerAct('clear'); });
         } else {
             const submit = () => {
                 const v = ($('draw-guess').value || '').trim();
                 if (!v) return;
                 $('draw-guess').value = '';
-                if (isHost) hostGameActionSelf('guess', v);
-                else gameSend({ type: 'game', sub: 'action', action: 'guess', value: v });
+                playerAct('guess', v);
             };
             $('draw-guess-btn').addEventListener('click', submit);
             $('draw-guess').addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
@@ -1006,41 +1178,7 @@
         }
     }
 
-    // ============================================================
-    // 数字炸弹
-    // ============================================================
-    function renderGameBomb(phase, lo, hi, turn, lastText) {
-        gameOverlayShow();
-        const isMyTurn = (turn === myName);
-        const top = '<div class="px-5 pt-3 text-center text-xs text-space-muted font-mono">第 ' + GAME.roundIndex + '/' + GAME.totalRounds + ' 轮 · 数字炸弹</div>';
-        const lastLine = lastText ? '<p class="text-center text-xs text-space-muted mt-2">' + gEsc(lastText) + '</p>' : '';
-        const turnLine = '<p class="text-center mt-3">当前回合：<span class="' + (isMyTurn ? 'text-glow-green font-bold' : 'text-space-text') + '">' + gEsc(turn) + (isMyTurn ? '（你）' : '') + '</span></p>';
-        const range = '<p class="text-center text-sm text-space-muted mt-1">范围：<span class="text-glow-blue font-mono">' + lo + ' ~ ' + hi + '</span></p>';
-        const inputArea = isMyTurn
-            ? '<div class="flex justify-center gap-2 mt-4"><input id="bomb-input" type="number" class="glow-input rounded-lg px-4 py-2 text-center w-32" min="' + lo + '" max="' + hi + '" autocomplete="off"><button id="bomb-btn" class="px-5 py-2 bg-glow-pink/20 text-glow-pink border border-glow-pink/40 rounded-lg text-sm hover:bg-glow-pink/30 transition">猜</button></div>'
-            : '<p class="text-center text-xs text-space-muted mt-6">等待 ' + gEsc(turn) + ' 猜…</p>';
-        $('game-overlay').innerHTML = gameHeader(
-            top + lastLine + turnLine + range +
-            '<div class="flex-1 flex flex-col items-center justify-center p-4">' +
-            '<div class="text-5xl mb-4">💣</div>' +
-            inputArea +
-            '<p class="text-xs text-space-muted mt-4 text-center max-w-sm">1~100 之间有个炸弹数字，轮流猜。谁猜到炸弹，其他人各得 1 分</p>' +
-            '</div>');
-        $('game-close').addEventListener('click', () => gameOverlayHide());
-        if (isMyTurn) {
-            const submit = () => {
-                const v = parseInt($('bomb-input').value, 10);
-                if (isNaN(v) || v < lo || v > hi) return;
-                $('bomb-btn').disabled = true;
-                if (isHost) hostGameActionSelf('bomb-guess', v);
-                else gameSend({ type: 'game', sub: 'action', action: 'bomb-guess', value: v });
-            };
-            $('bomb-btn').addEventListener('click', submit);
-            $('bomb-input').addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
-            setTimeout(() => $('bomb-input') && $('bomb-input').focus(), 100);
-        }
-    }
-
+    // result / over
     function renderGameResult(text, scores) {
         gameOverlayShow();
         $('game-overlay').innerHTML = gameHeader(
@@ -1051,10 +1189,7 @@
                 '<p class="text-xs text-space-muted mt-6">等待房主开始下一轮…</p>') +
             '</div>');
         $('game-close').addEventListener('click', () => gameOverlayHide());
-        if (isHost) {
-            const nb = $('next-round');
-            if (nb) nb.addEventListener('click', () => hostNextRound());
-        }
+        if (isHost) { const nb = $('next-round'); if (nb) nb.addEventListener('click', () => hostNextRound()); }
     }
 
     function renderGameOver(scores) {
@@ -1075,7 +1210,6 @@
         $('game-close').addEventListener('click', () => gameOverlayHide());
         $('game-close2').addEventListener('click', () => gameOverlayHide());
     }
-
     // ============================================================
     // 事件绑定 & 初始化
     // ============================================================
