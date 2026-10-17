@@ -161,12 +161,8 @@
                         <button id="arena-close" class="px-3 py-1.5 bg-space-700 border border-space-border rounded-lg text-xs hover:border-glow-pink transition">退出枪战</button>
                     </div>
                 </div>
-                <div class="flex-1 relative bg-black">
-                    <iframe id="arena-iframe" class="absolute inset-0 w-full h-full" frameborder="0" allow="autoplay; fullscreen"></iframe>
-                    <div id="arena-waiting" class="absolute inset-0 flex flex-col items-center justify-center bg-space-900/95 backdrop-blur-sm pointer-events-none">
-                        <div class="text-5xl mb-4 animate-pulse">🔫</div>
-                        <p id="arena-waiting-text" class="text-space-text text-sm font-mono">正在准备…</p>
-                    </div>
+                <div class="flex-1 relative bg-black overflow-hidden">
+                    <canvas id="arena-canvas" class="absolute inset-0 cursor-crosshair"></canvas>
                 </div>
             </div>
 
@@ -384,7 +380,7 @@
         } else if (d.type === 'game' && d.sub === 'action') {
             hostGameAction(conn, d);
         } else if (d.type === 'arena') {
-            onArenaMsg(conn, d);
+            arOnNet(conn, d);
         }
     }
     // 客户端收到房主消息
@@ -398,7 +394,7 @@
         else if (d.type === 'sys') addSys(d.text);
         else if (d.type === 'members') setRoomStatus('在线：' + d.list.join('、'));
         else if (d.type === 'game') clientGameData(d);
-        else if (d.type === 'arena') onArenaMsg(connections.host || {}, d);
+        else if (d.type === 'arena') arOnNet(connections.host || {}, d);
         else if (d.type === 'reject') {
             setStatus('加入失败：' + (d.reason || '昵称重复'));
             if (peer) { try { peer.destroy(); } catch (e) {} }
@@ -1242,149 +1238,834 @@
         $('game-close2').addEventListener('click', () => gameOverlayHide());
     }
     // ============================================================
-    // 联机枪战（iframe 嵌入 zhan-shu.html，用现有 PeerJS 通道中继 SDP）
-    // 房主先初始化 iframe 生成 offer → 经 PeerJS 发给成员 → 成员回 answer
+    // 联机枪战 v2 —— 原生 Canvas 实现（非 iframe）
+    // 房主权威：host 模拟世界，每帧广播快照；guest 发输入、渲染
+    // 复用 lobby 已有的 PeerJS DataConnection，无需二次握手
     // ============================================================
-    const ARENA = {
-        active: false,
-        role: null,          // 'host' | 'guest'
-        iframeReady: false,
-        offerSent: false,
-        answerSent: false,
-        connId: null,        // 用于多成员时指定目标
+    const AR = {
+        active: false, role: null,
+        canvas: null, ctx: null,
+        W: 0, H: 0, DPR: 1,
+        // 世界
+        map: null,           // {cols,rows,cw,ch,walls,doors,spawnRect,enemySpawns}
+        me: null,            // 本地玩家 {x,y,vx,vy,angle,hp,maxHp,fireCd,alive}
+        peers: {},           // name -> {x,y,angle,hp,maxHp,alive}
+        enemies: [],         // {x,y,angle,hp,state,timer,target,fireCd}
+        bullets: [],         // {x,y,vx,vy,owner,life,dmg}
+        fx: [],              // {x,y,type,t,life}
+        // 输入
+        keys: {}, mouse: { x: 0, y: 0, down: false },
+        // 相机
+        camX: 0, camY: 0,
+        // 循环
+        raf: null, lastTs: 0,
+        // 同步
+        netTick: 0, inputTick: 0,
+        // 计分
+        score: {}, roundOver: false, roundMsg: '',
+        startTs: 0,
     };
 
-    function arenaEl() { return document.getElementById('arena-overlay'); }
-    function arenaIframe() { return document.getElementById('arena-iframe'); }
-    function arenaStatus(t) { const el = document.getElementById('arena-status'); if (el) el.textContent = t ? '· ' + t : ''; }
-    function arenaWaiting(t) {
-        const w = document.getElementById('arena-waiting');
-        const tx = document.getElementById('arena-waiting-text');
-        if (t === null) { w.classList.add('hidden'); w.classList.remove('flex'); }
-        else { w.classList.remove('hidden'); w.classList.add('flex'); if (tx) tx.textContent = t; }
-    }
-    function arenaPost(msg) {
-        const f = arenaIframe();
-        if (f && f.contentWindow) { try { f.contentWindow.postMessage(msg, '*'); } catch (e) {} }
+    const AR_CFG = {
+        PLAYER_R: 13, PLAYER_SPEED: 180, PLAYER_HP: 100,
+        BULLET_SPEED: 620, BULLET_LIFE: 1.6, BULLET_DMG: 22, BULLET_R: 3,
+        FIRE_CD: 0.22,
+        ENEMY_R: 13, ENEMY_SPEED: 95, ENEMY_HP: 60, ENEMY_VIEW: 260,
+        ENEMY_FIRE_CD: 0.9, ENEMY_DMG: 12,
+        ROOM_W: 330, ROOM_H: 260, WALL_T: 14,
+        NET_HZ: 20, INPUT_HZ: 30,
+        ROUND_TIME: 90,
+    };
+
+    // ---------- 工具 ----------
+    function arRnd(a, b) { return a + Math.random() * (b - a); }
+    function arClamp(v, lo, hi) { return v < lo ? lo : v > hi ? hi : v; }
+    function arDist(ax, ay, bx, by) { return Math.hypot(bx - ax, by - ay); }
+    function arCircleRect(cx, cy, r, rect) {
+        const nx = arClamp(cx, rect.x, rect.x + rect.w);
+        const ny = arClamp(cy, rect.y, rect.y + rect.h);
+        return (cx - nx) * (cx - nx) + (cy - ny) * (cy - ny) < r * r;
     }
 
-    // 打开枪战覆盖层（加载 iframe）
-    function arenaOpen(role) {
-        ARENA.active = true;
-        ARENA.role = role;
-        ARENA.iframeReady = false;
-        ARENA.offerSent = false;
-        ARENA.answerSent = false;
-        arenaEl().classList.remove('hidden');
-        arenaEl().classList.add('flex');
-        arenaStatus(role === 'host' ? '准备中（房主）' : '准备中（成员）');
-        arenaWaiting('正在加载枪战…');
-        const f = arenaIframe();
-        f.src = 'tools/zhan-shu.html?embed=1';
-    }
+    // ---------- 地图生成（房主）----------
+    function arBuildMap(cols, rows) {
+        const cw = AR_CFG.ROOM_W, ch = AR_CFG.ROOM_H, T = AR_CFG.WALL_T;
+        const W = cols * cw, H = rows * ch;
+        const walls = [];
+        // 外墙
+        walls.push({ x: 0, y: 0, w: W, h: T });
+        walls.push({ x: 0, y: H - T, w: W, h: T });
+        walls.push({ x: 0, y: 0, w: T, h: H });
+        walls.push({ x: W - T, y: 0, w: T, h: H });
 
-    function arenaClose() {
-        ARENA.active = false;
-        ARENA.role = null;
-        ARENA.iframeReady = false;
-        ARENA.offerSent = false;
-        ARENA.answerSent = false;
-        arenaPost({ type: 'arena-leave' });
-        arenaEl().classList.add('hidden');
-        arenaEl().classList.remove('flex');
-        const f = arenaIframe();
-        if (f) f.src = 'about:blank';
-        // 广播关闭
-        if (isHost) broadcast({ type: 'arena', sub: 'closed' });
-        else if (connections.host) { try { connections.host.send({ type: 'arena', sub: 'closed' }); } catch (e) {} }
-    }
-
-    // 接收来自 iframe 的消息
-    window.addEventListener('message', (e) => {
-        const d = e.data;
-        if (!d || typeof d !== 'object' || !d.type || String(d.type).indexOf('arena-') !== 0) return;
-        if (d.type === 'arena-offer') {
-            // 房主 iframe 生成了 offer → 经 PeerJS 广播给所有成员
-            ARENA.offerSent = true;
-            arenaStatus('等待成员加入…');
-            arenaWaiting('等待其他玩家加入枪战…');
-            broadcast({ type: 'arena', sub: 'offer', sdp: d.sdp });
-        } else if (d.type === 'arena-answer') {
-            // 成员 iframe 生成了 answer → 发给房主
-            ARENA.answerSent = true;
-            arenaStatus('已提交连接信息');
-            arenaWaiting('等待房主完成连接…');
-            if (isHost) {
-                arenaPost({ type: 'arena-answer', sdp: d.sdp });
-            } else if (connections.host) {
-                try { connections.host.send({ type: 'arena', sub: 'answer', sdp: d.sdp }); } catch (e) {}
-            }
-        } else if (d.type === 'arena-status') {
-            if (d.connected) {
-                arenaStatus('已进入战场');
-                arenaWaiting(null);
-            } else {
-                arenaStatus('连接已断开');
-                document.getElementById('arena-reconnect').classList.remove('hidden');
+        const doors = [];
+        // 内部隔墙：每格右边、下边（若是边界则跳过）
+        for (let r = 0; r < rows; r++) {
+            for (let c = 0; c < cols; c++) {
+                // 右边墙
+                if (c < cols - 1) {
+                    const x = (c + 1) * cw - T / 2;
+                    const y0 = r * ch;
+                    const hasDoor = Math.random() < 0.75;
+                    if (hasDoor) {
+                        const gapY = y0 + arRnd(50, ch - 50 - 70);
+                        walls.push({ x, y: y0, w: T, h: gapY - y0 });
+                        walls.push({ x, y: gapY + 70, w: T, h: y0 + ch - (gapY + 70) });
+                        doors.push({ x: x - 2, y: gapY, w: T + 4, h: 70, vert: true, open: false });
+                    } else {
+                        walls.push({ x, y: y0, w: T, h: ch });
+                    }
+                }
+                // 下边墙
+                if (r < rows - 1) {
+                    const y = (r + 1) * ch - T / 2;
+                    const x0 = c * cw;
+                    const hasDoor = Math.random() < 0.75;
+                    if (hasDoor) {
+                        const gapX = x0 + arRnd(50, cw - 50 - 70);
+                        walls.push({ x: x0, y, w: gapX - x0, h: T });
+                        walls.push({ x: gapX + 70, y, w: x0 + cw - (gapX + 70), h: T });
+                        doors.push({ x: gapX, y: y - 2, w: 70, h: T + 4, vert: false, open: false });
+                    } else {
+                        walls.push({ x: x0, y, w: cw, h: T });
+                    }
+                }
             }
         }
-    });
 
-    // 房主/成员：处理对面来的 arena 消息
-    function onArenaMsg(conn, d) {
+        // 出生房（左下角）—— 相邻门标记 secure（敌人不开）
+        const spawnC = 0, spawnR = rows - 1;
+        const spawnRect = { x: spawnC * cw + T, y: spawnR * ch + T, w: cw - T * 2, h: ch - T * 2 };
+        // 标记与出生房相邻的门
+        for (const d of doors) {
+            const cx = d.x + d.w / 2, cy = d.y + d.h / 2;
+            const scx = spawnC * cw + cw / 2, scy = spawnR * ch + ch / 2;
+            // 门在出生房边界上
+            const onLeft = Math.abs(cx - (spawnC * cw)) < 6 && Math.abs(cy - scy) < ch / 2;
+            const onRight = Math.abs(cx - ((spawnC + 1) * cw)) < 6 && Math.abs(cy - scy) < ch / 2;
+            const onTop = Math.abs(cy - (spawnR * ch)) < 6 && Math.abs(cx - scx) < cw / 2;
+            const onBottom = Math.abs(cy - ((spawnR + 1) * ch)) < 6 && Math.abs(cx - scx) < cw / 2;
+            if (onLeft || onRight || onTop || onBottom) d.secure = true;
+        }
+
+        // 敌人出生点（其他房间中心附近）
+        const enemySpawns = [];
+        for (let r = 0; r < rows; r++) {
+            for (let c = 0; c < cols; c++) {
+                if (c === spawnC && r === spawnR) continue;
+                enemySpawns.push({ x: c * cw + cw / 2, y: r * ch + ch / 2 });
+            }
+        }
+
+        return { cols, rows, cw, ch, W, H, walls, doors, spawnRect, enemySpawns };
+    }
+
+    // ---------- 碰撞 ----------
+    function arBlocked(x, y, r) {
+        if (!AR.map) return true;
+        for (const w of AR.map.walls) if (arCircleRect(x, y, r, w)) return true;
+        for (const d of AR.map.doors) if (!d.open && arCircleRect(x, y, r, d)) return true;
+        return false;
+    }
+    function arMoveUnit(u, dx, dy, r) {
+        let nx = u.x + dx, ny = u.y + dy;
+        if (!arBlocked(nx, u.y, r)) u.x = nx;
+        if (!arBlocked(u.x, ny, r)) u.y = ny;
+    }
+
+    // ---------- 视线（简化为无遮挡检测，性能优先）----------
+    function arLineClear(x1, y1, x2, y2) {
+        const steps = Math.ceil(arDist(x1, y1, x2, y2) / 22);
+        for (let i = 1; i < steps; i++) {
+            const t = i / steps;
+            const px = x1 + (x2 - x1) * t, py = y1 + (y2 - y1) * t;
+            for (const w of AR.map.walls) if (arCircleRect(px, py, 2, w)) return false;
+            for (const d of AR.map.doors) if (!d.open && arCircleRect(px, py, 2, d)) return false;
+        }
+        return true;
+    }
+
+    // ---------- 开火 ----------
+    function arFire(shooter, owner, isPlayer) {
+        const cfg = AR_CFG;
+        const bx = shooter.x + Math.cos(shooter.angle) * 16;
+        const by = shooter.y + Math.sin(shooter.angle) * 16;
+        AR.bullets.push({
+            x: bx, y: by,
+            vx: Math.cos(shooter.angle) * cfg.BULLET_SPEED,
+            vy: Math.sin(shooter.angle) * cfg.BULLET_SPEED,
+            owner: owner,           // 'me' | peerName | 'enemy'
+            fromPlayer: !!isPlayer,
+            life: cfg.BULLET_LIFE,
+            dmg: isPlayer ? cfg.BULLET_DMG : cfg.ENEMY_DMG,
+        });
+    }
+
+    // ---------- 更新（房主权威 / 单人）----------
+    function arUpdateWorld(dt) {
+        const cfg = AR_CFG;
+
+        // 本地玩家移动
+        const me = AR.me;
+        if (me && me.alive) {
+            let dx = 0, dy = 0;
+            if (AR.keys['w'] || AR.keys['arrowup']) dy -= 1;
+            if (AR.keys['s'] || AR.keys['arrowdown']) dy += 1;
+            if (AR.keys['a'] || AR.keys['arrowleft']) dx -= 1;
+            if (AR.keys['d'] || AR.keys['arrowright']) dx += 1;
+            if (dx || dy) {
+                const L = Math.hypot(dx, dy);
+                const sp = cfg.PLAYER_SPEED * dt;
+                arMoveUnit(me, dx / L * sp, dy / L * sp, cfg.PLAYER_R);
+            }
+            // 朝向鼠标
+            const mw = arScreenToWorld(AR.mouse.x, AR.mouse.y);
+            me.angle = Math.atan2(mw.y - me.y, mw.x - me.x);
+            // 射击
+            me.fireCd = Math.max(0, me.fireCd - dt);
+            if (AR.mouse.down && me.fireCd <= 0) {
+                me.fireCd = cfg.FIRE_CD;
+                // guest 不本地生成子弹（避免与房主权威子弹重复），只发 input，由快照驱动
+                if (AR.role === 'guest') {
+                    arSendInput();   // 立即上行，让房主尽快生成子弹
+                } else {
+                    arFire(me, 'me', true);
+                }
+            }
+        }
+
+        // 敌人 AI（仅房主模拟）
+        if (AR.role === 'host') {
+            for (const e of AR.enemies) {
+                if (e.hp <= 0) continue;
+                e.fireCd = Math.max(0, e.fireCd - dt);
+                // 找最近的可视目标
+                let target = null, bestD = Infinity;
+                const candidates = [{ x: AR.me.x, y: AR.me.y, alive: AR.me.alive, name: 'me' }];
+                for (const n in AR.peers) {
+                    const p = AR.peers[n];
+                    if (p.alive) candidates.push({ x: p.x, y: p.y, alive: true, name: n });
+                }
+                for (const c of candidates) {
+                    if (!c.alive) continue;
+                    const d = arDist(e.x, e.y, c.x, c.y);
+                    if (d < cfg.ENEMY_VIEW && d < bestD && arLineClear(e.x, e.y, c.x, c.y)) {
+                        bestD = d; target = c;
+                    }
+                }
+                if (target) {
+                    // 追击并射击
+                    const ang = Math.atan2(target.y - e.y, target.x - e.x);
+                    e.angle = ang;
+                    if (bestD > 150) {
+                        const sp = cfg.ENEMY_SPEED * dt;
+                        arMoveUnit(e, Math.cos(ang) * sp, Math.sin(ang) * sp, cfg.ENEMY_R);
+                    }
+                    if (e.fireCd <= 0) {
+                        e.fireCd = cfg.ENEMY_FIRE_CD;
+                        arFire(e, 'enemy', false);
+                    }
+                } else {
+                    // 巡逻：朝巡逻点移动
+                    if (!e.patrol) e.patrol = { x: e.x + arRnd(-120, 120), y: e.y + arRnd(-120, 120), t: 0 };
+                    e.patrol.t += dt;
+                    if (e.patrol.t > 4 || arDist(e.x, e.y, e.patrol.x, e.patrol.y) < 20) {
+                        e.patrol = { x: e.x + arRnd(-150, 150), y: e.y + arRnd(-150, 150), t: 0 };
+                    }
+                    const ang = Math.atan2(e.patrol.y - e.y, e.patrol.x - e.x);
+                    e.angle = ang;
+                    const sp = cfg.ENEMY_SPEED * 0.5 * dt;
+                    arMoveUnit(e, Math.cos(ang) * sp, Math.sin(ang) * sp, cfg.ENEMY_R);
+                }
+            }
+        }
+
+        // 子弹（guest 端子弹由快照驱动，不做本地推进）
+        for (const b of AR.bullets) {
+            if (AR.role === 'guest') continue;
+            b.life -= dt;
+            b.x += b.vx * dt; b.y += b.vy * dt;
+            // 撞墙
+            if (arBlocked(b.x, b.y, cfg.BULLET_R)) { b.life = 0; AR.fx.push({ x: b.x, y: b.y, type: 'spark', t: 0, life: 0.18 }); continue; }
+            if (!b.fromPlayer) {
+                // 敌人子弹打玩家（仅房主/单人做权威判定；guest 血量由快照下发）
+                if (AR.role === 'host' || AR.role === 'solo') {
+                    if (AR.me.alive && arDist(b.x, b.y, AR.me.x, AR.me.y) < cfg.PLAYER_R) {
+                        b.life = 0;
+                        AR.me.hp = Math.max(0, AR.me.hp - b.dmg);
+                        AR.fx.push({ x: AR.me.x, y: AR.me.y, type: 'hit', t: 0, life: 0.2 });
+                        if (AR.me.hp <= 0) AR.me.alive = false;
+                        continue;
+                    }
+                    for (const n in AR.peers) {
+                        const p = AR.peers[n];
+                        if (!p.alive) continue;
+                        if (arDist(b.x, b.y, p.x, p.y) < cfg.PLAYER_R) {
+                            b.life = 0;
+                            p.hp = Math.max(0, p.hp - b.dmg);
+                            AR.fx.push({ x: p.x, y: p.y, type: 'hit', t: 0, life: 0.2 });
+                            if (p.hp <= 0) { p.alive = false; sendTo(n, { type: 'arena', sub: 'dead' }); }
+                            break;
+                        }
+                    }
+                }
+            } else {
+                // 玩家子弹打敌人（仅房主判定）
+                if (AR.role === 'host' || AR.role === 'solo') {
+                    for (const e of AR.enemies) {
+                        if (e.hp <= 0) continue;
+                        if (arDist(b.x, b.y, e.x, e.y) < cfg.ENEMY_R) {
+                            b.life = 0; e.hp -= b.dmg;
+                            AR.fx.push({ x: e.x, y: e.y, type: 'hit', t: 0, life: 0.2 });
+                            if (e.hp <= 0) { AR.score[b.owner] = (AR.score[b.owner] || 0) + 1; }
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        AR.bullets = AR.bullets.filter(b => b.life > 0);
+        AR.enemies = AR.enemies.filter(e => e.hp > 0 || AR.role !== 'host');
+
+        // 特效
+        for (const f of AR.fx) f.t += dt;
+        AR.fx = AR.fx.filter(f => f.t < f.life);
+
+        // 相机跟随
+        const vw = AR.W, vh = AR.H;
+        AR.camX = arClamp(AR.me.x - vw / 2, 0, Math.max(0, AR.map.W - vw));
+        AR.camY = arClamp(AR.me.y - vh / 2, 0, Math.max(0, AR.map.H - vh));
+
+        // 胜负（房主判定）
+        if (AR.role === 'host' && !AR.roundOver) {
+            const aliveEnemies = AR.enemies.filter(e => e.hp > 0).length;
+            if (aliveEnemies === 0) { AR.roundOver = true; AR.roundMsg = '全部敌人已清除！'; arNetRoundEnd(true); }
+            else if (!AR.me.alive) { AR.roundOver = true; AR.roundMsg = '你已阵亡'; arNetRoundEnd(false); }
+        }
+    }
+
+    // ---------- 相机 ----------
+    function arScreenToWorld(sx, sy) {
+        return { x: sx + AR.camX, y: sy + AR.camY };
+    }
+
+    // ---------- 网络：host 广播快照 ----------
+    function arBroadcastSnapshot() {
+        if (AR.role !== 'host') return;
+        const peersSnap = [];
+        for (const n in AR.peers) {
+            const p = AR.peers[n];
+            peersSnap.push({ n: n, x: Math.round(p.x), y: Math.round(p.y), a: +p.angle.toFixed(2), hp: p.hp, alive: p.alive });
+        }
+        const snap = {
+            type: 'arena', sub: 'snap',
+            ts: Date.now(),
+            me: { x: Math.round(AR.me.x), y: Math.round(AR.me.y), a: +AR.me.angle.toFixed(2), hp: AR.me.hp, alive: AR.me.alive },
+            peers: peersSnap,
+            enemies: AR.enemies.filter(e => e.hp > 0).map(e => ({ x: Math.round(e.x), y: Math.round(e.y), a: +e.angle.toFixed(2), hp: e.hp })),
+            bullets: AR.bullets.map(b => ({ x: Math.round(b.x), y: Math.round(b.y), o: b.owner, fp: b.fromPlayer ? 1 : 0 })),
+            score: AR.score,
+            over: AR.roundOver, msg: AR.roundMsg,
+        };
+        broadcast(snap);
+    }
+
+    // ---------- 网络：guest 发输入 ----------
+    function arSendInput() {
+        if (AR.role !== 'guest') return;
+        if (!connections.host) return;
+        try {
+            connections.host.send({
+                type: 'arena', sub: 'input',
+                x: Math.round(AR.me.x), y: Math.round(AR.me.y),
+                a: +AR.me.angle.toFixed(2),
+                fire: AR.mouse.down ? 1 : 0,
+                keys: { w: !!AR.keys['w'], a: !!AR.keys['a'], s: !!AR.keys['s'], d: !!AR.keys['d'] },
+            });
+        } catch (e) {}
+    }
+
+    // ---------- 游戏循环 ----------
+    // 物理与渲染分离：物理走 setInterval（后台窗口不被节流），渲染走 rAF
+    function arTickPhysics() {
+        if (!AR.active) return;
+        const now = performance.now();
+        if (!AR.lastPhys) AR.lastPhys = now;
+        let dt = (now - AR.lastPhys) / 1000;
+        AR.lastPhys = now;
+        dt = Math.min(dt, 0.05);
+        arUpdateWorld(dt);
+        arTickPeerCooldowns(dt);
+    }
+
+    function arLoop(ts) {
+        if (!AR.active) return;
+        arRender();
+        AR.raf = requestAnimationFrame(arLoop);
+    }
+
+    // ---------- 渲染 ----------
+    function arRender() {
+        const ctx = AR.ctx, W = AR.W, H = AR.H;
+        if (!ctx) return;
+
+        // 背景
+        ctx.fillStyle = '#080b10';
+        ctx.fillRect(0, 0, W, H);
+
+        ctx.save();
+        ctx.translate(-AR.camX, -AR.camY);
+
+        // 地板网格
+        const gs = 80;
+        ctx.strokeStyle = 'rgba(88,166,255,0.05)';
+        ctx.lineWidth = 1;
+        const x0 = Math.floor(AR.camX / gs) * gs;
+        const y0 = Math.floor(AR.camY / gs) * gs;
+        for (let x = x0; x < AR.camX + W + gs; x += gs) {
+            ctx.beginPath(); ctx.moveTo(x, AR.camY); ctx.lineTo(x, AR.camY + H); ctx.stroke();
+        }
+        for (let y = y0; y < AR.camY + H + gs; y += gs) {
+            ctx.beginPath(); ctx.moveTo(AR.camX, y); ctx.lineTo(AR.camX + W, y); ctx.stroke();
+        }
+
+        // 出生房高亮
+        const sr = AR.map.spawnRect;
+        ctx.fillStyle = 'rgba(63,185,80,0.05)';
+        ctx.fillRect(sr.x, sr.y, sr.w, sr.h);
+
+        // 墙
+        ctx.fillStyle = '#2a3441';
+        ctx.strokeStyle = '#465363';
+        ctx.lineWidth = 1;
+        for (const w of AR.map.walls) {
+            ctx.fillRect(w.x, w.y, w.w, w.h);
+            ctx.strokeRect(w.x + 0.5, w.y + 0.5, w.w - 1, w.h - 1);
+        }
+
+        // 门
+        for (const d of AR.map.doors) {
+            if (d.open) {
+                ctx.fillStyle = 'rgba(63,185,80,0.25)';
+                ctx.fillRect(d.x, d.y, d.w, d.h);
+            } else {
+                ctx.fillStyle = d.secure ? '#8b6914' : '#7a4a1e';
+                ctx.fillRect(d.x, d.y, d.w, d.h);
+                if (d.secure) {
+                    ctx.strokeStyle = '#e3b341';
+                    ctx.lineWidth = 1.5;
+                    ctx.strokeRect(d.x + 1, d.y + 1, d.w - 2, d.h - 2);
+                }
+            }
+        }
+
+        // 敌人
+        for (const e of AR.enemies) {
+            if (e.hp <= 0) continue;
+            arDrawUnit(ctx, e.x, e.y, e.angle, '#da3633', AR_CFG.ENEMY_R);
+            // 血条
+            const pct = Math.max(0, e.hp / AR_CFG.ENEMY_HP);
+            ctx.fillStyle = 'rgba(0,0,0,0.6)';
+            ctx.fillRect(e.x - 15, e.y - 24, 30, 4);
+            ctx.fillStyle = '#da3633';
+            ctx.fillRect(e.x - 15, e.y - 24, 30 * pct, 4);
+        }
+
+        // 其他玩家
+        for (const n in AR.peers) {
+            const p = AR.peers[n];
+            if (!p.alive) continue;
+            arDrawUnit(ctx, p.x, p.y, p.angle, '#58a6ff', AR_CFG.PLAYER_R);
+            ctx.fillStyle = 'rgba(88,166,255,0.9)';
+            ctx.font = '11px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText(n, p.x, p.y - 22);
+        }
+
+        // 本地玩家
+        if (AR.me && AR.me.alive) {
+            arDrawUnit(ctx, AR.me.x, AR.me.y, AR.me.angle, '#3fb950', AR_CFG.PLAYER_R);
+        }
+
+        // 子弹
+        for (const b of AR.bullets) {
+            ctx.beginPath();
+            ctx.fillStyle = b.fromPlayer ? '#f0f6fc' : '#ff7b72';
+            ctx.arc(b.x, b.y, 3, 0, Math.PI * 2);
+            ctx.fill();
+            // 拖尾
+            ctx.strokeStyle = b.fromPlayer ? 'rgba(240,246,252,0.4)' : 'rgba(255,123,114,0.4)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(b.x, b.y);
+            ctx.lineTo(b.x - b.vx * 0.02, b.y - b.vy * 0.02);
+            ctx.stroke();
+        }
+
+        // 特效
+        for (const f of AR.fx) {
+            const k = f.t / f.life;
+            const r = f.type === 'spark' ? 3 + k * 8 : 8 + k * 12;
+            ctx.beginPath();
+            ctx.strokeStyle = f.type === 'hit' ? 'rgba(255,123,114,' + (1 - k) + ')' : 'rgba(240,246,252,' + (1 - k) + ')';
+            ctx.lineWidth = 2;
+            ctx.arc(f.x, f.y, r, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+
+        ctx.restore();
+
+        // 暗角
+        const grad = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.3, W / 2, H / 2, Math.max(W, H) * 0.75);
+        grad.addColorStop(0, 'rgba(0,0,0,0)');
+        grad.addColorStop(1, 'rgba(0,0,0,0.75)');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, W, H);
+
+        // 准星
+        ctx.strokeStyle = 'rgba(240,246,252,0.7)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(AR.mouse.x, AR.mouse.y, 9, 0, Math.PI * 2);
+        ctx.moveTo(AR.mouse.x - 14, AR.mouse.y); ctx.lineTo(AR.mouse.x - 5, AR.mouse.y);
+        ctx.moveTo(AR.mouse.x + 5, AR.mouse.y); ctx.lineTo(AR.mouse.x + 14, AR.mouse.y);
+        ctx.moveTo(AR.mouse.x, AR.mouse.y - 14); ctx.lineTo(AR.mouse.x, AR.mouse.y - 5);
+        ctx.moveTo(AR.mouse.x, AR.mouse.y + 5); ctx.lineTo(AR.mouse.x, AR.mouse.y + 14);
+        ctx.stroke();
+
+        // HUD
+        arRenderHUD(ctx, W, H);
+    }
+
+    function arDrawUnit(ctx, x, y, ang, color, r) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(ang);
+        // 身体
+        ctx.beginPath();
+        ctx.arc(0, 0, r, 0, Math.PI * 2);
+        ctx.fillStyle = color;
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        // 枪管
+        ctx.beginPath();
+        ctx.fillStyle = '#c9d1d9';
+        ctx.fillRect(r - 2, -2.5, 12, 5);
+        ctx.restore();
+    }
+
+    function arRenderHUD(ctx, W, H) {
+        // 血条
+        if (AR.me) {
+            const pct = Math.max(0, AR.me.hp / AR_CFG.PLAYER_HP);
+            const bw = 200, bh = 12, bx = 20, by = H - 40;
+            ctx.fillStyle = 'rgba(0,0,0,0.6)';
+            ctx.fillRect(bx - 2, by - 2, bw + 4, bh + 4);
+            ctx.fillStyle = pct > 0.5 ? '#3fb950' : pct > 0.25 ? '#d29922' : '#da3633';
+            ctx.fillRect(bx, by, bw * pct, bh);
+            ctx.strokeStyle = 'rgba(240,246,252,0.3)';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(bx + 0.5, by + 0.5, bw - 1, bh - 1);
+            ctx.fillStyle = '#f0f6fc';
+            ctx.font = '11px monospace';
+            ctx.textAlign = 'left';
+            ctx.fillText('HP ' + Math.ceil(AR.me.hp) + ' / ' + AR_CFG.PLAYER_HP, bx, by - 7);
+        }
+
+        // 剩余敌人
+        const alive = AR.enemies.filter(e => e.hp > 0).length;
+        ctx.fillStyle = 'rgba(0,0,0,0.55)';
+        ctx.fillRect(W - 150, 14, 136, 34);
+        ctx.strokeStyle = 'rgba(218,54,51,0.5)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(W - 150 + 0.5, 14.5, 135, 33);
+        ctx.fillStyle = '#da3633';
+        ctx.font = 'bold 13px monospace';
+        ctx.textAlign = 'left';
+        ctx.fillText('敌人剩余', W - 140, 30);
+        ctx.fillStyle = '#f0f6fc';
+        ctx.font = 'bold 16px monospace';
+        ctx.fillText(String(alive), W - 140, 44);
+
+        // 击杀分
+        const myScore = AR.score['me'] || 0;
+        ctx.fillStyle = 'rgba(0,0,0,0.55)';
+        ctx.fillRect(W - 150, 54, 136, 30);
+        ctx.strokeStyle = 'rgba(63,185,80,0.5)';
+        ctx.strokeRect(W - 150 + 0.5, 54.5, 135, 29);
+        ctx.fillStyle = '#3fb950';
+        ctx.font = 'bold 13px monospace';
+        ctx.fillText('击杀 ' + myScore, W - 140, 74);
+
+        // 结算
+        if (AR.roundOver) {
+            ctx.fillStyle = 'rgba(1,4,9,0.82)';
+            ctx.fillRect(0, 0, W, H);
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#f0f6fc';
+            ctx.font = 'bold 34px sans-serif';
+            ctx.fillText(AR.roundMsg || '结束', W / 2, H / 2 - 10);
+            ctx.font = '14px monospace';
+            ctx.fillStyle = '#8b949e';
+            ctx.fillText('按 Esc 退出', W / 2, H / 2 + 30);
+        }
+
+        // 阵亡遮罩
+        if (AR.me && !AR.me.alive && !AR.roundOver) {
+            ctx.fillStyle = 'rgba(218,54,51,0.18)';
+            ctx.fillRect(0, 0, W, H);
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#da3633';
+            ctx.font = 'bold 28px sans-serif';
+            ctx.fillText('已阵亡', W / 2, H / 2);
+        }
+    }
+
+    // ---------- 网络消息 ----------
+    function arOnNet(conn, d) {
         const name = (conn.metadata && conn.metadata.name) || '访客';
         if (d.sub === 'open') {
-            // 房主发起 → 通知成员打开 iframe 准备
-            arenaOpen('guest');
+            // 房主发起 → 成员进入，并使用房主传来的地图
             addSys(name + ' 发起了联机枪战');
-        } else if (d.sub === 'offer') {
-            // 成员收到房主 offer → 交给 iframe
-            ARENA.connId = conn.peer;
-            arenaStatus('收到邀请，正在连接…');
-            arenaWaiting('正在连接房主…');
-            // 等 iframe ready 再投递
-            const deliver = () => arenaPost({ type: 'arena-join', sdp: d.sdp });
-            if (ARENA.iframeReady) deliver();
-            else {
-                const iv = setInterval(() => { if (ARENA.iframeReady) { clearInterval(iv); deliver(); } }, 100);
-                setTimeout(() => clearInterval(iv), 15000);
+            arEnter('guest');
+            if (d.map) {
+                AR.map = {
+                    cols: d.map.cols, rows: d.map.rows, cw: d.map.cw, ch: d.map.ch,
+                    W: d.map.W, H: d.map.H,
+                    walls: d.map.walls.map(w => ({ ...w })),
+                    doors: d.map.doors.map(x => ({ ...x })),
+                    spawnRect: { ...d.map.spawnRect },
+                    enemySpawns: (d.map.enemySpawns || []).map(s => ({ ...s }))
+                };
+                // 出生点对齐房主
+                const sr = AR.map.spawnRect;
+                AR.me.x = sr.x + sr.w / 2;
+                AR.me.y = sr.y + sr.h / 2;
             }
-        } else if (d.sub === 'answer') {
-            // 房主收到成员 answer → 交给 iframe 完成连接
-            arenaStatus('成员已应答，建立连接…');
-            arenaPost({ type: 'arena-answer', sdp: d.sdp });
+        } else if (d.sub === 'snap') {
+            // guest 收到世界快照
+            if (AR.role !== 'guest') return;
+            if (!AR.active) arEnter('guest');
+            // 应用快照
+            AR.enemies = (d.enemies || []).map(e => ({
+                x: e.x, y: e.y, angle: e.a, hp: e.hp,
+                state: 0, timer: 0, target: null, fireCd: 0, patrol: null
+            }));
+            AR.bullets = (d.bullets || []).map(b => ({
+                x: b.x, y: b.y, vx: 0, vy: 0,
+                owner: b.o, fromPlayer: b.fp === 1, life: 999, dmg: 0
+            }));
+            // 房主位置作为 peer
+            AR.peers = {};
+            if (d.me) AR.peers['房主'] = { x: d.me.x, y: d.me.y, angle: d.me.a, hp: d.me.hp, maxHp: 100, alive: d.me.alive };
+            // 其他成员
+            if (d.peers) {
+                for (const q of d.peers) {
+                    if (!q || q.n === myName) continue;
+                    AR.peers[q.n] = { x: q.x, y: q.y, angle: q.a, hp: q.hp, maxHp: 100, alive: q.alive };
+                }
+                // 自己的血量由房主权威下发
+                for (const q of d.peers) {
+                    if (q && q.n === myName) {
+                        AR.me.hp = q.hp;
+                        if (!q.alive) AR.me.alive = false;
+                        break;
+                    }
+                }
+            }
+            AR.score = d.score || {};
+            if (d.over && !AR.roundOver) { AR.roundOver = true; AR.roundMsg = d.msg || '结束'; }
+        } else if (d.sub === 'input') {
+            // 房主收到成员输入
+            if (AR.role !== 'host') return;
+            AR.peers[name] = AR.peers[name] || { x: d.x, y: d.y, angle: d.a, hp: 100, maxHp: 100, alive: true };
+            const p = AR.peers[name];
+            p.x = d.x; p.y = d.y; p.angle = d.a;
+            if (d.fire && (!p._fireCd || p._fireCd <= 0)) {
+                p._fireCd = AR_CFG.FIRE_CD;
+                arFire(p, name, true);
+            }
         } else if (d.sub === 'closed') {
             addSys(name + ' 退出了枪战');
-            if (ARENA.active) arenaClose();
+            if (AR.role === 'guest' && AR.active) { arLeave(false); }
+        } else if (d.sub === 'dead') {
+            if (AR.peers[name]) AR.peers[name].alive = false;
         }
     }
 
-    // iframe load 完成标记
-    document.addEventListener('DOMContentLoaded', () => {});
-    window.addEventListener('load', () => {
-        const f = arenaIframe();
-        if (f) f.addEventListener('load', () => {
-            if (!ARENA.active) return;
-            ARENA.iframeReady = true;
-            if (ARENA.role === 'host') {
-                // 房主：让 iframe 生成 offer
-                arenaWaiting('正在创建枪战房间…');
-                arenaPost({ type: 'arena-host' });
-            }
-        });
-    });
-
-    // 按钮
-    function arenaStart() {
-        if (ARENA.active) return;
-        if (!isHost) { addSys('只有房主可以发起枪战'); return; }
-        // 房主自己先打开
-        arenaOpen('host');
-        addSys('你发起了联机枪战，等待成员加入');
-        broadcast({ type: 'arena', sub: 'open' });
+    // 房主每帧为 peer 递减冷却
+    function arTickPeerCooldowns(dt) {
+        for (const n in AR.peers) {
+            const p = AR.peers[n];
+            if (p._fireCd > 0) p._fireCd = Math.max(0, p._fireCd - dt);
+        }
     }
 
-    // ============================================================
+    // ---------- 生命周期 ----------
+    function arEnter(role) {
+        AR.active = true;
+        AR.role = role;
+        AR.roundOver = false;
+        AR.roundMsg = '';
+        AR.score = {};
+        AR.peers = {};
+        AR.bullets = [];
+        AR.fx = [];
+        AR.lastTs = 0;
+        AR.netTick = 0;
+        AR.inputTick = 0;
+
+        // 显示覆盖层
+        const ov = document.getElementById('arena-overlay');
+        ov.classList.remove('hidden');
+        ov.classList.add('flex');
+        arStatus(role === 'host' ? '房主' : '成员');
+
+        // 初始化 Canvas
+        const cv = document.getElementById('arena-canvas');
+        AR.canvas = cv;
+        const dpr = window.devicePixelRatio || 1;
+        AR.DPR = dpr;
+        const rect = cv.parentElement.getBoundingClientRect();
+        AR.W = rect.width;
+        AR.H = rect.height;
+        cv.width = Math.floor(AR.W * dpr);
+        cv.height = Math.floor(AR.H * dpr);
+        cv.style.width = AR.W + 'px';
+        cv.style.height = AR.H + 'px';
+        const ctx = cv.getContext('2d');
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        AR.ctx = ctx;
+
+        // 生成地图
+        if (role === 'host') {
+            AR.map = arBuildMap(3, 3);
+            // 本地玩家在出生房中央
+            const sr = AR.map.spawnRect;
+            AR.me = { x: sr.x + sr.w / 2, y: sr.y + sr.h / 2, angle: 0, hp: AR_CFG.PLAYER_HP, maxHp: AR_CFG.PLAYER_HP, fireCd: 0, alive: true };
+            // 生成敌人（关卡 1：5 个）
+            AR.enemies = [];
+            const spawns = AR.map.enemySpawns.slice();
+            for (let i = 0; i < 5 && i < spawns.length; i++) {
+                const sp = spawns[i % spawns.length];
+                AR.enemies.push({
+                    x: sp.x + arRnd(-40, 40), y: sp.y + arRnd(-40, 40),
+                    angle: arRnd(-Math.PI, Math.PI), hp: AR_CFG.ENEMY_HP,
+                    state: 0, timer: 0, target: null, fireCd: 0, patrol: null
+                });
+            }
+        } else {
+            // guest：等快照填充地图（先建个空占位避免报错）
+            AR.map = arBuildMap(3, 3);
+            const sr = AR.map.spawnRect;
+            AR.me = { x: sr.x + sr.w / 2, y: sr.y + sr.h / 2, angle: 0, hp: AR_CFG.PLAYER_HP, maxHp: AR_CFG.PLAYER_HP, fireCd: 0, alive: true };
+            AR.enemies = [];
+        }
+
+        arBindInput();
+        AR.lastPhys = 0;
+        AR.raf = requestAnimationFrame(arLoop);
+        AR.roundStart = Date.now();
+        // 物理 60Hz + 网络同步 20Hz，均走独立定时器（后台窗口 rAF 会被节流）
+        if (AR.physTimer) clearInterval(AR.physTimer);
+        AR.physTimer = setInterval(arTickPhysics, 1000 / 60);
+        if (AR.netTimer) clearInterval(AR.netTimer);
+        AR.netTimer = setInterval(() => {
+            if (!AR.active) return;
+            arBroadcastSnapshot();
+            arSendInput();
+        }, 1000 / AR_CFG.NET_HZ);
+    }
+
+    function arLeave(notify) {
+        AR.active = false;
+        AR.role = null;
+        if (AR.raf) { cancelAnimationFrame(AR.raf); AR.raf = null; }
+        if (AR.physTimer) { clearInterval(AR.physTimer); AR.physTimer = null; }
+        if (AR.netTimer) { clearInterval(AR.netTimer); AR.netTimer = null; }
+        AR.lastPhys = 0;
+        arUnbindInput();
+        const ov = document.getElementById('arena-overlay');
+        ov.classList.add('hidden');
+        ov.classList.remove('flex');
+        if (notify !== false) {
+            if (isHost) broadcast({ type: 'arena', sub: 'closed' });
+            else if (connections.host) { try { connections.host.send({ type: 'arena', sub: 'closed' }); } catch (e) {} }
+        }
+    }
+
+    function arStart() {
+        if (AR.active) return;
+        if (!isHost) { addSys('只有房主可以发起枪战'); return; }
+        addSys('你发起了联机枪战，等待成员加入');
+        arEnter('host');
+        // 广播地图，guest 使用同一张地图（否则各自随机生成会穿墙/卡墙）
+        broadcast({ type: 'arena', sub: 'open', map: {
+            cols: AR.map.cols, rows: AR.map.rows, cw: AR.map.cw, ch: AR.map.ch,
+            W: AR.map.W, H: AR.map.H,
+            walls: AR.map.walls, doors: AR.map.doors,
+            spawnRect: AR.map.spawnRect, enemySpawns: AR.map.enemySpawns
+        } });
+    }
+
+    function arStatus(t) {
+        const el = document.getElementById('arena-status');
+        if (el) el.textContent = t ? '· ' + t : '';
+    }
+
+    // ---------- 输入绑定 ----------
+    function arBindInput() {
+        if (AR._bound) return;
+        AR._bound = true;
+        AR._kd = (e) => {
+            const k = e.key.toLowerCase();
+            if (k === 'escape') { arLeave(); return; }
+            AR.keys[k] = true;
+            if (['arrowup','arrowdown','arrowleft','arrowright',' '].includes(k)) e.preventDefault();
+        };
+        AR._ku = (e) => { AR.keys[e.key.toLowerCase()] = false; };
+        AR._mm = (e) => {
+            const r = AR.canvas.getBoundingClientRect();
+            AR.mouse.x = e.clientX - r.left;
+            AR.mouse.y = e.clientY - r.top;
+        };
+        AR._md = (e) => { if (e.button === 0) AR.mouse.down = true; };
+        AR._mu = (e) => { if (e.button === 0) AR.mouse.down = false; };
+        window.addEventListener('keydown', AR._kd);
+        window.addEventListener('keyup', AR._ku);
+        AR.canvas.addEventListener('mousemove', AR._mm);
+        AR.canvas.addEventListener('mousedown', AR._md);
+        window.addEventListener('mouseup', AR._mu);
+        AR.canvas.addEventListener('contextmenu', e => e.preventDefault());
+    }
+    function arUnbindInput() {
+        if (!AR._bound) return;
+        AR._bound = false;
+        window.removeEventListener('keydown', AR._kd);
+        window.removeEventListener('keyup', AR._ku);
+        if (AR.canvas) {
+            AR.canvas.removeEventListener('mousemove', AR._mm);
+            AR.canvas.removeEventListener('mousedown', AR._md);
+        }
+        window.removeEventListener('mouseup', AR._mu);
+        AR.keys = {}; AR.mouse.down = false;
+    }
+
+    // 窗口 resize
+    window.addEventListener('resize', () => {
+        if (!AR.active || !AR.canvas) return;
+        const dpr = window.devicePixelRatio || 1;
+        const rect = AR.canvas.parentElement.getBoundingClientRect();
+        AR.W = rect.width; AR.H = rect.height;
+        AR.canvas.width = Math.floor(AR.W * dpr);
+        AR.canvas.height = Math.floor(AR.H * dpr);
+        AR.canvas.style.width = AR.W + 'px';
+        AR.canvas.style.height = AR.H + 'px';
+        AR.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    });
+
     // 事件绑定 & 初始化
     // ============================================================
     $('create-btn').addEventListener('click', createRoom);
@@ -1393,22 +2074,8 @@
     $('send-btn').addEventListener('click', sendMsg);
     $('msg-input').addEventListener('keydown', e => { if (e.key === 'Enter') sendMsg(); });
     $('game-btn').addEventListener('click', () => { if (isHost) hostStartGame(); else addSys('只有房主可以发起游戏'); });
-    $('arena-btn').addEventListener('click', arenaStart);
-    $('arena-close').addEventListener('click', arenaClose);
-    $('arena-reconnect').addEventListener('click', () => {
-        document.getElementById('arena-reconnect').classList.add('hidden');
-        if (ARENA.role === 'guest') {
-            // 成员重连：重新加载 iframe 并等待新 offer
-            arenaPost({ type: 'arena-leave' });
-            const f = arenaIframe();
-            ARENA.iframeReady = false;
-            if (f) f.src = 'tools/zhan-shu.html?embed=1';
-            arenaWaiting('等待房主重新邀请…');
-        } else {
-            arenaClose();
-            setTimeout(() => arenaOpen('host'), 300);
-        }
-    });
+    $('arena-btn').addEventListener('click', arStart);
+    $('arena-close').addEventListener('click', () => arLeave());
 
     $('nickname').value = localStorage.getItem('lobby_nick') || '';
 

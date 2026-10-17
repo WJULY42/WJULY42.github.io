@@ -217,31 +217,36 @@ It has a dark "space" theme with an optional light mode.
   host{Tap,Quiz,Math,Rps,Bomb,Draw} / resolveRound / clientGameData / playerAct /
   render{Tap,Quiz,MathGame,RpsGame,Bomb,DrawGame,GameResult,GameOver}.
 
-## Arena (联机枪战) — inside lobby.html
-- The room view has a second bar above the chat: "🔫 联机枪战" with a 发起枪战 button
-  (host-only). Pressing it opens a full-screen iframe overlay running tools/zhan-shu.html
-  (the existing single-file tactical shooter) in multiplayer mode.
-- Zero-friction join: the shooter's own manual "copy SDP / paste SDP" flow is bypassed.
-  lobby.html already has a PeerJS DataConnection to every room member, so it relays the
-  WebRTC SDP handshake through that channel instead:
-    1. host opens the iframe, posts {type:'arena-host'} to it
-    2. the iframe calls its own netCreate() (offer), posts back {type:'arena-offer', sdp}
-    3. lobby broadcasts {type:'arena', sub:'offer', sdp} to members over PeerJS
-    4. each member's iframe gets {type:'arena-join', sdp} and replies {type:'arena-answer', sdp}
-    5. lobby sends it back to the host, whose iframe calls netAccept(sdp)
-- The hook lives at the end of zhan-shu.html (autoArenaHook): it listens for postMessage
-  {arena-host | arena-join | arena-answer | arena-leave} and replies {arena-offer |
-  arena-answer | arena-status}. It does not change the shooter's game logic.
-- zhan-shu.html also exposes window.__arenaDebug (getter) for the parent to inspect
-  {connected, host, player, remote, enemies, level} without touching internals.
-- The shooter keeps its own host-authoritative model: host simulates the world and
-  broadcasts a snapshot every 50ms; the guest mirrors and sends {t:'p'} up. This runs
-  inside the iframe independently of lobby's own 5-round mini-game system.
-- Lobby-side code lives under the "联机枪战" section of lobby.html: ARENA state,
-- Spawn-room safety (zhan-shu.html): doors on the starting room's edges carry
-  secure:true (set in buildMap via startAdj()). aiCrankDoor() refuses secure doors,
-  so enemies can never break into the spawn room at level start; the door-approach
-  branch in the AI move code also skips them and re-paths instead. The player and
-  teammates can still open these doors normally (crankDoorBy is unaffected).
-  arenaOpen/Close/Start, onArenaMsg (offer/answer/open/closed), the window 'message'
-  listener, and the arena-overlay markup + CSS.
+## Arena (联机枪战) — native implementation inside lobby.html
+- The room view has a bar above the chat: "🔫 联机枪战" + a 发起枪战 button (host-only).
+  It opens a full-screen <canvas> overlay and runs a top-down twin-stick shooter that is
+  written natively in lobby.html. There is NO iframe and no dependence on tools/zhan-shu.html
+  (that file is a separate standalone shooter that still exists for direct use, but the
+  arena no longer embeds it).
+- Networking reuses lobby's existing PeerJS DataConnection — no second handshake:
+    host -> {type:'arena', sub:'open', map:{...}}     start, carries the generated map
+    host -> {type:'arena', sub:'snap', ...}           world snapshot at 20 Hz
+    guest -> {type:'arena', sub:'input', ...}         position/angle/fire at 20 Hz
+    either -> {type:'arena', sub:'closed'}            leave
+    host -> {type:'arena', sub:'dead'} (to one peer)  that peer died
+- Authoritative model: the host simulates everything (player movement for itself, all
+  enemy AI, all bullets, all damage) and broadcasts snapshots. Guests simulate only their
+  own movement for responsiveness, send their state up, and render enemies/bullets/HP from
+  snapshots (guests never spawn bullets locally — that would duplicate the host's).
+- Loop design (important): rendering runs on requestAnimationFrame, but physics (60 Hz)
+  and networking (20 Hz) run on independent setInterval timers. Background/hidden windows
+  throttle rAF to ~1 Hz, which previously froze movement and sync in the non-focused
+  window. Do not move physics back into rAF.
+- Map: generated on the host by arBuildMap(cols,rows) — rooms on a grid, walls between
+  them, ~75% of internal walls get a door gap. The map is broadcast in the 'open' message
+  so the guest uses the exact same geometry (otherwise each side would generate a
+  different random map and players would clip through walls).
+- Spawn-room safety: doors adjacent to the spawn room get secure:true. Enemy AI never
+  targets or opens them, so the spawn room cannot be breached at round start. Players
+  still move and shoot freely out of it.
+- Win/lose (host decides): all enemies dead -> "全部敌人已清除！"; local player dead ->
+  "你已阵亡". Esc or the 退出枪战 button leaves the arena.
+- Key functions in lobby.html: arBuildMap / arBlocked / arMoveUnit / arLineClear / arFire /
+  arUpdateWorld / arTickPhysics / arLoop / arRender / arDrawUnit / arRenderHUD /
+  arBroadcastSnapshot / arSendInput / arOnNet / arEnter / arLeave / arStart /
+  arBindInput / arUnbindInput. State lives in the AR object, tuning in AR_CFG.
