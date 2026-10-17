@@ -193,9 +193,15 @@ It has a dark "space" theme with an optional light mode.
   data/*.json pipeline and does not load assets/local-data.js.
 
 - Game mode: the chat footer has a "🎮 游戏" button (host-only). Pressing it starts a
-  3-round match; each round randomly picks a different mini-game from a pool of three
-  (reaction / rock-paper-scissors / mental math). The host is authoritative: it runs the
-  round, collects every player's action, decides the winner, and broadcasts the result;
-  clients only send {type:'game', sub:'action', ...} and render what the host broadcasts.
-  Winner of each round scores +1; the highest total wins (ties shown as 平局). The host
-  advances rounds manually via "下一轮". Reactions: 3s window; RPS: 8s; math: 10s.
+  5-round match; each round randomly picks a different mini-game from a pool of five:
+  reaction / rock-paper-scissors / mental math / draw-and-guess / number-bomb.
+  The host is authoritative: it runs the round, collects every player's action, decides
+  the winner, and broadcasts the result; clients only send {type:'game', sub:'action', ...}
+  and render what the host broadcasts. Winner(s) score +1; highest total wins (ties = 平局).
+  The host advances rounds manually via "下一轮".
+  Per-game timing: reaction 3s window; RPS 8s; math 10s; draw-and-guess 45s;
+  number-bomb has no timer (runs until someone hits the bomb).
+  Draw-and-guess: one random drawer gets a secret word and draws on a shared canvas
+  (strokes relayed as normalized coords via the host). Correct guesser +1 and drawer +1.
+  Number-bomb: secret number 1..100, players guess in turn to narrow [lo,hi]; whoever
+  hits it loses and every other player scores +1.
