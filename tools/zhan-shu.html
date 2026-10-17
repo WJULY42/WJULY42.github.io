@@ -2881,6 +2881,80 @@ function initMenu(){
   // 局域网扫描
   document.getElementById('btnScan').onclick = () => netScan();
 }
+
+/* 调试导出：供父窗口检查联机状态（不影响游戏逻辑） */
+try {
+  Object.defineProperty(window, '__arenaDebug', {
+    get: function () {
+      return {
+        connected: net.connected, host: net.host, mode: net.mode,
+        player: player ? { x: Math.round(player.x), y: Math.round(player.y), hp: player.hp } : null,
+        remote: (typeof remotePlayer !== 'undefined' && remotePlayer) ? { x: Math.round(remotePlayer.x), y: Math.round(remotePlayer.y), hp: remotePlayer.hp } : null,
+        enemies: enemies.length, level: level
+      };
+    }
+  });
+} catch (e) {}
+
+/* ============================================================
+ * 自动联机钩子（供父窗口 iframe 嵌入时使用）
+ * 父窗口通过 postMessage 驱动，无需手动复制粘贴连接码
+ * ============================================================ */
+(function autoArenaHook(){
+  let hookMode = null; // 'host' | 'join'
+  function postToParent(msg){ try { if (window.parent && window.parent !== window) window.parent.postMessage(msg, '*'); } catch(_){} }
+
+  window.addEventListener('message', function(e){
+    const m = e.data; if (!m || typeof m !== 'object' || !m.type) return;
+    if (m.type === 'arena-host') {
+      hookMode = 'host';
+      // 切到手动模式（复用 SDP 交换逻辑），生成 offer
+      if (typeof netCreate === 'function') {
+        netCreate().then(function(){
+          // 等 myCode 填充
+          let tries = 0;
+          const iv = setInterval(function(){
+            const el = document.getElementById('myCode');
+            if (el && el.value) { clearInterval(iv); postToParent({ type:'arena-offer', sdp: el.value }); }
+            else if (++tries > 100) clearInterval(iv);
+          }, 100);
+        });
+      }
+    } else if (m.type === 'arena-answer') {
+      if (typeof netAccept === 'function') netAccept(m.sdp);
+    } else if (m.type === 'arena-join') {
+      hookMode = 'join';
+      if (typeof netJoin === 'function') {
+        netJoin(m.sdp).then(function(){
+          let tries = 0;
+          const iv = setInterval(function(){
+            const el = document.getElementById('joinMine');
+            if (el && el.value) { clearInterval(iv); postToParent({ type:'arena-answer', sdp: el.value }); }
+            else if (++tries > 100) clearInterval(iv);
+          }, 100);
+        });
+      }
+    } else if (m.type === 'arena-leave') {
+      if (typeof netLeave === 'function') netLeave();
+      if (typeof showMenu === 'function') showMenu();
+    }
+  });
+
+  // 连接建立/断开时通知父窗口
+  const origOpen = window.onNetOpen;
+  window.addEventListener('load', function(){
+    // 轮询 net.connected 变化
+    let last = false;
+    setInterval(function(){
+      if (typeof net !== 'undefined') {
+        if (net.connected !== last) {
+          last = net.connected;
+          postToParent({ type: 'arena-status', connected: net.connected, host: net.host });
+        }
+      }
+    }, 500);
+  });
+})();
 </script>
 </body>
 </html>

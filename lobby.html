@@ -50,6 +50,9 @@
         #game-overlay { position: absolute; inset: 0; z-index: 30; background: #0d1117; border-radius: 0.75rem; flex-direction: column; overflow: hidden; }
         #game-overlay.hidden { display: none; }
         #game-overlay.flex { display: flex; }
+        #arena-overlay.flex { display: flex; }
+        #arena-overlay { position: fixed; inset: 0; z-index: 9999; }
+        #arena-overlay.hidden { display: none; }
     </style>
 
     <script src="assets/theme-toggle.js"></script>
@@ -131,6 +134,13 @@
                 </div>
 
                 <div class="spotlight-card rounded-xl flex flex-col relative" style="height: 60vh;">
+                    <div class="border-b border-space-border px-4 py-2 flex items-center justify-between bg-space-800/40">
+                        <span class="text-xs font-mono text-space-muted flex items-center gap-2">
+                            <span class="text-base">🔫</span> 联机枪战
+                            <span class="text-[10px] px-1.5 py-0.5 rounded bg-glow-pink/15 text-glow-pink border border-glow-pink/30">P2P</span>
+                        </span>
+                        <button id="arena-btn" class="px-4 py-1.5 bg-glow-pink/20 text-glow-pink border border-glow-pink/40 rounded-lg text-xs font-medium hover:bg-glow-pink/30 transition whitespace-nowrap">发起枪战</button>
+                    </div>
                     <div id="chat-box" class="flex-1 overflow-y-auto p-5 space-y-3"></div>
                     <div class="border-t border-space-border p-3 flex gap-2">
                         <input id="msg-input" class="glow-input flex-1 rounded-lg px-4 py-2.5 text-sm" placeholder="输入消息，回车发送" maxlength="500" autocomplete="off">
@@ -140,6 +150,24 @@
                     <div id="game-overlay" class="hidden"></div>
                 </div>
                 <p id="room-status" class="text-xs text-space-muted mt-3 font-mono text-center"></p>
+            </div>
+
+            <!-- ===== 联机枪战 覆盖层 ===== -->
+            <div id="arena-overlay" class="hidden fixed inset-0 z-[9999] bg-space-900 flex-col">
+                <div class="flex items-center justify-between px-4 py-2 border-b border-space-border bg-space-800/80">
+                    <span class="text-sm font-semibold text-glow-pink flex items-center gap-2">🔫 联机枪战 <span id="arena-status" class="text-xs font-mono text-space-muted font-normal"></span></span>
+                    <div class="flex items-center gap-2">
+                        <button id="arena-reconnect" class="hidden px-3 py-1.5 bg-glow-blue/20 text-glow-blue border border-glow-blue/40 rounded-lg text-xs hover:bg-glow-blue/30 transition">重新连接</button>
+                        <button id="arena-close" class="px-3 py-1.5 bg-space-700 border border-space-border rounded-lg text-xs hover:border-glow-pink transition">退出枪战</button>
+                    </div>
+                </div>
+                <div class="flex-1 relative bg-black">
+                    <iframe id="arena-iframe" class="absolute inset-0 w-full h-full" frameborder="0" allow="autoplay; fullscreen"></iframe>
+                    <div id="arena-waiting" class="absolute inset-0 flex flex-col items-center justify-center bg-space-900/95 backdrop-blur-sm pointer-events-none">
+                        <div class="text-5xl mb-4 animate-pulse">🔫</div>
+                        <p id="arena-waiting-text" class="text-space-text text-sm font-mono">正在准备…</p>
+                    </div>
+                </div>
             </div>
 
         </div>
@@ -355,6 +383,8 @@
             broadcast({ type: 'msg', from, text: d.text }, conn); // 转发给其他人
         } else if (d.type === 'game' && d.sub === 'action') {
             hostGameAction(conn, d);
+        } else if (d.type === 'arena') {
+            onArenaMsg(conn, d);
         }
     }
     // 客户端收到房主消息
@@ -368,6 +398,7 @@
         else if (d.type === 'sys') addSys(d.text);
         else if (d.type === 'members') setRoomStatus('在线：' + d.list.join('、'));
         else if (d.type === 'game') clientGameData(d);
+        else if (d.type === 'arena') onArenaMsg(connections.host || {}, d);
         else if (d.type === 'reject') {
             setStatus('加入失败：' + (d.reason || '昵称重复'));
             if (peer) { try { peer.destroy(); } catch (e) {} }
@@ -1211,6 +1242,149 @@
         $('game-close2').addEventListener('click', () => gameOverlayHide());
     }
     // ============================================================
+    // 联机枪战（iframe 嵌入 zhan-shu.html，用现有 PeerJS 通道中继 SDP）
+    // 房主先初始化 iframe 生成 offer → 经 PeerJS 发给成员 → 成员回 answer
+    // ============================================================
+    const ARENA = {
+        active: false,
+        role: null,          // 'host' | 'guest'
+        iframeReady: false,
+        offerSent: false,
+        answerSent: false,
+        connId: null,        // 用于多成员时指定目标
+    };
+
+    function arenaEl() { return document.getElementById('arena-overlay'); }
+    function arenaIframe() { return document.getElementById('arena-iframe'); }
+    function arenaStatus(t) { const el = document.getElementById('arena-status'); if (el) el.textContent = t ? '· ' + t : ''; }
+    function arenaWaiting(t) {
+        const w = document.getElementById('arena-waiting');
+        const tx = document.getElementById('arena-waiting-text');
+        if (t === null) { w.classList.add('hidden'); w.classList.remove('flex'); }
+        else { w.classList.remove('hidden'); w.classList.add('flex'); if (tx) tx.textContent = t; }
+    }
+    function arenaPost(msg) {
+        const f = arenaIframe();
+        if (f && f.contentWindow) { try { f.contentWindow.postMessage(msg, '*'); } catch (e) {} }
+    }
+
+    // 打开枪战覆盖层（加载 iframe）
+    function arenaOpen(role) {
+        ARENA.active = true;
+        ARENA.role = role;
+        ARENA.iframeReady = false;
+        ARENA.offerSent = false;
+        ARENA.answerSent = false;
+        arenaEl().classList.remove('hidden');
+        arenaEl().classList.add('flex');
+        arenaStatus(role === 'host' ? '准备中（房主）' : '准备中（成员）');
+        arenaWaiting('正在加载枪战…');
+        const f = arenaIframe();
+        f.src = 'tools/zhan-shu.html?embed=1';
+    }
+
+    function arenaClose() {
+        ARENA.active = false;
+        ARENA.role = null;
+        ARENA.iframeReady = false;
+        ARENA.offerSent = false;
+        ARENA.answerSent = false;
+        arenaPost({ type: 'arena-leave' });
+        arenaEl().classList.add('hidden');
+        arenaEl().classList.remove('flex');
+        const f = arenaIframe();
+        if (f) f.src = 'about:blank';
+        // 广播关闭
+        if (isHost) broadcast({ type: 'arena', sub: 'closed' });
+        else if (connections.host) { try { connections.host.send({ type: 'arena', sub: 'closed' }); } catch (e) {} }
+    }
+
+    // 接收来自 iframe 的消息
+    window.addEventListener('message', (e) => {
+        const d = e.data;
+        if (!d || typeof d !== 'object' || !d.type || String(d.type).indexOf('arena-') !== 0) return;
+        if (d.type === 'arena-offer') {
+            // 房主 iframe 生成了 offer → 经 PeerJS 广播给所有成员
+            ARENA.offerSent = true;
+            arenaStatus('等待成员加入…');
+            arenaWaiting('等待其他玩家加入枪战…');
+            broadcast({ type: 'arena', sub: 'offer', sdp: d.sdp });
+        } else if (d.type === 'arena-answer') {
+            // 成员 iframe 生成了 answer → 发给房主
+            ARENA.answerSent = true;
+            arenaStatus('已提交连接信息');
+            arenaWaiting('等待房主完成连接…');
+            if (isHost) {
+                arenaPost({ type: 'arena-answer', sdp: d.sdp });
+            } else if (connections.host) {
+                try { connections.host.send({ type: 'arena', sub: 'answer', sdp: d.sdp }); } catch (e) {}
+            }
+        } else if (d.type === 'arena-status') {
+            if (d.connected) {
+                arenaStatus('已进入战场');
+                arenaWaiting(null);
+            } else {
+                arenaStatus('连接已断开');
+                document.getElementById('arena-reconnect').classList.remove('hidden');
+            }
+        }
+    });
+
+    // 房主/成员：处理对面来的 arena 消息
+    function onArenaMsg(conn, d) {
+        const name = (conn.metadata && conn.metadata.name) || '访客';
+        if (d.sub === 'open') {
+            // 房主发起 → 通知成员打开 iframe 准备
+            arenaOpen('guest');
+            addSys(name + ' 发起了联机枪战');
+        } else if (d.sub === 'offer') {
+            // 成员收到房主 offer → 交给 iframe
+            ARENA.connId = conn.peer;
+            arenaStatus('收到邀请，正在连接…');
+            arenaWaiting('正在连接房主…');
+            // 等 iframe ready 再投递
+            const deliver = () => arenaPost({ type: 'arena-join', sdp: d.sdp });
+            if (ARENA.iframeReady) deliver();
+            else {
+                const iv = setInterval(() => { if (ARENA.iframeReady) { clearInterval(iv); deliver(); } }, 100);
+                setTimeout(() => clearInterval(iv), 15000);
+            }
+        } else if (d.sub === 'answer') {
+            // 房主收到成员 answer → 交给 iframe 完成连接
+            arenaStatus('成员已应答，建立连接…');
+            arenaPost({ type: 'arena-answer', sdp: d.sdp });
+        } else if (d.sub === 'closed') {
+            addSys(name + ' 退出了枪战');
+            if (ARENA.active) arenaClose();
+        }
+    }
+
+    // iframe load 完成标记
+    document.addEventListener('DOMContentLoaded', () => {});
+    window.addEventListener('load', () => {
+        const f = arenaIframe();
+        if (f) f.addEventListener('load', () => {
+            if (!ARENA.active) return;
+            ARENA.iframeReady = true;
+            if (ARENA.role === 'host') {
+                // 房主：让 iframe 生成 offer
+                arenaWaiting('正在创建枪战房间…');
+                arenaPost({ type: 'arena-host' });
+            }
+        });
+    });
+
+    // 按钮
+    function arenaStart() {
+        if (ARENA.active) return;
+        if (!isHost) { addSys('只有房主可以发起枪战'); return; }
+        // 房主自己先打开
+        arenaOpen('host');
+        addSys('你发起了联机枪战，等待成员加入');
+        broadcast({ type: 'arena', sub: 'open' });
+    }
+
+    // ============================================================
     // 事件绑定 & 初始化
     // ============================================================
     $('create-btn').addEventListener('click', createRoom);
@@ -1219,6 +1393,22 @@
     $('send-btn').addEventListener('click', sendMsg);
     $('msg-input').addEventListener('keydown', e => { if (e.key === 'Enter') sendMsg(); });
     $('game-btn').addEventListener('click', () => { if (isHost) hostStartGame(); else addSys('只有房主可以发起游戏'); });
+    $('arena-btn').addEventListener('click', arenaStart);
+    $('arena-close').addEventListener('click', arenaClose);
+    $('arena-reconnect').addEventListener('click', () => {
+        document.getElementById('arena-reconnect').classList.add('hidden');
+        if (ARENA.role === 'guest') {
+            // 成员重连：重新加载 iframe 并等待新 offer
+            arenaPost({ type: 'arena-leave' });
+            const f = arenaIframe();
+            ARENA.iframeReady = false;
+            if (f) f.src = 'tools/zhan-shu.html?embed=1';
+            arenaWaiting('等待房主重新邀请…');
+        } else {
+            arenaClose();
+            setTimeout(() => arenaOpen('host'), 300);
+        }
+    });
 
     $('nickname').value = localStorage.getItem('lobby_nick') || '';
 

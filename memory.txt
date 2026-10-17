@@ -216,3 +216,27 @@ It has a dark "space" theme with an optional light mode.
   Key funcs: buildGameDefs / playDrawAnimation / hostNextRound / startRoundByType /
   host{Tap,Quiz,Math,Rps,Bomb,Draw} / resolveRound / clientGameData / playerAct /
   render{Tap,Quiz,MathGame,RpsGame,Bomb,DrawGame,GameResult,GameOver}.
+
+## Arena (联机枪战) — inside lobby.html
+- The room view has a second bar above the chat: "🔫 联机枪战" with a 发起枪战 button
+  (host-only). Pressing it opens a full-screen iframe overlay running tools/zhan-shu.html
+  (the existing single-file tactical shooter) in multiplayer mode.
+- Zero-friction join: the shooter's own manual "copy SDP / paste SDP" flow is bypassed.
+  lobby.html already has a PeerJS DataConnection to every room member, so it relays the
+  WebRTC SDP handshake through that channel instead:
+    1. host opens the iframe, posts {type:'arena-host'} to it
+    2. the iframe calls its own netCreate() (offer), posts back {type:'arena-offer', sdp}
+    3. lobby broadcasts {type:'arena', sub:'offer', sdp} to members over PeerJS
+    4. each member's iframe gets {type:'arena-join', sdp} and replies {type:'arena-answer', sdp}
+    5. lobby sends it back to the host, whose iframe calls netAccept(sdp)
+- The hook lives at the end of zhan-shu.html (autoArenaHook): it listens for postMessage
+  {arena-host | arena-join | arena-answer | arena-leave} and replies {arena-offer |
+  arena-answer | arena-status}. It does not change the shooter's game logic.
+- zhan-shu.html also exposes window.__arenaDebug (getter) for the parent to inspect
+  {connected, host, player, remote, enemies, level} without touching internals.
+- The shooter keeps its own host-authoritative model: host simulates the world and
+  broadcasts a snapshot every 50ms; the guest mirrors and sends {t:'p'} up. This runs
+  inside the iframe independently of lobby's own 5-round mini-game system.
+- Lobby-side code lives under the "联机枪战" section of lobby.html: ARENA state,
+  arenaOpen/Close/Start, onArenaMsg (offer/answer/open/closed), the window 'message'
+  listener, and the arena-overlay markup + CSS.
